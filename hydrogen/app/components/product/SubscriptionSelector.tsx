@@ -70,11 +70,15 @@ export function SubscriptionSelector({
 
       {/* ── Subscribe & save ── */}
       <div
+        role="button"
+        tabIndex={0}
+        onClick={() => { if (!isSubscribing) onSelect(allPlans[0]?.id ?? null); }}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (!isSubscribing) onSelect(allPlans[0]?.id ?? null); } }}
         className={cn(
           "relative rounded-lg border transition-colors",
           isSubscribing
             ? "border-crimson ring-1 ring-crimson"
-            : "border-border hover:border-muted-foreground",
+            : "cursor-pointer border-border hover:border-muted-foreground",
         )}
       >
         {/* Badge */}
@@ -85,7 +89,7 @@ export function SubscriptionSelector({
         )}
 
         {/* Header row */}
-        <div className="flex items-start justify-between px-4 pb-2 pt-4 pr-32">
+        <div className="flex items-start justify-between px-4 pb-3 pt-4 pr-32">
           <label className="flex cursor-pointer items-center gap-3">
             <input
               type="radio"
@@ -108,61 +112,63 @@ export function SubscriptionSelector({
           </div>
         </div>
 
-        {/* Benefits list */}
-        <div className="px-4 pb-4">
-          <ul className="flex flex-col gap-1.5">
-            <BenefitItem text="Get 10% off" />
-            <BenefitItem text="Subscription of less than AED 100 order value has AED 15 delivery fees. We deliver as per your schedule." />
-            <BenefitItem text="No commitment cancel anytime." />
-          </ul>
+        {/* Benefits + frequency — only shown when subscribe is selected */}
+        {isSubscribing && (
+          <div className="px-4 pb-4">
+            <ul className="flex flex-col gap-1.5">
+              <BenefitItem text="Get 10% off" />
+              <BenefitItem text="Subscription of less than AED 100 order value has AED 15 delivery fees. We deliver as per your schedule." />
+              <BenefitItem text="No commitment cancel anytime." />
+            </ul>
 
-          <p className="mt-3 text-sm">
-            <span className="font-semibold">Please note:</span> If your subscription order
-            value is more than AED 100 then you will get the following:
-          </p>
+            <p className="mt-3 text-sm">
+              <span className="font-semibold">Please note:</span> If your subscription order
+              value is more than AED 100 then you will get the following:
+            </p>
 
-          <ul className="mt-1.5 flex flex-col gap-1.5">
-            <BenefitItem text="Free delivery; we deliver as per your schedule." />
-            <BenefitItem text="Free NZ Beef Ribeye Steak 250gm x 1." />
-            <BenefitItem text="No commitment, cancel anytime." />
-          </ul>
+            <ul className="mt-1.5 flex flex-col gap-1.5">
+              <BenefitItem text="Free delivery; we deliver as per your schedule." />
+              <BenefitItem text="Free NZ Beef Ribeye Steak 250gm x 1." />
+              <BenefitItem text="No commitment, cancel anytime." />
+            </ul>
 
-          {/* Frequency picker */}
-          {allPlans.length > 0 && (
-            <div className="mt-4">
-              <p className="mb-2 text-sm font-bold">Deliver every:</p>
-              <div className="flex flex-wrap gap-2">
-                {allPlans.map((plan) => (
-                  <button
-                    key={plan.id}
-                    type="button"
-                    onClick={() => onSelect(plan.id)}
-                    className={cn(
-                      "flex min-w-[80px] flex-col items-center rounded-lg border px-4 py-2.5 text-sm font-semibold transition-colors",
-                      plan.id === selectedPlanId
-                        ? "border-crimson bg-crimson text-white"
-                        : "border-border bg-muted/50 hover:border-crimson",
-                    )}
-                  >
-                    <span>{plan.name}</span>
-                    {plan.discount > 0 && (
-                      <span
-                        className={cn(
-                          "text-[11px]",
-                          plan.id === selectedPlanId
-                            ? "text-white/80"
-                            : "text-muted-foreground",
-                        )}
-                      >
-                        save {plan.discount}%
-                      </span>
-                    )}
-                  </button>
-                ))}
+            {/* Frequency picker */}
+            {allPlans.length > 0 && (
+              <div className="mt-4">
+                <p className="mb-2 text-sm font-bold">Deliver every:</p>
+                <div className="flex flex-wrap gap-2">
+                  {allPlans.map((plan) => (
+                    <button
+                      key={plan.id}
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); onSelect(plan.id); }}
+                      className={cn(
+                        "flex min-w-[80px] flex-col items-center rounded-lg border px-4 py-2.5 text-sm font-semibold transition-colors",
+                        plan.id === selectedPlanId
+                          ? "border-crimson bg-crimson text-white"
+                          : "border-border bg-muted/50 hover:border-crimson",
+                      )}
+                    >
+                      <span>{plan.name}</span>
+                      {plan.discount > 0 && (
+                        <span
+                          className={cn(
+                            "text-[11px]",
+                            plan.id === selectedPlanId
+                              ? "text-white/80"
+                              : "text-muted-foreground",
+                          )}
+                        >
+                          save {plan.discount}%
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
