@@ -1,10 +1,10 @@
 import { cn } from "~/lib/utils";
-import { RefreshCw, Tag } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 
 export interface SellingPlan {
   id: string;
   name: string;
-  discount: number; // percentage, 0 = no discount
+  discount: number;
 }
 
 export interface SellingPlanGroup {
@@ -16,6 +16,8 @@ interface SubscriptionSelectorProps {
   groups: SellingPlanGroup[];
   selectedPlanId: string | null;
   onSelect: (planId: string | null) => void;
+  regularPrice?: string;
+  currency?: string;
   className?: string;
 }
 
@@ -23,113 +25,158 @@ export function SubscriptionSelector({
   groups,
   selectedPlanId,
   onSelect,
+  regularPrice = "0",
+  currency = "AED",
   className,
 }: SubscriptionSelectorProps) {
   if (groups.length === 0) return null;
 
-  // Flatten all plans across groups for the frequency picker
   const allPlans = groups.flatMap((g) => g.plans);
-  const activePlan = allPlans.find((p) => p.id === selectedPlanId) ?? null;
   const isSubscribing = selectedPlanId !== null;
+  const activePlan = allPlans.find((p) => p.id === selectedPlanId) ?? allPlans[0];
   const bestDiscount = Math.max(...allPlans.map((p) => p.discount), 0);
+
+  const regularPriceNum = parseFloat(regularPrice) || 0;
+  const subscriptionPrice =
+    activePlan?.discount > 0
+      ? regularPriceNum * (1 - activePlan.discount / 100)
+      : regularPriceNum;
+
+  const fmt = (n: number) => `${currency} ${n.toFixed(2)}`;
 
   return (
     <div className={cn("flex flex-col gap-3", className)}>
-      <p className="text-sm font-semibold">Purchase type</p>
-
-      {/* One-time option */}
+      {/* ── One-time ── */}
       <label
         className={cn(
-          "flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 transition-colors",
+          "flex cursor-pointer items-center justify-between rounded-lg border px-4 py-3 transition-colors",
           !isSubscribing
             ? "border-crimson bg-crimson/5 ring-1 ring-crimson"
-            : "border-border hover:border-muted-foreground"
+            : "border-border hover:border-muted-foreground",
         )}
       >
-        <input
-          type="radio"
-          name="purchase-type"
-          checked={!isSubscribing}
-          onChange={() => onSelect(null)}
-          className="accent-crimson"
-        />
-        <span className="text-sm font-medium">One-time purchase</span>
+        <div className="flex items-center gap-3">
+          <input
+            type="radio"
+            name="purchase-type"
+            checked={!isSubscribing}
+            onChange={() => onSelect(null)}
+            className="accent-crimson"
+          />
+          <span className="font-semibold">One-time</span>
+        </div>
+        <span className="text-sm font-semibold">{fmt(regularPriceNum)}</span>
       </label>
 
-      {/* Subscribe option */}
-      <label
+      {/* ── Subscribe & save ── */}
+      <div
         className={cn(
-          "flex cursor-pointer items-start gap-3 rounded-lg border px-4 py-3 transition-colors",
+          "relative rounded-lg border transition-colors",
           isSubscribing
-            ? "border-crimson bg-crimson/5 ring-1 ring-crimson"
-            : "border-border hover:border-muted-foreground"
+            ? "border-crimson ring-1 ring-crimson"
+            : "border-border hover:border-muted-foreground",
         )}
       >
-        <input
-          type="radio"
-          name="purchase-type"
-          checked={isSubscribing}
-          onChange={() => onSelect(allPlans[0]?.id ?? null)}
-          className="mt-0.5 accent-crimson"
-        />
-        <div className="flex flex-1 flex-col gap-0.5">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">Subscribe &amp; Save</span>
-            {bestDiscount > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
-                <Tag className="h-2.5 w-2.5" />
-                {bestDiscount}% OFF
+        {/* Badge */}
+        {bestDiscount > 0 && (
+          <span className="absolute right-0 top-0 rounded-bl-lg rounded-tr-lg bg-crimson px-3 py-1 text-xs font-bold text-white">
+            Save up to {bestDiscount}%
+          </span>
+        )}
+
+        {/* Header row */}
+        <div className="flex items-start justify-between px-4 pb-2 pt-4 pr-32">
+          <label className="flex cursor-pointer items-center gap-3">
+            <input
+              type="radio"
+              name="purchase-type"
+              checked={isSubscribing}
+              onChange={() => onSelect(allPlans[0]?.id ?? null)}
+              className="mt-0.5 accent-crimson"
+            />
+            <span className="text-base font-bold">Subscribe &amp; save</span>
+          </label>
+          <div className="flex flex-col items-end">
+            {activePlan?.discount > 0 && (
+              <span className="text-xs text-muted-foreground line-through">
+                {fmt(regularPriceNum)}
               </span>
             )}
+            <span className="font-bold">
+              {fmt(activePlan?.discount > 0 ? subscriptionPrice : regularPriceNum)}
+            </span>
           </div>
-          <span className="text-xs text-muted-foreground">
-            Free cancellation · Delivered automatically
-          </span>
         </div>
-      </label>
 
-      {/* Frequency picker — only shown when subscribing */}
-      {isSubscribing && allPlans.length > 1 && (
-        <div className="pl-1">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Delivery frequency
+        {/* Benefits list */}
+        <div className="px-4 pb-4">
+          <ul className="flex flex-col gap-1.5">
+            <BenefitItem text="Get 10% off" />
+            <BenefitItem text="Subscription of less than AED 100 order value has AED 15 delivery fees. We deliver as per your schedule." />
+            <BenefitItem text="No commitment cancel anytime." />
+          </ul>
+
+          <p className="mt-3 text-sm">
+            <span className="font-semibold">Please note:</span> If your subscription order
+            value is more than AED 100 then you will get the following:
           </p>
-          <div className="flex flex-wrap gap-2">
-            {allPlans.map((plan) => (
-              <button
-                key={plan.id}
-                type="button"
-                onClick={() => onSelect(plan.id)}
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-                  plan.id === selectedPlanId
-                    ? "border-crimson bg-crimson text-crimson-foreground"
-                    : "border-border bg-card hover:border-crimson"
-                )}
-              >
-                <RefreshCw className="h-3 w-3" />
-                {plan.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
-      {/* Single plan — show frequency inline */}
-      {isSubscribing && allPlans.length === 1 && activePlan && (
-        <div className="flex items-center gap-1.5 pl-1 text-xs text-muted-foreground">
-          <RefreshCw className="h-3 w-3 text-crimson" />
-          <span>{activePlan.name}</span>
+          <ul className="mt-1.5 flex flex-col gap-1.5">
+            <BenefitItem text="Free delivery; we deliver as per your schedule." />
+            <BenefitItem text="Free NZ Beef Ribeye Steak 250gm x 1." />
+            <BenefitItem text="No commitment, cancel anytime." />
+          </ul>
+
+          {/* Frequency picker */}
+          {allPlans.length > 0 && (
+            <div className="mt-4">
+              <p className="mb-2 text-sm font-bold">Deliver every:</p>
+              <div className="flex flex-wrap gap-2">
+                {allPlans.map((plan) => (
+                  <button
+                    key={plan.id}
+                    type="button"
+                    onClick={() => onSelect(plan.id)}
+                    className={cn(
+                      "flex min-w-[80px] flex-col items-center rounded-lg border px-4 py-2.5 text-sm font-semibold transition-colors",
+                      plan.id === selectedPlanId
+                        ? "border-crimson bg-crimson text-white"
+                        : "border-border bg-muted/50 hover:border-crimson",
+                    )}
+                  >
+                    <span>{plan.name}</span>
+                    {plan.discount > 0 && (
+                      <span
+                        className={cn(
+                          "text-[11px]",
+                          plan.id === selectedPlanId
+                            ? "text-white/80"
+                            : "text-muted-foreground",
+                        )}
+                      >
+                        save {plan.discount}%
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
 
-/**
- * Parse Shopify selling plan groups from the GraphQL response.
- * discountMap: planId -> discount% derived from sellingPlanAllocations on variants.
- */
+function BenefitItem({ text }: { text: string }) {
+  return (
+    <li className="flex items-start gap-2 text-sm text-muted-foreground">
+      <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-500" />
+      <span>{text}</span>
+    </li>
+  );
+}
+
 export function parseSellingPlanGroups(
   raw: any[],
   discountMap: Record<string, number> = {},

@@ -108,11 +108,8 @@ export async function loader({ params, context }: LoaderFunctionArgs) {
   };
 }
 
-export const meta: MetaFunction<typeof loader> = ({ matches }) => {
-  const loaderData = matches.find((m) => m.id === "routes/products.$handle")?.data as
-    | { product?: { title?: string } }
-    | undefined;
-  return [{ title: `${loaderData?.product?.title ?? "Product"} — MLS UAE` }];
+export const meta: MetaFunction<typeof loader> = ({ data }) => {
+  return [{ title: `${data?.product?.title ?? "Product"} — MLS UAE` }];
 };
 
 export default function Product() {
@@ -349,6 +346,8 @@ export default function Product() {
               groups={sellingPlanGroups}
               selectedPlanId={selectedPlanId}
               onSelect={setSelectedPlanId}
+              regularPrice={variant?.price.amount ?? "0"}
+              currency={currency}
             />
           )}
 

@@ -74,13 +74,10 @@ export async function loader({ params, request, context }: LoaderFunctionArgs) {
   return { collection: data.collection, sortIdx };
 }
 
-export const meta: MetaFunction<typeof loader> = ({ matches }) => {
-  const loaderData = matches.find((m) => m.id === "routes/collections.$handle")?.data as
-    | { collection?: { title?: string; description?: string } }
-    | undefined;
+export const meta: MetaFunction<typeof loader> = ({ data }) => {
   return [
-    { title: `${loaderData?.collection?.title ?? "Collection"} — MLS UAE` },
-    { name: "description", content: loaderData?.collection?.description ?? "" },
+    { title: `${data?.collection?.title ?? "Collection"} — MLS UAE` },
+    { name: "description", content: data?.collection?.description ?? "" },
   ];
 };
 
