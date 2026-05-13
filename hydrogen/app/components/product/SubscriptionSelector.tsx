@@ -89,7 +89,7 @@ export function SubscriptionSelector({
         )}
 
         {/* Header row */}
-        <div className="flex items-start justify-between px-4 pb-3 pt-4 pr-32">
+        <div className={cn("flex items-start justify-between px-4 pb-3 pt-4", bestDiscount > 0 ? "pr-24" : "pr-4")}>
           <label className="flex cursor-pointer items-center gap-3">
             <input
               type="radio"
