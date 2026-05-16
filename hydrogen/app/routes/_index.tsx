@@ -101,14 +101,17 @@ const HOME_QUERY = `#graphql
               handle
               priceRange { minVariantPrice { amount currencyCode } }
               featuredImage { url altText }
-            }
-            ... on Video {
-              previewImage { url }
-              sources { url mimeType }
-            }
-            ... on ExternalVideo {
-              embedUrl
-              previewImage { url }
+              media(first: 5) {
+                edges {
+                  node {
+                    mediaContentType
+                    ... on Video {
+                      previewImage { url }
+                      sources { url mimeType }
+                    }
+                  }
+                }
+              }
             }
           }
         }
@@ -206,37 +209,21 @@ function parseReelItems(nodes: any[]): ReelProduct[] {
   const reels: ReelProduct[] = [];
   for (const node of nodes) {
     const f = Object.fromEntries(node.fields.map((x: any) => [x.key, x]));
-    const product = f["product"]?.reference;
-    const videoRef = f["video"]?.reference;
-    if (!product) continue;
-
-    // Resolve video: use dedicated video field first, fall back to product media
-    let videoUrl: string | null = null;
-    let embedUrl: string | null = null;
-    let poster: string | null = product.featuredImage?.url ?? null;
-
-    if (videoRef) {
-      // file_reference resolves to Video or ExternalVideo node
-      if (videoRef.sources) {
-        // Video type
-        const mp4 = videoRef.sources.find((s: any) => s.mimeType === "video/mp4") ?? videoRef.sources[0];
-        videoUrl = mp4?.url ?? null;
-        poster = videoRef.previewImage?.url ?? poster;
-      } else if (videoRef.embedUrl) {
-        // ExternalVideo type
-        embedUrl = videoRef.embedUrl;
-        poster = videoRef.previewImage?.url ?? poster;
-      }
-    }
-
+    const p = f["product"]?.reference;
+    if (!p) continue;
+    const videoEdge = p.media?.edges?.find(
+      (e: any) => e.node.mediaContentType === "VIDEO"
+    );
+    if (!videoEdge) continue;
+    const mp4 = videoEdge.node.sources?.find((s: any) => s.mimeType === "video/mp4") ?? videoEdge.node.sources?.[0];
     reels.push({
-      id: node.id,
-      title: product.title,
-      handle: product.handle,
-      price: product.priceRange.minVariantPrice,
-      poster,
-      videoUrl,
-      embedUrl,
+      id: p.id,
+      title: p.title,
+      handle: p.handle,
+      price: p.priceRange.minVariantPrice,
+      poster: videoEdge.node.previewImage?.url ?? p.featuredImage?.url ?? null,
+      videoUrl: mp4?.url ?? null,
+      embedUrl: null,
     });
   }
   return reels;
