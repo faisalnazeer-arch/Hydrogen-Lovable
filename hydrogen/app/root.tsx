@@ -24,6 +24,7 @@ export const links: LinksFunction = () => [
   { rel: "stylesheet", href: styles },
 ];
 
+// ── Nav types ────────────────────────────────────────────────────────────────
 export interface NavLink {
   label: string;
   url: string;
@@ -43,9 +44,36 @@ export interface NavEntry {
   columns: NavColumn[];
 }
 
-const NAV_QUERY = `#graphql
-  query NavMetaobjects($language: LanguageCode, $country: CountryCode)
+// ── Footer types ─────────────────────────────────────────────────────────────
+export interface FooterLink {
+  label: string;
+  url: string;
+}
+
+export interface FooterColumn {
+  id: string;
+  heading: string;
+  position: number;
+  links: FooterLink[];
+}
+
+export interface FooterSettings {
+  brandText: string;
+  instagramUrl: string;
+  facebookUrl: string;
+  contactHeading: string;
+  address: string;
+  phone: string;
+  email: string;
+  copyright: string;
+  bottomTagline: string;
+}
+
+// ── GraphQL ───────────────────────────────────────────────────────────────────
+const LAYOUT_QUERY = `#graphql
+  query LayoutData($language: LanguageCode, $country: CountryCode)
   @inContext(language: $language, country: $country) {
+
     navEntries: metaobjects(type: "mls_nav_entry", first: 50) {
       nodes {
         id
@@ -77,9 +105,35 @@ const NAV_QUERY = `#graphql
         }
       }
     }
+
+    footerSettings: metaobjects(type: "mls_footer_settings", first: 1) {
+      nodes {
+        id
+        fields { key value }
+      }
+    }
+
+    footerColumns: metaobjects(type: "mls_footer_column", first: 10) {
+      nodes {
+        id
+        fields {
+          key
+          value
+          references(first: 20) {
+            nodes {
+              ... on Metaobject {
+                id
+                fields { key value }
+              }
+            }
+          }
+        }
+      }
+    }
   }
 ` as const;
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function toPath(u: string): string {
   try { return new URL(u).pathname || "/"; } catch { return u; }
 }
@@ -90,6 +144,7 @@ function resolveUrl(urlField: string | undefined, handle: string | undefined): s
   return null;
 }
 
+// ── Nav parser ────────────────────────────────────────────────────────────────
 function parseNavEntries(nodes: any[]): NavEntry[] {
   return nodes
     .map((node) => {
@@ -117,28 +172,87 @@ function parseNavEntries(nodes: any[]): NavEntry[] {
     .sort((a, b) => a.position - b.position);
 }
 
+// ── Footer parsers ────────────────────────────────────────────────────────────
+const FOOTER_SETTINGS_FALLBACK: FooterSettings = {
+  brandText: "Premium fresh red meat — beef, lamb, mutton & specialty cuts — delivered across the UAE & Oman.",
+  instagramUrl: "",
+  facebookUrl: "",
+  contactHeading: "Get in Touch",
+  address: "Muscat, Oman & Dubai, UAE",
+  phone: "+968 0000 0000",
+  email: "hello@mls.com",
+  copyright: "Muscat Livestock Store. 100% Halal certified.",
+  bottomTagline: "Premium butcher cuts · Delivered fresh",
+};
+
+function parseFooterSettings(nodes: any[]): FooterSettings {
+  const node = nodes[0];
+  if (!node) return FOOTER_SETTINGS_FALLBACK;
+  const f = Object.fromEntries(node.fields.map((x: any) => [x.key, x]));
+  return {
+    brandText:      f.brand_text?.value      ?? FOOTER_SETTINGS_FALLBACK.brandText,
+    instagramUrl:   f.instagram_url?.value   ?? "",
+    facebookUrl:    f.facebook_url?.value    ?? "",
+    contactHeading: f.contact_heading?.value ?? FOOTER_SETTINGS_FALLBACK.contactHeading,
+    address:        f.address?.value         ?? FOOTER_SETTINGS_FALLBACK.address,
+    phone:          f.phone?.value           ?? FOOTER_SETTINGS_FALLBACK.phone,
+    email:          f.email?.value           ?? FOOTER_SETTINGS_FALLBACK.email,
+    copyright:      f.copyright?.value       ?? FOOTER_SETTINGS_FALLBACK.copyright,
+    bottomTagline:  f.bottom_tagline?.value  ?? FOOTER_SETTINGS_FALLBACK.bottomTagline,
+  };
+}
+
+function parseFooterColumns(nodes: any[]): FooterColumn[] {
+  return nodes
+    .map((node) => {
+      const fm = Object.fromEntries(node.fields.map((f: any) => [f.key, f]));
+      const links: FooterLink[] = (fm.links?.references?.nodes ?? []).map((lk: any) => {
+        const lf = Object.fromEntries(lk.fields.map((x: any) => [x.key, x]));
+        return {
+          label: lf.label?.value ?? "",
+          url: lf.url?.value ?? "/",
+        };
+      });
+      return {
+        id: node.id as string,
+        heading: fm.heading?.value ?? "",
+        position: parseInt(fm.position?.value ?? "0", 10),
+        links,
+      };
+    })
+    .sort((a, b) => a.position - b.position);
+}
+
+// ── Loader ────────────────────────────────────────────────────────────────────
 export async function loader({ context, request }: LoaderFunctionArgs) {
   const lang = request.headers
     .get("Cookie")
     ?.match(/(?:^|;\s*)lang=([a-z]{2})/)?.[1];
   const language = (lang === "ar" ? "AR" : "EN") as "AR" | "EN";
   try {
-    const nav = await context.storefront.query(NAV_QUERY, {
+    const data = await context.storefront.query(LAYOUT_QUERY, {
       variables: { language, country: "AE" as const },
     });
-    const all = parseNavEntries(nav?.navEntries?.nodes ?? []);
+    const all = parseNavEntries(data?.navEntries?.nodes ?? []);
+    const footerSettings = parseFooterSettings(data?.footerSettings?.nodes ?? []);
+    const footerColumns = parseFooterColumns(data?.footerColumns?.nodes ?? []);
     return {
       mainMenu: all.filter((e) => e.menu === "main"),
       secondaryMenu: all.filter((e) => e.menu === "secondary"),
+      footerSettings,
+      footerColumns,
     };
   } catch {
     return {
       mainMenu: [] as NavEntry[],
       secondaryMenu: [] as NavEntry[],
+      footerSettings: FOOTER_SETTINGS_FALLBACK,
+      footerColumns: [] as FooterColumn[],
     };
   }
 }
 
+// ── App shell ─────────────────────────────────────────────────────────────────
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: { staleTime: 1000 * 60 * 5, retry: 1 },
@@ -174,7 +288,6 @@ function CartSyncWrapper() {
   return null;
 }
 
-// Syncs the locale store to <html> lang and dir attributes client-side
 function LocaleSync() {
   const locale = useLocaleStore((s) => s.locale);
   useEffect(() => {
@@ -186,7 +299,7 @@ function LocaleSync() {
 }
 
 export default function App() {
-  const { mainMenu, secondaryMenu } = useLoaderData<typeof loader>();
+  const { mainMenu, secondaryMenu, footerSettings, footerColumns } = useLoaderData<typeof loader>();
   return (
     <QueryClientProvider client={queryClient}>
       <LocaleSync />
@@ -197,7 +310,7 @@ export default function App() {
         <main className="flex-1">
           <Outlet />
         </main>
-        <Footer />
+        <Footer settings={footerSettings} columns={footerColumns} />
       </div>
       <CartDrawer />
       <QuickBuyDrawer />
