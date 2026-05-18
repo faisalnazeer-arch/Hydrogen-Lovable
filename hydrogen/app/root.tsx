@@ -49,6 +49,7 @@ const NAV_QUERY = `#graphql
     navEntries: metaobjects(type: "mls_nav_entry", first: 50) {
       nodes {
         id
+        handle
         fields {
           key
           value
@@ -56,6 +57,7 @@ const NAV_QUERY = `#graphql
             nodes {
               ... on Metaobject {
                 id
+                handle
                 fields {
                   key
                   value
@@ -63,6 +65,7 @@ const NAV_QUERY = `#graphql
                     nodes {
                       ... on Metaobject {
                         id
+                        handle
                         fields { key value }
                       }
                     }
@@ -81,6 +84,12 @@ function toPath(u: string): string {
   try { return new URL(u).pathname || "/"; } catch { return u; }
 }
 
+function resolveUrl(urlField: string | undefined, handle: string | undefined): string | null {
+  if (urlField) return toPath(urlField);
+  if (handle) return `/collections/${handle}`;
+  return null;
+}
+
 function parseNavEntries(nodes: any[]): NavEntry[] {
   return nodes
     .map((node) => {
@@ -89,14 +98,17 @@ function parseNavEntries(nodes: any[]): NavEntry[] {
         const cf = Object.fromEntries(col.fields.map((f: any) => [f.key, f]));
         const links: NavLink[] = (cf.links?.references?.nodes ?? []).map((lk: any) => {
           const lf = Object.fromEntries(lk.fields.map((f: any) => [f.key, f]));
-          return { label: lf.label?.value ?? "", url: toPath(lf.url?.value ?? "/") };
+          return {
+            label: lf.label?.value ?? "",
+            url: resolveUrl(lf.url?.value, lk.handle) ?? "/",
+          };
         });
         return { title: cf.title?.value ?? "", links };
       });
       return {
         id: node.id,
         label: fm.label?.value ?? "",
-        url: fm.url?.value ? toPath(fm.url.value) : null,
+        url: resolveUrl(fm.url?.value, node.handle),
         menu: fm.menu?.value ?? "main",
         position: parseInt(fm.position?.value ?? "0", 10),
         columns,
