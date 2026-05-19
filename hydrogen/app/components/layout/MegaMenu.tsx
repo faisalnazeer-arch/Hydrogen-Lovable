@@ -7,11 +7,20 @@ export interface MegaColumn {
 
 interface MegaMenuProps {
   columns: MegaColumn[];
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }
 
-export function MegaMenu({ columns }: MegaMenuProps) {
+export function MegaMenu({ columns, onMouseEnter, onMouseLeave }: MegaMenuProps) {
   return (
-    <div className="absolute left-4 right-4 top-full z-50 hidden group-hover:block">
+    <div
+      className="absolute left-4 right-4 top-full z-50"
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
+      {/* invisible bridge fills the gap between button and panel so the mouse
+          never leaves the hover zone while moving downward */}
+      <div className="h-2 w-full" />
       <div className="rounded-md border border-border bg-card p-6 shadow-[var(--shadow-card)]">
         <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
           {columns.map((col) => (
@@ -24,7 +33,7 @@ export function MegaMenu({ columns }: MegaMenuProps) {
                   <li key={l.url + l.label}>
                     <Link
                       to={l.url}
-                      className="text-sm text-foreground transition-colors hover:text-crimson"
+                      className="block py-0.5 text-sm text-foreground transition-colors hover:text-crimson"
                     >
                       {l.label}
                     </Link>
@@ -38,4 +47,3 @@ export function MegaMenu({ columns }: MegaMenuProps) {
     </div>
   );
 }
-

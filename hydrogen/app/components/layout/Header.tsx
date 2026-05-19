@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Link } from "react-router";
 import {
   ShoppingBag,
@@ -262,13 +262,36 @@ function NavItem({
   mega: any[];
   Icon?: LucideIcon;
 }) {
+  const [open, setOpen] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleOpen = () => {
+    if (timer.current) clearTimeout(timer.current);
+    setOpen(true);
+  };
+
+  const handleClose = () => {
+    timer.current = setTimeout(() => setOpen(false), 200);
+  };
+
   return (
-    <div className="group">
-      <button className="flex items-center gap-1.5 transition-colors hover:text-crimson">
+    <div
+      className="relative"
+      onMouseEnter={handleOpen}
+      onMouseLeave={handleClose}
+    >
+      <button className="flex items-center gap-1.5 py-1 transition-colors hover:text-crimson">
         {Icon && <Icon className="h-4 w-4" />}
-        {label} <ChevronDown className="h-3 w-3" />
+        {label}
+        <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
       </button>
-      <MegaMenu columns={mega} />
+      {open && (
+        <MegaMenu
+          columns={mega}
+          onMouseEnter={handleOpen}
+          onMouseLeave={handleClose}
+        />
+      )}
     </div>
   );
 }
