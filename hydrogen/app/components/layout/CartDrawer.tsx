@@ -7,7 +7,7 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Minus, Plus, Trash2, ExternalLink, Loader2, ShoppingBag } from "lucide-react";
+import { Minus, Plus, Trash2, ExternalLink, Loader2, ShoppingBag, RefreshCw } from "lucide-react";
 import { useCartStore } from "@/stores/cartStore";
 import { formatPrice, shopifyImageUrl } from "@/lib/shopify";
 import { useT } from "@/i18n/strings";
@@ -99,9 +99,14 @@ export function CartDrawer() {
             <ul className="divide-y divide-border">
               {items.map((item) => {
                 const img = item.product.node.images.edges[0]?.node;
+                const pending = !!item.isPending;
                 return (
-                  <li key={item.variantId} className="flex gap-3 p-4">
-                    <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-md bg-muted">
+                  <li
+                    key={`${item.variantId}-${item.sellingPlanId ?? "none"}`}
+                    className={`flex gap-3 p-4 transition-opacity ${pending ? "opacity-60" : ""}`}
+                  >
+                    {/* Product image */}
+                    <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-md bg-muted">
                       {img && (
                         <img
                           src={shopifyImageUrl(img.url, 200)}
@@ -109,8 +114,14 @@ export function CartDrawer() {
                           className="h-full w-full object-cover"
                         />
                       )}
+                      {pending && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-background/40">
+                          <Loader2 className="h-5 w-5 animate-spin text-crimson" />
+                        </div>
+                      )}
                     </div>
-                    <div className="flex flex-1 flex-col gap-1">
+
+                    <div className="flex flex-1 flex-col gap-1 min-w-0">
                       <div className="text-sm font-medium leading-tight">
                         {item.product.node.title}
                       </div>
@@ -118,15 +129,33 @@ export function CartDrawer() {
                         {item.selectedOptions.map((o) => o.value).join(" · ") ||
                           item.variantTitle}
                       </div>
-                      <div className="mt-auto flex items-center justify-between">
-                        <div className="flex items-center rounded border border-border">
+
+                      {/* Subscription info */}
+                      {item.sellingPlanId && (() => {
+                        const subPrice = parseFloat(item.price.amount);
+                        const regPrice = item.compareAtPrice ? parseFloat(item.compareAtPrice.amount) : 0;
+                        const savePct = regPrice > subPrice ? Math.round((1 - subPrice / regPrice) * 100) : 0;
+                        const label = [
+                          item.sellingPlanName ?? "Subscribe & Save",
+                          savePct > 0 ? `with ${savePct}% discount` : "",
+                        ].filter(Boolean).join(" ");
+                        return (
+                          <div className="flex items-center gap-1 text-xs text-green-700">
+                            <RefreshCw className="h-3 w-3 flex-shrink-0" />
+                            <span>{label}</span>
+                          </div>
+                        );
+                      })()}
+
+                      <div className="mt-auto flex items-center justify-between pt-1">
+                        {/* Qty controls — disabled while pending */}
+                        <div className={`flex items-center rounded border border-border ${pending ? "pointer-events-none opacity-50" : ""}`}>
                           <button
                             type="button"
                             aria-label="Decrease"
-                            className="grid h-7 w-7 place-items-center hover:bg-muted"
-                            onClick={() =>
-                              updateQuantity(item.variantId, item.quantity - 1)
-                            }
+                            disabled={pending || isLoading}
+                            className="grid h-7 w-7 place-items-center hover:bg-muted disabled:cursor-not-allowed"
+                            onClick={() => updateQuantity(item.variantId, item.quantity - 1)}
                           >
                             <Minus className="h-3 w-3" />
                           </button>
@@ -134,27 +163,41 @@ export function CartDrawer() {
                           <button
                             type="button"
                             aria-label="Increase"
-                            className="grid h-7 w-7 place-items-center hover:bg-muted"
-                            onClick={() =>
-                              updateQuantity(item.variantId, item.quantity + 1)
-                            }
+                            disabled={pending || isLoading}
+                            className="grid h-7 w-7 place-items-center hover:bg-muted disabled:cursor-not-allowed"
+                            onClick={() => updateQuantity(item.variantId, item.quantity + 1)}
                           >
                             <Plus className="h-3 w-3" />
                           </button>
                         </div>
-                        <div className="font-semibold text-crimson">
-                          {formatPrice(
-                            parseFloat(item.price.amount) * item.quantity,
-                            item.price.currencyCode
+
+                        {/* Price */}
+                        <div className="flex flex-col items-end gap-0">
+                          {item.compareAtPrice && item.compareAtPrice.amount !== item.price.amount && (
+                            <span className="text-xs text-muted-foreground line-through">
+                              {formatPrice(
+                                parseFloat(item.compareAtPrice.amount) * item.quantity,
+                                item.compareAtPrice.currencyCode
+                              )}
+                            </span>
                           )}
+                          <span className="font-bold text-crimson">
+                            {formatPrice(
+                              parseFloat(item.price.amount) * item.quantity,
+                              item.price.currencyCode
+                            )}
+                          </span>
                         </div>
                       </div>
                     </div>
+
+                    {/* Remove — disabled while pending */}
                     <button
                       type="button"
                       aria-label="Remove"
+                      disabled={pending}
                       onClick={() => removeItem(item.variantId)}
-                      className="self-start text-muted-foreground hover:text-crimson"
+                      className={`self-start text-muted-foreground hover:text-crimson ${pending ? "cursor-not-allowed opacity-30" : ""}`}
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -175,7 +218,7 @@ export function CartDrawer() {
             </div>
             <Button
               onClick={handleCheckout}
-              disabled={isLoading || isSyncing}
+              disabled={isLoading || isSyncing || items.some((i) => i.isPending)}
               size="lg"
               className="w-full bg-crimson text-crimson-foreground hover:bg-rich-red"
             >

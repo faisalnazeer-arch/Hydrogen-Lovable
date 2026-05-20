@@ -66,6 +66,7 @@ export async function loader({ params, context, request }: LoaderFunctionArgs) {
   // Fetch product first so we have the numeric ID for JudgMe filtering
   const lang = request.headers.get("Cookie")?.match(/(?:^|;\s*)lang=([a-z]{2})/)?.[1];
   const language = (lang === "ar" ? "AR" : "EN") as "AR" | "EN";
+  console.log(`[DEBUG] Product page: lang cookie="${lang ?? 'none'}" → requesting language=${language} for handle=${handle}`);
 
   const data = await context.storefront.query(PRODUCT_QUERY, {
     variables: { handle, language, country: "AE" as const },
@@ -81,18 +82,28 @@ export async function loader({ params, context, request }: LoaderFunctionArgs) {
 
   const rating = buildRatingSummary(reviewsData);
 
-  // Build discount map from first variant's selling plan allocations
-  const firstVariantAllocations =
-    data.product.variants?.nodes?.[0]?.sellingPlanAllocations?.nodes ?? [];
+  // Build discount map across all variants — use variant's regular price as baseline
+  // because compareAtPrice inside allocations is often null in Shopify's API
   const discountMap: Record<string, number> = {};
-  for (const alloc of firstVariantAllocations) {
-    const planId = alloc.sellingPlan?.id;
-    const adj = alloc.priceAdjustments?.[0];
-    if (!planId || !adj) continue;
-    const price = parseFloat(adj.price?.amount ?? "0");
-    const compare = parseFloat(adj.compareAtPrice?.amount ?? "0");
-    if (compare > 0 && price < compare) {
-      discountMap[planId] = Math.round(((compare - price) / compare) * 100);
+  for (const v of data.product.variants?.nodes ?? []) {
+    const variantPrice = parseFloat((v as any).price?.amount ?? "0");
+    for (const alloc of (v as any).sellingPlanAllocations?.nodes ?? []) {
+      const planId = alloc.sellingPlan?.id;
+      const adj = alloc.priceAdjustments?.[0];
+      if (!planId || !adj || discountMap[planId] !== undefined) continue;
+      const subPrice = parseFloat(adj.price?.amount ?? "0");
+      const baseline = parseFloat(adj.compareAtPrice?.amount ?? "0") || variantPrice;
+      if (baseline > 0 && subPrice < baseline) {
+        discountMap[planId] = Math.round(((baseline - subPrice) / baseline) * 100);
+      }
+    }
+  }
+  // Default to 10% for any selling plan not covered by Shopify allocation data
+  for (const group of data.product.sellingPlanGroups?.nodes ?? []) {
+    for (const plan of (group as any).sellingPlans?.nodes ?? []) {
+      if (plan.id && discountMap[plan.id] === undefined) {
+        discountMap[plan.id] = 10;
+      }
     }
   }
 
@@ -119,3 +130,4 @@ export default function Product() {
   if (templateSuffix === "chicken-rubs") return <ChickenRubsTemplate {...loaderData} />;
   return <DefaultTemplate {...loaderData} />;
 }
+

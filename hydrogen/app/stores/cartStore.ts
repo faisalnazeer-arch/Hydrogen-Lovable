@@ -12,9 +12,12 @@ export interface CartItem {
   variantId: string;
   variantTitle: string;
   price: MoneyV2;
+  compareAtPrice?: MoneyV2 | null;
   quantity: number;
   selectedOptions: Array<{ name: string; value: string }>;
   sellingPlanId?: string | null;
+  sellingPlanName?: string | null;
+  isPending?: boolean;
 }
 
 interface CartStore {
@@ -25,7 +28,7 @@ interface CartStore {
   isSyncing: boolean;
   isOpen: boolean;
   setOpen: (open: boolean) => void;
-  addItem: (item: Omit<CartItem, "lineId">) => Promise<void>;
+  addItem: (item: Omit<CartItem, "lineId" | "isPending">) => Promise<void>;
   updateQuantity: (variantId: string, quantity: number) => Promise<void>;
   removeItem: (variantId: string) => Promise<void>;
   clearCart: () => void;
@@ -161,47 +164,88 @@ export const useCartStore = create<CartStore>()(
         const existing = items.find(
           (i) => i.variantId === item.variantId && i.sellingPlanId === item.sellingPlanId
         );
-        set({ isLoading: true });
+
         try {
           if (!cartId) {
+            // Optimistically show item immediately
+            set({
+              items: [{ ...item, lineId: null, isPending: true }, ...get().items],
+              isOpen: true,
+              isLoading: true,
+            });
             const result = await createShopifyCart({ ...item, lineId: null });
             if (result) {
               set({
                 cartId: result.cartId,
                 checkoutUrl: result.checkoutUrl,
-                items: [{ ...item, lineId: result.lineId }],
-                isOpen: true,
+                items: get().items.map((i) =>
+                  i.variantId === item.variantId && i.isPending
+                    ? { ...i, lineId: result.lineId, isPending: false }
+                    : i
+                ),
               });
+            } else {
+              set({ items: get().items.filter((i) => !(i.variantId === item.variantId && i.isPending)) });
             }
           } else if (existing) {
             const newQty = existing.quantity + item.quantity;
             if (!existing.lineId) return;
+            // Optimistically update quantity
+            set({
+              items: get().items.map((i) =>
+                i.variantId === item.variantId && i.sellingPlanId === item.sellingPlanId
+                  ? { ...i, quantity: newQty, isPending: true }
+                  : i
+              ),
+              isOpen: true,
+              isLoading: true,
+            });
             const result = await updateShopifyCartLine(cartId, existing.lineId, newQty);
             if (result.success) {
-              const current = get().items;
               set({
-                items: current.map((i) =>
-                  i.variantId === item.variantId ? { ...i, quantity: newQty } : i
+                items: get().items.map((i) =>
+                  i.variantId === item.variantId && i.sellingPlanId === item.sellingPlanId
+                    ? { ...i, isPending: false }
+                    : i
                 ),
-                isOpen: true,
               });
             } else if (result.cartNotFound) {
               clearCart();
+            } else {
+              // Revert optimistic quantity
+              set({
+                items: get().items.map((i) =>
+                  i.variantId === item.variantId && i.sellingPlanId === item.sellingPlanId
+                    ? { ...i, quantity: existing.quantity, isPending: false }
+                    : i
+                ),
+              });
             }
           } else {
+            // New item to existing cart — show it immediately
+            set({
+              items: [{ ...item, lineId: null, isPending: true }, ...get().items],
+              isOpen: true,
+              isLoading: true,
+            });
             const result = await addLineToShopifyCart(cartId, { ...item, lineId: null });
             if (result.success) {
-              const current = get().items;
               set({
-                items: [...current, { ...item, lineId: result.lineId ?? null }],
-                isOpen: true,
+                items: get().items.map((i) =>
+                  i.variantId === item.variantId && i.isPending
+                    ? { ...i, lineId: result.lineId ?? null, isPending: false }
+                    : i
+                ),
               });
             } else if (result.cartNotFound) {
               clearCart();
+            } else {
+              set({ items: get().items.filter((i) => !(i.variantId === item.variantId && i.isPending)) });
             }
           }
         } catch (err) {
           console.error("addItem failed", err);
+          set({ items: get().items.filter((i) => !i.isPending) });
         } finally {
           set({ isLoading: false });
         }
@@ -275,8 +319,23 @@ export const useCartStore = create<CartStore>()(
     }),
     {
       name: "mls-shopify-cart",
+      version: 2,
       storage: createJSONStorage(() => localStorage),
-      partialize: (s) => ({ items: s.items, cartId: s.cartId, checkoutUrl: s.checkoutUrl }),
+      // Never persist pending items — if page reloads mid-add, the item is re-added cleanly
+      partialize: (s) => ({
+        items: s.items.filter((i) => !i.isPending),
+        cartId: s.cartId,
+        checkoutUrl: s.checkoutUrl,
+      }),
+      migrate: (persisted: any, fromVersion: number) => {
+        if (fromVersion < 2) {
+          const items = (persisted.items ?? []).map((item: any) =>
+            item.sellingPlanId ? { ...item, sellingPlanName: item.sellingPlanName ?? null } : item
+          );
+          return { ...persisted, items };
+        }
+        return persisted;
+      },
     }
   )
 );

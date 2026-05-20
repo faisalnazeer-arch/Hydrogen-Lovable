@@ -20,6 +20,8 @@ interface SubscriptionSelectorProps {
   regularPrice?: string;
   currency?: string;
   className?: string;
+  /** Exact subscription prices from Shopify allocations: planId → price amount string */
+  planPrices?: Record<string, string>;
 }
 
 export function SubscriptionSelector({
@@ -29,6 +31,7 @@ export function SubscriptionSelector({
   regularPrice = "0",
   currency = "AED",
   className,
+  planPrices = {},
 }: SubscriptionSelectorProps) {
   const t = useT();
 
@@ -40,10 +43,14 @@ export function SubscriptionSelector({
   const bestDiscount = Math.max(...allPlans.map((p) => p.discount), 0);
 
   const regularPriceNum = parseFloat(regularPrice) || 0;
-  const subscriptionPrice =
-    activePlan?.discount > 0
-      ? regularPriceNum * (1 - activePlan.discount / 100)
-      : regularPriceNum;
+
+  // Use exact Shopify allocation price when available, fall back to percentage calc
+  const activePlanExactPrice = activePlan ? planPrices[activePlan.id] : undefined;
+  const subscriptionPriceNum = activePlanExactPrice
+    ? parseFloat(activePlanExactPrice)
+    : activePlan?.discount > 0
+    ? regularPriceNum * (1 - activePlan.discount / 100)
+    : regularPriceNum;
 
   const fmt = (n: number) => `${currency} ${n.toFixed(2)}`;
 
@@ -84,9 +91,9 @@ export function SubscriptionSelector({
             : "cursor-pointer border-border hover:border-muted-foreground",
         )}
       >
-        {/* Badge */}
+        {/* Badge — sits on the top-right border */}
         {bestDiscount > 0 && (
-          <span className="absolute end-0 top-0 rounded-bl-lg rounded-tr-lg bg-crimson px-3 py-1 text-xs font-bold text-white">
+          <span className="absolute end-0 top-0 -translate-y-1/2 rounded-full bg-crimson px-4 py-1 text-xs font-bold text-white whitespace-nowrap">
             {t("subscription.save_up_to")} {bestDiscount}%
           </span>
         )}
@@ -104,13 +111,13 @@ export function SubscriptionSelector({
             <span className="text-base font-bold">{t("subscription.subscribe_save")}</span>
           </label>
           <div className="flex flex-col items-end">
-            {activePlan?.discount > 0 && (
+            {subscriptionPriceNum < regularPriceNum && (
               <span className="text-xs text-muted-foreground line-through">
                 {fmt(regularPriceNum)}
               </span>
             )}
-            <span className="font-bold">
-              {fmt(activePlan?.discount > 0 ? subscriptionPrice : regularPriceNum)}
+            <span className="font-bold text-crimson">
+              {fmt(subscriptionPriceNum)}
             </span>
           </div>
         </div>

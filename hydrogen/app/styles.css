@@ -168,5 +168,15 @@
     font-family: var(--font-display);
     letter-spacing: -0.01em;
   }
+
+  a,
+  button,
+  [role="button"],
+  label[for],
+  select,
+  summary,
+  [tabindex]:not([tabindex="-1"]) {
+    cursor: pointer;
+  }
 }
 

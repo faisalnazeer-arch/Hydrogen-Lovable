@@ -6,16 +6,48 @@ import { TrustBadges } from "../components/home/TrustBadges";
 import { FeaturedCollections } from "../components/home/FeaturedCollections";
 import type { FeaturedCollectionCard } from "../components/home/FeaturedCollections";
 import { PriceRangeShop, parsePriceRangeSection, parsePriceTiles } from "../components/home/PriceRangeShop";
-import { PromoSideBySide, parsePromoSideBySide, type PromoSideBySideData } from "../components/home/PromoSideBySide";
+import { PromoSideBySide, parsePromoSideBySide } from "../components/home/PromoSideBySide";
 import { CategorySection } from "../components/home/CategorySection";
-import { ShopByCategory } from "../components/home/ShopByCategory";
+import { ShopByCategory, type CategorySectionData } from "../components/home/ShopByCategory";
 import { ShopByCuts } from "../components/home/ShopByCuts";
-import { ShopByOrigin } from "../components/home/ShopByOrigin";
-import { ValueBoxesBanner } from "../components/home/ValueBoxesBanner";
+import { ShopByOrigin, type OriginSectionData } from "../components/home/ShopByOrigin";
+import { ValueBoxesBanner, type ValueBannerData } from "../components/home/ValueBoxesBanner";
 import { RecentlyViewed } from "../components/home/RecentlyViewed";
 import { ReelsCarousel } from "../components/home/ReelsCarousel";
 
 const HOME_QUERY = `#graphql
+  fragment ProductCard on Product {
+    id
+    title
+    handle
+    availableForSale
+    priceRange {
+      minVariantPrice { amount currencyCode }
+      maxVariantPrice { amount currencyCode }
+    }
+    compareAtPriceRange { minVariantPrice { amount currencyCode } }
+    images(first: 4) { edges { node { url altText width height } } }
+    variants(first: 20) {
+      edges {
+        node {
+          id
+          title
+          price { amount currencyCode }
+          compareAtPrice { amount currencyCode }
+          availableForSale
+          selectedOptions { name value }
+        }
+      }
+    }
+    options { name values }
+    tags
+    vendor
+    productType
+    metafields(identifiers: [
+      {namespace: "reviews", key: "rating"}
+      {namespace: "reviews", key: "rating_count"}
+    ]) { key value }
+  }
   query HomeData($language: LanguageCode, $country: CountryCode)
   @inContext(language: $language, country: $country) {
     heroBanners: metaobjects(type: "hero_banner", first: 10) {
@@ -106,10 +138,6 @@ const HOME_QUERY = `#graphql
               previewImage { url }
               sources { url mimeType }
             }
-            ... on ExternalVideo {
-              embedUrl
-              previewImage { url }
-            }
           }
         }
       }
@@ -128,6 +156,76 @@ const HOME_QUERY = `#graphql
         }
       }
     }
+    valueBanner: metaobjects(type: "mls_value_banner", first: 1) {
+      nodes {
+        id
+        fields {
+          key
+          value
+          reference {
+            ... on MediaImage {
+              image { url altText }
+            }
+          }
+        }
+      }
+    }
+    originSection: metaobjects(type: "mls_origin_section", first: 1) {
+      nodes {
+        id
+        fields {
+          key
+          value
+          references(first: 20) {
+            nodes {
+              ... on Metaobject {
+                id
+                fields {
+                  key
+                  value
+                  reference {
+                    ... on MediaImage {
+                      image { url altText }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    collectionSectionConfig: metaobjects(type: "mls_collection_section", first: 1) {
+      nodes {
+        id
+        fields { key value }
+      }
+    }
+    categorySection: metaobjects(type: "mls_category_section", first: 1) {
+      nodes {
+        id
+        fields {
+          key
+          value
+          references(first: 20) {
+            nodes {
+              ... on Metaobject {
+                id
+                fields {
+                  key
+                  value
+                  reference {
+                    ... on MediaImage {
+                      image { url altText }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
     featuredCollections: metaobjects(type: "featured_collection", first: 10) {
       nodes {
         id
@@ -139,38 +237,25 @@ const HOME_QUERY = `#graphql
               handle
               title
               products(first: 12) {
-                edges {
-                  node {
-                    id
-                    title
-                    handle
-                    availableForSale
-                    priceRange {
-                      minVariantPrice { amount currencyCode }
-                      maxVariantPrice { amount currencyCode }
-                    }
-                    compareAtPriceRange { minVariantPrice { amount currencyCode } }
-                    images(first: 4) { edges { node { url altText width height } } }
-                    variants(first: 20) {
-                      edges {
-                        node {
-                          id
-                          title
-                          price { amount currencyCode }
-                          compareAtPrice { amount currencyCode }
-                          availableForSale
-                          selectedOptions { name value }
-                        }
+                edges { node { ...ProductCard } }
+              }
+            }
+          }
+          references(first: 8) {
+            nodes {
+              ... on Metaobject {
+                id
+                fields {
+                  key
+                  value
+                  reference {
+                    ... on Collection {
+                      handle
+                      title
+                      products(first: 12) {
+                        edges { node { ...ProductCard } }
                       }
                     }
-                    options { name values }
-                    tags
-                    vendor
-                    productType
-                    metafields(identifiers: [
-                      {namespace: "reviews", key: "rating"}
-                      {namespace: "reviews", key: "rating_count"}
-                    ]) { key value }
                   }
                 }
               }
@@ -207,26 +292,17 @@ function parseReelItems(nodes: any[]): ReelProduct[] {
   for (const node of nodes) {
     const f = Object.fromEntries(node.fields.map((x: any) => [x.key, x]));
     const product = f["product"]?.reference;
-    const videoRef = f["video"]?.reference;
+    const video = f["video"]?.reference;
     if (!product) continue;
 
-    // Resolve video: use dedicated video field first, fall back to product media
+    // Prefer the reel's own video field; fall back to product featured image as poster
     let videoUrl: string | null = null;
-    let embedUrl: string | null = null;
     let poster: string | null = product.featuredImage?.url ?? null;
 
-    if (videoRef) {
-      // file_reference resolves to Video or ExternalVideo node
-      if (videoRef.sources) {
-        // Video type
-        const mp4 = videoRef.sources.find((s: any) => s.mimeType === "video/mp4") ?? videoRef.sources[0];
-        videoUrl = mp4?.url ?? null;
-        poster = videoRef.previewImage?.url ?? poster;
-      } else if (videoRef.embedUrl) {
-        // ExternalVideo type
-        embedUrl = videoRef.embedUrl;
-        poster = videoRef.previewImage?.url ?? poster;
-      }
+    if (video?.sources) {
+      const mp4 = video.sources.find((s: any) => s.mimeType === "video/mp4") ?? video.sources[0];
+      videoUrl = mp4?.url ?? null;
+      poster = video.previewImage?.url ?? poster;
     }
 
     reels.push({
@@ -236,10 +312,18 @@ function parseReelItems(nodes: any[]): ReelProduct[] {
       price: product.priceRange.minVariantPrice,
       poster,
       videoUrl,
-      embedUrl,
+      embedUrl: null,
     });
   }
   return reels;
+}
+
+interface CollectionTab {
+  label: string;
+  handle: string;
+  title: string;
+  position: number;
+  products: ShopifyProduct[];
 }
 
 interface FeaturedCollectionEntry {
@@ -248,6 +332,13 @@ interface FeaturedCollectionEntry {
   title: string;
   subTitle: string | undefined;
   products: ShopifyProduct[];
+  tabs?: CollectionTab[];
+}
+
+interface FeaturedSection {
+  title: string;
+  subTitle: string | undefined;
+  tabs: Array<{ label: string; handle: string; products: ShopifyProduct[] }>;
 }
 
 function parseFeaturedCollections(nodes: any[]): FeaturedCollectionEntry[] {
@@ -256,22 +347,72 @@ function parseFeaturedCollections(nodes: any[]): FeaturedCollectionEntry[] {
       const fieldMap = Object.fromEntries(
         node.fields.map((f: any) => [f.key, f]),
       );
+      const metaTitle = fieldMap["title"]?.value ?? null;
+      const isHandleLike = metaTitle ? /^[a-z0-9-]+$/.test(metaTitle) : true;
+      const subTitle = (fieldMap["sub_title"]?.value ?? undefined) as string | undefined;
+
+      // Parse tabs if present (new per-collection-tab mode)
+      const tabNodes: any[] = fieldMap["tabs"]?.references?.nodes ?? [];
+      if (tabNodes.length > 0) {
+        const tabs: CollectionTab[] = tabNodes
+          .map((tabNode: any) => {
+            const tf = Object.fromEntries(tabNode.fields.map((f: any) => [f.key, f]));
+            const col = tf["collection"]?.reference;
+            if (!col?.handle) return null;
+            return {
+              label: (tf["label"]?.value ?? col.title ?? "Tab") as string,
+              handle: col.handle as string,
+              title: col.title as string,
+              position: parseInt(tf["position"]?.value ?? "0", 10),
+              products: (col.products?.edges ?? []) as ShopifyProduct[],
+            };
+          })
+          .filter(Boolean)
+          .sort((a: any, b: any) => a.position - b.position) as CollectionTab[];
+
+        if (tabs.length > 0) {
+          // Use the fallback single collection (or first tab) as the section's primary handle
+          const primaryCol = fieldMap["collection"]?.reference;
+          const primaryHandle = (primaryCol?.handle ?? tabs[0].handle) as string;
+          const title = (!isHandleLike && metaTitle) ? metaTitle : (primaryCol?.title ?? tabs[0].title ?? "");
+          return {
+            id: node.id as string,
+            handle: primaryHandle,
+            title,
+            subTitle,
+            products: tabs[0].products,
+            tabs,
+          };
+        }
+      }
+
+      // Fallback: single collection mode
       const collection = fieldMap["collection"]?.reference;
       if (!collection?.handle) return null;
-      const metaTitle = fieldMap["title"]?.value ?? null;
-      // If the metaobject title looks like a handle (e.g. "year-end-mixed"), ignore it
-      const isHandleLike = metaTitle ? /^[a-z0-9-]+$/.test(metaTitle) : true;
       const title = (!isHandleLike && metaTitle) ? metaTitle : (collection.title ?? "");
-
       return {
-        id: node.id,
+        id: node.id as string,
         handle: collection.handle as string,
         title,
-        subTitle: (fieldMap["sub_title"]?.value ?? undefined) as string | undefined,
+        subTitle,
         products: (collection.products?.edges ?? []) as ShopifyProduct[],
       };
     })
     .filter((e): e is FeaturedCollectionEntry => e !== null);
+}
+
+function buildFeaturedSection(entries: FeaturedCollectionEntry[]): FeaturedSection | null {
+  if (entries.length === 0) return null;
+  // Section heading: use the first entry that has an explicit (non-handle-like) title
+  const headingEntry = entries.find(e => e.title && !/^[a-z0-9-]+$/.test(e.title)) ?? entries[0];
+  // Flatten all entries' tabs (or the entry itself) into one ordered tab list
+  const tabs = entries.flatMap((entry) => {
+    if (entry.tabs && entry.tabs.length > 0) {
+      return entry.tabs.map((t) => ({ label: t.label, handle: t.handle, products: t.products }));
+    }
+    return [{ label: entry.title, handle: entry.handle, products: entry.products }];
+  });
+  return { title: headingEntry.title, subTitle: headingEntry.subTitle, tabs };
 }
 
 function parseFeaturedCollectionList(nodes: any[]): FeaturedCollectionCard[] {
@@ -291,6 +432,75 @@ function parseFeaturedCollectionList(nodes: any[]): FeaturedCollectionCard[] {
       return card;
     })
     .filter(Boolean) as FeaturedCollectionCard[];
+}
+
+function parseCategorySection(nodes: any[]): CategorySectionData | null {
+  const node = nodes[0];
+  if (!node) return null;
+  const fm = Object.fromEntries(node.fields.map((f: any) => [f.key, f]));
+  const items = (fm.items?.references?.nodes ?? []).map((item: any) => {
+    const f = Object.fromEntries(item.fields.map((x: any) => [x.key, x]));
+    return {
+      id: item.id as string,
+      heading: (f.heading?.value ?? "") as string,
+      link: (f.link?.value ?? "/") as string,
+      imageUrl: (f.image?.reference?.image?.url ?? null) as string | null,
+      imageAlt: (f.image?.reference?.image?.altText ?? "") as string,
+    };
+  });
+  return {
+    eyebrow: (fm.eyebrow?.value ?? "Browse the Butcher") as string,
+    heading: (fm.heading?.value ?? "Shop by Category") as string,
+    items,
+  };
+}
+
+function parseValueBanner(nodes: any[]): ValueBannerData | null {
+  const node = nodes[0];
+  if (!node) return null;
+  const f = Object.fromEntries(node.fields.map((x: any) => [x.key, x]));
+  return {
+    eyebrow:   (f.eyebrow?.value   ?? "") as string,
+    heading:   (f.heading?.value   ?? "") as string,
+    body:      (f.body?.value      ?? "") as string,
+    btn1Label: (f.btn1_label?.value ?? "") as string,
+    btn1Link:  (f.btn1_link?.value  ?? "") as string,
+    btn2Label: (f.btn2_label?.value ?? "") as string,
+    btn2Link:  (f.btn2_link?.value  ?? "") as string,
+    imageUrl:  (f.image?.reference?.image?.url ?? null) as string | null,
+    imageAlt:  (f.image?.reference?.image?.altText ?? "") as string,
+  };
+}
+
+function parseOriginSection(nodes: any[]): OriginSectionData | null {
+  const node = nodes[0];
+  if (!node) return null;
+  const fm = Object.fromEntries(node.fields.map((f: any) => [f.key, f]));
+  const items = (fm.items?.references?.nodes ?? []).map((item: any) => {
+    const f = Object.fromEntries(item.fields.map((x: any) => [x.key, x]));
+    return {
+      id: item.id as string,
+      heading: (f.heading?.value ?? "") as string,
+      code: (f.code?.value ?? "") as string,
+      link: (f.link?.value ?? "/") as string,
+      imageUrl: (f.image?.reference?.image?.url ?? null) as string | null,
+      imageAlt: (f.image?.reference?.image?.altText ?? "") as string,
+    };
+  });
+  return {
+    eyebrow: (fm.eyebrow?.value ?? "From the World's Best Farms") as string,
+    heading: (fm.heading?.value ?? "Shop by Origin") as string,
+    items,
+  };
+}
+
+function parseCollectionSectionConfig(nodes: any[]): { heading: string; subHeading: string } | null {
+  const node = nodes[0];
+  if (!node) return null;
+  const f = Object.fromEntries(node.fields.map((x: any) => [x.key, x]));
+  const heading = (f.heading?.value ?? "") as string;
+  if (!heading) return null;
+  return { heading, subHeading: (f.sub_heading?.value ?? "") as string };
 }
 
 export const meta: MetaFunction = () => [
@@ -338,10 +548,18 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
   ]);
 
   const parsed = parseFeaturedCollections(data?.featuredCollections?.nodes ?? []);
+  const collectionSectionConfig = parseCollectionSectionConfig(data?.collectionSectionConfig?.nodes ?? []);
+  const rawSection = buildFeaturedSection(parsed.length > 0 ? parsed : FALLBACK_COLLECTIONS);
+  const featuredSection = rawSection && collectionSectionConfig
+    ? { ...rawSection, title: collectionSectionConfig.heading, subTitle: collectionSectionConfig.subHeading || undefined }
+    : rawSection;
   const collectionCards = parseFeaturedCollectionList(data?.featuredCollectionList?.nodes ?? []);
   const priceSection = parsePriceRangeSection(data?.priceRangeSection?.nodes ?? []);
   const priceTiles = parsePriceTiles(data?.priceTiles?.nodes ?? []);
   const promo = parsePromoSideBySide(data?.promoSideBySide?.nodes ?? []);
+  const categorySection = parseCategorySection(data?.categorySection?.nodes ?? []);
+  const originSection = parseOriginSection(data?.originSection?.nodes ?? []);
+  const valueBanner = parseValueBanner(data?.valueBanner?.nodes ?? []);
   const reelsConfig = parseReelsSectionConfig(data?.reelsSection?.nodes ?? []);
 
   // Use reel_item entries from metaobject; fall back to tag:reel product query when none exist
@@ -360,7 +578,7 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
   return {
     heroSlides: data?.heroBanners?.nodes ?? [],
     trustBadges: data?.trustBadges?.nodes ?? [],
-    featuredCollections: parsed.length > 0 ? parsed : FALLBACK_COLLECTIONS,
+    featuredSection,
     collectionCards,
     priceSection,
     priceTiles,
@@ -368,11 +586,14 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
     reelsLabel: reelsConfig.subHeading,
     reelsHeading: reelsConfig.heading,
     reels,
+    categorySection,
+    originSection,
+    valueBanner,
   };
 }
 
 export default function Home() {
-  const { heroSlides, trustBadges, featuredCollections, collectionCards, priceSection, priceTiles, promo, reelsLabel, reelsHeading, reels } = useLoaderData<typeof loader>();
+  const { heroSlides, trustBadges, featuredSection, collectionCards, priceSection, priceTiles, promo, reelsLabel, reelsHeading, reels, categorySection, originSection, valueBanner } = useLoaderData<typeof loader>();
   const t = useT();
   return (
     <>
@@ -385,20 +606,20 @@ export default function Home() {
       />
       <PriceRangeShop section={priceSection} tiles={priceTiles} />
       <PromoSideBySide promo={promo} />
-      {featuredCollections.map((fc) => (
+      {featuredSection && (
         <CategorySection
-          key={fc.id}
-          handle={fc.handle}
-          title={fc.title}
-          subtitle={fc.subTitle}
-          products={fc.products}
+          handle={featuredSection.tabs[0]?.handle ?? ""}
+          title={featuredSection.title}
+          subtitle={featuredSection.subTitle}
+          products={featuredSection.tabs[0]?.products ?? []}
+          tabs={featuredSection.tabs}
         />
-      ))}
+      )}
       <ReelsCarousel reels={reels} label={reelsLabel} heading={reelsHeading} />
-      <ShopByCategory />
+      <ShopByCategory section={categorySection} />
       <ShopByCuts />
-      <ShopByOrigin />
-      <ValueBoxesBanner />
+      <ShopByOrigin section={originSection} />
+      <ValueBoxesBanner banner={valueBanner} />
       <RecentlyViewed />
     </>
   );

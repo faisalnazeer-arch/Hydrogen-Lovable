@@ -15,9 +15,10 @@ export const useLocaleStore = create<LocaleState>()(
       locale: "en",
       setLocale: (locale) => {
         set({ locale });
-        // Sync to cookie so SSR can read the language preference
         if (typeof document !== "undefined") {
           document.cookie = `lang=${locale};path=/;max-age=${60 * 60 * 24 * 365};SameSite=Lax`;
+          // Reload so the SSR loader re-fetches Shopify content in the new language
+          window.location.reload();
         }
       },
     }),

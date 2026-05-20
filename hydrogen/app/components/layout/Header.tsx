@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Link } from "react-router";
 import {
   ShoppingBag,
@@ -10,7 +10,6 @@ import {
   Drumstick,
   Star,
   Tag,
-  Award,
   Flame,
   Sandwich,
   Package,
@@ -22,14 +21,34 @@ import type { LucideIcon } from "lucide-react";
 import { useCartStore } from "@/stores/cartStore";
 import { useWishlistStore } from "@/stores/wishlistStore";
 import { Button } from "@/components/ui/button";
-import { MegaMenu, BEEF_MEGA, LAMB_MEGA } from "./MegaMenu";
+import { MegaMenu } from "./MegaMenu";
 import { SearchAutosuggest } from "./SearchAutosuggest";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from "@/components/ui/sheet";
 import { useLocaleStore, dirFor } from "@/stores/localeStore";
 import { useT } from "@/i18n/strings";
 import logo from "@/assets/mls-logo.png";
+import type { NavEntry } from "~/root";
 
-export function Header() {
+function pickIcon(title: string, url: string): LucideIcon {
+  const s = `${title} ${url}`.toLowerCase();
+  if (/beef|steak|wagyu|angus/.test(s)) return Beef;
+  if (/lamb|mutton/.test(s)) return Drumstick;
+  if (/review/.test(s)) return Star;
+  if (/offer|sale|deal|redeem/.test(s)) return Tag;
+  if (/bbq|grill|mishkak/.test(s)) return Flame;
+  if (/burger|sandwich/.test(s)) return Sandwich;
+  if (/box|bundle/.test(s)) return Boxes;
+  if (/build|package/.test(s)) return Package;
+  if (/about|info/.test(s)) return Info;
+  return Compass;
+}
+
+interface HeaderProps {
+  mainMenu?: NavEntry[];
+  secondaryMenu?: NavEntry[];
+}
+
+export function Header({ mainMenu = [], secondaryMenu = [] }: HeaderProps) {
   const totalItems = useCartStore((s) =>
     s.items.reduce((n, i) => n + i.quantity, 0)
   );
@@ -41,11 +60,24 @@ export function Header() {
   const drawerSide = dirFor(locale) === "rtl" ? "right" : "left";
   const closeMobile = () => setMobileNavOpen(false);
 
-  // Set cookie then reload so server loaders re-fetch product data in the new language
   const switchLocale = (l: typeof locale) => {
     useLocaleStore.getState().setLocale(l);
     window.location.reload();
   };
+
+  const mobileLinks: Array<{ label: string; url: string; Icon: LucideIcon }> =
+    mainMenu.flatMap((entry) => {
+      if (entry.columns.length > 0) {
+        return entry.columns.flatMap((col) =>
+          col.links.map((lk) => ({
+            label: lk.label,
+            url: lk.url,
+            Icon: pickIcon(lk.label, lk.url),
+          }))
+        );
+      }
+      return [{ label: entry.label, url: entry.url ?? "/", Icon: pickIcon(entry.label, entry.url ?? "") }];
+    });
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
@@ -85,20 +117,10 @@ export function Header() {
               <SearchAutosuggest variant="mobile" />
             </div>
             <nav className="mt-6 flex flex-col gap-1 text-sm">
-              {[
-                { label: t("nav.all_beef"), handle: "all-beef", Icon: Beef },
-                { label: t("nav.all_lamb"), handle: "all-lamb", Icon: Drumstick },
-                { label: t("nav.all_mutton"), handle: "all-mutton", Icon: Drumstick },
-                { label: t("nav.aus_wagyu"), handle: "australian-wagyu-beef-mb-4-5", Icon: Award },
-                { label: t("nav.aus_lamb"), handle: "australian-lamb", Icon: Star },
-                { label: t("nav.box_collection"), handle: "box-collection", Icon: Boxes },
-                { label: t("nav.build_box"), handle: "build-box", Icon: Package },
-                { label: t("nav.beef_steaks"), handle: "beef-steaks", Icon: Flame },
-                { label: t("nav.beef_burgers"), handle: "beef-burgers-patties", Icon: Sandwich },
-              ].map(({ label, handle, Icon }) => (
+              {mobileLinks.map(({ label, url, Icon }) => (
                 <Link
-                  key={handle}
-                  to={`/collections/${handle}`}
+                  key={url + label}
+                  to={url}
                   onClick={closeMobile}
                   className="flex items-center gap-3 rounded-sm px-3 py-2 hover:bg-muted"
                 >
@@ -198,39 +220,90 @@ export function Header() {
       {/* Nav rows (desktop) */}
       <nav className="hidden border-t border-border bg-card lg:block">
         <div className="container relative mx-auto flex items-center justify-center gap-7 px-4 py-2.5 text-[13px] font-semibold uppercase tracking-wider">
-          <NavItem label={t("nav.shop_beef")} Icon={Beef} mega={BEEF_MEGA} />
-          <NavItem label={t("nav.shop_lamb")} Icon={Drumstick} mega={LAMB_MEGA} />
-          <NavLink to="/collections/all" label={t("nav.reviews")} Icon={Star} />
-          <NavLink to="/collections/redeem-your-rewards" label={t("nav.offers")} Icon={Tag} />
-          <NavLink to="/collections/australian-black-angus-beef" label={t("nav.angus")} Icon={Award} />
-          <NavLink to="/collections/australian-wagyu-beef-mb-4-5" label={t("nav.wagyu")} Icon={Flame} />
+          {mainMenu.map((entry) =>
+            entry.columns.length > 0 ? (
+              <NavItem
+                key={entry.id}
+                label={entry.label}
+                Icon={pickIcon(entry.label, entry.url ?? "")}
+                mega={entry.columns}
+              />
+            ) : (
+              <NavLink
+                key={entry.id}
+                to={entry.url ?? "/"}
+                label={entry.label}
+                Icon={pickIcon(entry.label, entry.url ?? "")}
+              />
+            )
+          )}
         </div>
         <div className="container mx-auto flex items-center justify-center gap-7 border-t border-border px-4 py-2 text-[12px] tracking-wide text-muted-foreground">
-          <NavLink to="/collections/beef-burgers-patties" label={t("nav.burgers")} Icon={Sandwich} />
-          <NavLink to="/collections/beef-mishkak-barbecue-cubes-fondue" label={t("nav.bbq")} Icon={Flame} />
-          <NavLink to="/collections/box-collection" label={t("nav.boxes")} Icon={Boxes} />
-          <NavLink to="/collections/build-box" label={t("nav.build_box")} Icon={Package} />
-          <NavLink to="/collections/all" label={t("nav.about")} Icon={Info} />
-          <NavLink to="/collections/all" label={t("nav.explore")} Icon={Compass} />
+          {secondaryMenu.map((entry) => (
+            <NavLink
+              key={entry.id}
+              to={entry.url ?? "/"}
+              label={entry.label}
+              Icon={pickIcon(entry.label, entry.url ?? "")}
+            />
+          ))}
         </div>
       </nav>
     </header>
   );
 }
 
-function NavItem({ label, mega, Icon }: { label: string; mega: any[]; Icon?: LucideIcon }) {
+function NavItem({
+  label,
+  mega,
+  Icon,
+}: {
+  label: string;
+  mega: any[];
+  Icon?: LucideIcon;
+}) {
+  const [open, setOpen] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleOpen = () => {
+    if (timer.current) clearTimeout(timer.current);
+    setOpen(true);
+  };
+
+  const handleClose = () => {
+    timer.current = setTimeout(() => setOpen(false), 200);
+  };
+
   return (
-    <div className="group">
-      <button className="flex items-center gap-1.5 transition-colors hover:text-crimson">
+    <div
+      onMouseEnter={handleOpen}
+      onMouseLeave={handleClose}
+    >
+      <button className="flex items-center gap-1.5 py-1 transition-colors hover:text-crimson">
         {Icon && <Icon className="h-4 w-4" />}
-        {label} <ChevronDown className="h-3 w-3" />
+        {label}
+        <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
       </button>
-      <MegaMenu columns={mega} />
+      {open && (
+        <MegaMenu
+          columns={mega}
+          onMouseEnter={handleOpen}
+          onMouseLeave={handleClose}
+        />
+      )}
     </div>
   );
 }
 
-function NavLink({ to, label, Icon }: { to: string; label: string; Icon?: LucideIcon }) {
+function NavLink({
+  to,
+  label,
+  Icon,
+}: {
+  to: string;
+  label: string;
+  Icon?: LucideIcon;
+}) {
   return (
     <Link
       to={to}

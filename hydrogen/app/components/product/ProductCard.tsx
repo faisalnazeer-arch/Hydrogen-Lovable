@@ -18,6 +18,7 @@ import { StockBadge } from "./StockBadge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useT } from "@/i18n/strings";
 
 interface ProductCardProps {
   product: ShopifyProduct;
@@ -25,6 +26,7 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, onQuickView }: ProductCardProps) {
+  const t = useT();
   const node = product.node;
   const variants = node.variants.edges.map((e) => e.node);
   const firstAvailable = variants.find((v) => v.availableForSale) ?? variants[0];
@@ -67,7 +69,7 @@ export function ProductCard({ product, onQuickView }: ProductCardProps) {
         quantity: 1,
         selectedOptions: firstAvailable.selectedOptions || [],
       });
-      toast.success("Added to cart", {
+      toast.success(t("product.added"), {
         description: node.title,
         position: "top-center",
       });
@@ -108,7 +110,7 @@ export function ProductCard({ product, onQuickView }: ProductCardProps) {
           <OriginBadge origin={origin} />
           {firstAvailable?.compareAtPrice && (
             <span className="inline-flex rounded-sm bg-crimson px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-crimson-foreground">
-              Sale
+              {t("product.sale")}
             </span>
           )}
         </div>
@@ -134,7 +136,7 @@ export function ProductCard({ product, onQuickView }: ProductCardProps) {
             }}
             className="absolute inset-x-3 bottom-3 inline-flex items-center justify-center gap-2 rounded-sm bg-charcoal/90 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-off-white opacity-0 backdrop-blur transition-opacity duration-300 group-hover:opacity-100"
           >
-            <Eye className="h-3.5 w-3.5" /> Quick view
+            <Eye className="h-3.5 w-3.5" /> {t("product.quick_view")}
           </button>
         )}
       </Link>
@@ -159,7 +161,7 @@ export function ProductCard({ product, onQuickView }: ProductCardProps) {
           <div className="flex flex-wrap items-baseline gap-x-2 leading-tight">
             {showFrom && (
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                From
+                {t("product.from")}
               </span>
             )}
             <span className="font-display text-base font-bold text-crimson sm:text-lg">
@@ -188,9 +190,9 @@ export function ProductCard({ product, onQuickView }: ProductCardProps) {
             {isAdding ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : hasOptions ? (
-              "Quick Buy"
+              t("product.quick_buy")
             ) : (
-              "Add to Cart"
+              t("product.add")
             )}
           </Button>
         </div>

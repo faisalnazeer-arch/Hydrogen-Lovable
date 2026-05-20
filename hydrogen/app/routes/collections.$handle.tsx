@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import type { LoaderFunctionArgs, MetaFunction } from "@shopify/remix-oxygen";
-import { useLoaderData, Link } from "react-router";
+import { useLoaderData, useNavigate, Link } from "react-router";
 import { Heart, SlidersHorizontal, X, ChevronDown, Loader2 } from "lucide-react";
 import { OriginBadge } from "~/components/product/OriginBadge";
 import { StockBadge } from "~/components/product/StockBadge";
@@ -95,6 +95,7 @@ export default function Collection() {
   const { collection, sortIdx } = useLoaderData<typeof loader>();
   const products: ShopifyProduct[] = collection.products.edges;
 
+  const navigate = useNavigate();
   const [selectedOrigins, setSelectedOrigins] = useState<string[]>([]);
   const [maxPrice, setMaxPrice] = useState<number | null>(null);
   const [grassFedOnly, setGrassFedOnly] = useState(false);
@@ -125,10 +126,10 @@ export default function Collection() {
   return (
     <div className="bg-background min-h-screen">
       <div className="border-b border-border bg-card px-4 py-8">
-        <div className="container mx-auto">
+        <div className="container mx-auto text-center">
           <h1 className="font-display text-3xl font-extrabold">{collection.title}</h1>
           {collection.description && (
-            <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{collection.description}</p>
+            <p className="mx-auto mt-2 max-w-2xl text-sm text-muted-foreground">{collection.description}</p>
           )}
         </div>
       </div>
@@ -164,7 +165,7 @@ export default function Collection() {
                 onChange={(e) => {
                   const url = new URL(window.location.href);
                   url.searchParams.set("sort", e.target.value);
-                  window.location.href = url.toString();
+                  navigate(url.pathname + url.search, { replace: true });
                 }}
                 className="appearance-none rounded-lg border border-border bg-card py-2 pl-3 pr-8 text-sm font-medium"
               >

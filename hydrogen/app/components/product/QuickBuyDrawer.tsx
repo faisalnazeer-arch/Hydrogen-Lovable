@@ -13,6 +13,11 @@ import { useCartStore } from "@/stores/cartStore";
 import { formatPrice, shopifyImageUrl } from "@/lib/shopify";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import {
+  SubscriptionSelector,
+  parseSellingPlanGroups,
+  type SellingPlanGroup,
+} from "@/components/product/SubscriptionSelector";
 
 export function QuickBuyDrawer() {
   const { product, isOpen, close } = useQuickBuyStore();
@@ -29,6 +34,14 @@ export function QuickBuyDrawer() {
   const [selected, setSelected] = useState<Record<string, string>>({});
   const [qty, setQty] = useState(1);
 
+  // Subscription state
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
+  const [sellingPlanGroups, setSellingPlanGroups] = useState<SellingPlanGroup[]>([]);
+  const [fetchingPlans, setFetchingPlans] = useState(false);
+  // variantId → { planId → subscriptionPriceAmount }
+  const [variantAllocations, setVariantAllocations] = useState<Record<string, Record<string, string>>>({});
+
+  // Reset variant selection + qty when product changes
   useEffect(() => {
     if (!node) return;
     const firstAvail = variants.find((v) => v.availableForSale) ?? variants[0];
@@ -38,13 +51,65 @@ export function QuickBuyDrawer() {
     setQty(1);
   }, [node, variants]);
 
+  // Fetch selling plans on-demand via server route (uses authenticated storefront client)
+  useEffect(() => {
+    if (!node?.handle) {
+      setSelectedPlanId(null);
+      setSellingPlanGroups([]);
+      setVariantAllocations({});
+      return;
+    }
+    setSelectedPlanId(null);
+    setSellingPlanGroups([]);
+    setVariantAllocations({});
+    setFetchingPlans(true);
+
+    fetch(`/api/selling-plans/${node.handle}`)
+      .then((res) => res.json())
+      .then((data: { groups: any[]; discountMap: Record<string, number>; variantAllocations: Record<string, Record<string, string>> }) => {
+        setSellingPlanGroups(parseSellingPlanGroups(data.groups ?? [], data.discountMap ?? {}));
+        setVariantAllocations(data.variantAllocations ?? {});
+      })
+      .catch((err) => {
+        console.error("[QuickBuy] selling plans fetch failed:", err);
+      })
+      .finally(() => {
+        setFetchingPlans(false);
+      });
+  }, [node?.handle]);
+
   const matched = variants.find((v) =>
     v.selectedOptions.every((o) => selected[o.name] === o.value)
   );
 
+  // Plan prices for the currently selected variant
+  const planPrices: Record<string, string> = matched ? (variantAllocations[matched.id] ?? {}) : {};
+
+  // Compute display price
+  const regularPrice = matched?.price ?? node?.priceRange?.minVariantPrice;
+  const regularAmt = parseFloat(regularPrice?.amount ?? "0");
+  const currency = regularPrice?.currencyCode ?? "AED";
+
+  const allPlans = sellingPlanGroups.flatMap((g) => g.plans);
+  const activePlan = allPlans.find((p) => p.id === selectedPlanId) ?? null;
+
+  const subAmt = selectedPlanId
+    ? (() => {
+        const exact = planPrices[selectedPlanId];
+        if (exact) return parseFloat(exact);
+        const pct = activePlan?.discount ?? 10;
+        return regularAmt * (1 - pct / 100);
+      })()
+    : regularAmt;
+
+  const displayPrice = selectedPlanId
+    ? { amount: subAmt.toFixed(2), currencyCode: currency }
+    : regularPrice ?? { amount: "0", currencyCode: "AED" };
+
+  const displayCompareAt = selectedPlanId ? regularPrice : matched?.compareAtPrice;
+
   if (!node) return null;
   const img = node.images.edges[0]?.node;
-  const price = matched?.price ?? node.priceRange.minVariantPrice;
 
   const handleAdd = async () => {
     if (!matched) return;
@@ -52,12 +117,15 @@ export function QuickBuyDrawer() {
       product: product!,
       variantId: matched.id,
       variantTitle: matched.title,
-      price: matched.price,
+      price: displayPrice,
+      compareAtPrice: displayCompareAt ?? null,
       quantity: qty,
       selectedOptions: matched.selectedOptions,
+      sellingPlanId: selectedPlanId ?? undefined,
+      sellingPlanName: activePlan?.name ?? null,
     });
     toast.success("Added to cart", {
-      description: `${node.title} · ${matched.title}`,
+      description: `${node.title}${matched.title !== "Default Title" ? ` · ${matched.title}` : ""}${activePlan ? ` · ${activePlan.name}` : ""}`,
     });
     close();
   };
@@ -81,10 +149,17 @@ export function QuickBuyDrawer() {
                 />
               </div>
             )}
-            <div className="flex flex-col">
+            <div className="flex flex-col justify-center">
               <div className="font-medium leading-tight">{node.title}</div>
-              <div className="mt-2 font-display text-2xl font-bold text-crimson">
-                {formatPrice(price.amount, price.currencyCode)}
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="font-display text-2xl font-bold text-crimson">
+                  {formatPrice(displayPrice.amount, displayPrice.currencyCode)}
+                </span>
+                {displayCompareAt && displayCompareAt.amount !== displayPrice.amount && (
+                  <span className="text-sm text-muted-foreground line-through">
+                    {formatPrice(displayCompareAt.amount, displayCompareAt.currencyCode)}
+                  </span>
+                )}
               </div>
               {matched && !matched.availableForSale && (
                 <div className="mt-1 text-xs font-semibold text-destructive">
@@ -95,6 +170,7 @@ export function QuickBuyDrawer() {
           </div>
 
           <div className="mt-6 space-y-5">
+            {/* Variant options */}
             {options.map((opt: any) => (
               <div key={opt.name}>
                 <div className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
@@ -135,6 +211,29 @@ export function QuickBuyDrawer() {
               </div>
             ))}
 
+            {/* Subscription selector */}
+            {fetchingPlans ? (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Loading subscription options…
+              </div>
+            ) : sellingPlanGroups.length > 0 ? (
+              <div>
+                <div className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Purchase Type
+                </div>
+                <SubscriptionSelector
+                  groups={sellingPlanGroups}
+                  selectedPlanId={selectedPlanId}
+                  onSelect={setSelectedPlanId}
+                  regularPrice={regularPrice?.amount ?? "0"}
+                  currency={currency}
+                  planPrices={planPrices}
+                />
+              </div>
+            ) : null}
+
+            {/* Quantity */}
             <div>
               <div className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 Quantity
@@ -173,7 +272,8 @@ export function QuickBuyDrawer() {
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <>
-                <ShoppingBag className="mr-2 h-4 w-4" /> Add to Cart
+                <ShoppingBag className="mr-2 h-4 w-4" />
+                {selectedPlanId ? "Subscribe & Add to Cart" : "Add to Cart"}
               </>
             )}
           </Button>

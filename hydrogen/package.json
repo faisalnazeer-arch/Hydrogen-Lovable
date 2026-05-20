@@ -14,7 +14,9 @@
     "env:pull": "shopify hydrogen env pull",
     "lint": "eslint --ext .js,.ts,.jsx,.tsx app",
     "typecheck": "tsc --noEmit",
-    "generate:metaobjects": "tsx scripts/generate-metaobjects.ts"
+    "generate:metaobjects": "tsx scripts/generate-metaobjects.ts",
+    "create:nav": "tsx scripts/create-nav-metaobjects.ts",
+    "create:categories": "tsx scripts/create-category-metaobjects.ts"
   },
   "dependencies": {
     "@graphql-codegen/cli": "^7.0.0",
@@ -49,8 +51,10 @@
     "@shopify/cli": "^3.71.5",
     "@shopify/cli-hydrogen": "^9.0.1",
     "@shopify/hydrogen": "^2026.4.2",
+    "@shopify/hydrogen-react": "^2026.4.2",
     "@shopify/remix-oxygen": "^3.0.2",
     "@tanstack/react-query": "^5.100.9",
+    "browserslist": "^4.28.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
@@ -62,6 +66,7 @@
     "input-otp": "^1.4.2",
     "isbot": "^5.1.17",
     "lucide-react": "^0.462.0",
+    "node-releases": "^2.0.44",
     "react": "^18.3.1",
     "react-day-picker": "^10.0.0",
     "react-dom": "^18.3.1",

@@ -1,17 +1,26 @@
 import { Link } from "react-router";
 
-interface MegaColumn {
+export interface MegaColumn {
   title: string;
-  links: Array<{ label: string; handle: string }>;
+  links: Array<{ label: string; url: string }>;
 }
 
 interface MegaMenuProps {
   columns: MegaColumn[];
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }
 
-export function MegaMenu({ columns }: MegaMenuProps) {
+export function MegaMenu({ columns, onMouseEnter, onMouseLeave }: MegaMenuProps) {
   return (
-    <div className="absolute left-4 right-4 top-full z-50 hidden group-hover:block">
+    <div
+      className="absolute left-4 right-4 top-full z-50"
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
+      {/* invisible bridge fills the gap between button and panel so the mouse
+          never leaves the hover zone while moving downward */}
+      <div className="h-2 w-full" />
       <div className="rounded-md border border-border bg-card p-6 shadow-[var(--shadow-card)]">
         <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
           {columns.map((col) => (
@@ -21,10 +30,10 @@ export function MegaMenu({ columns }: MegaMenuProps) {
               </h4>
               <ul className="space-y-2">
                 {col.links.map((l) => (
-                  <li key={l.handle + l.label}>
+                  <li key={l.url + l.label}>
                     <Link
-                      to={`/collections/${l.handle}`}
-                      className="text-sm text-foreground transition-colors hover:text-crimson"
+                      to={l.url}
+                      className="block py-0.5 text-sm text-foreground transition-colors hover:text-crimson"
                     >
                       {l.label}
                     </Link>
@@ -38,68 +47,3 @@ export function MegaMenu({ columns }: MegaMenuProps) {
     </div>
   );
 }
-
-// MLS mega menu data — derived from PRD + actual collection handles
-export const BEEF_MEGA: MegaColumn[] = [
-  {
-    title: "Shop By Cuts",
-    links: [
-      { label: "Steaks", handle: "beef-steaks" },
-      { label: "Bone-in Cubes", handle: "beef-bone-in-cubes" },
-      { label: "Boneless Cubes", handle: "beef-boneless-cubes" },
-      { label: "Mince", handle: "beef-mince" },
-      { label: "Brisket", handle: "beef-brisket" },
-      { label: "Beef Roast", handle: "beef-roast" },
-      { label: "Ribs", handle: "beef-ribs" },
-      { label: "Beef Stroganoff", handle: "beef-stroganoff" },
-      { label: "Mishkak Cubes", handle: "beef-mishkak-barbecue-cubes-fondue" },
-      { label: "Beef Burger Patties", handle: "beef-burgers-patties" },
-      { label: "All Beef", handle: "all-beef" },
-    ],
-  },
-  {
-    title: "Shop By Origin",
-    links: [
-      { label: "Australian Black Angus", handle: "australian-black-angus-beef" },
-      { label: "AUS Grass-fed Beef", handle: "australian-grass-fed-beef" },
-      { label: "AUS Angus Beef", handle: "aus-angus-beef-collection" },
-    ],
-  },
-  {
-    title: "AUS Wagyu",
-    links: [
-      { label: "Wagyu MB 4/5", handle: "australian-wagyu-beef-mb-4-5" },
-    ],
-  },
-  {
-    title: "Shop Whole Cuts",
-    links: [
-      { label: "Beef Brisket Whole Cuts", handle: "beef-brisket" },
-      { label: "Bone-In Whole Cuts", handle: "bone-in-cubes" },
-      { label: "Boneless Whole Cuts", handle: "boneless-cubes" },
-    ],
-  },
-];
-
-export const LAMB_MEGA: MegaColumn[] = [
-  {
-    title: "Shop By Cuts",
-    links: [
-      { label: "All Lamb", handle: "all-lamb" },
-      { label: "All Mutton", handle: "all-mutton" },
-      { label: "Australian Lamb", handle: "australian-lamb" },
-    ],
-  },
-  {
-    title: "Featured",
-    links: [{ label: "AUS Lamb Campaign", handle: "aus-lamb-campaign" }],
-  },
-  {
-    title: "Bundles",
-    links: [{ label: "Meat Box Collection", handle: "box-collection" }],
-  },
-  {
-    title: "Build Your Own",
-    links: [{ label: "Build Box", handle: "build-box" }],
-  },
-];
