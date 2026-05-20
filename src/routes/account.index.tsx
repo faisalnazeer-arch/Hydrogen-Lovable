@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, LogOut, MapPin, Package, User as UserIcon } from "lucide-react";
-import { getCustomerProfile, logoutCustomer } from "@/server/customerAuth.functions";
+import { getCustomerProfile, logoutCustomer } from "@/lib/customerAuth.functions";
 import { formatPrice } from "@/lib/shopify";
 
 export const Route = createFileRoute("/account/")({

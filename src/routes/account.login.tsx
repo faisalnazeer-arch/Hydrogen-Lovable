@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, LogIn, ShieldCheck } from "lucide-react";
-import { startLogin } from "@/server/customerAuth.functions";
+import { startLogin } from "@/lib/customerAuth.functions";
 
 export const Route = createFileRoute("/account/login")({
   component: LoginPage,
