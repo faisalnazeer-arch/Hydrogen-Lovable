@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   Sheet,
   SheetContent,
@@ -7,12 +7,28 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Minus, Plus, Trash2, ExternalLink, Loader2, ShoppingBag, RefreshCw } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Minus, Plus, Trash2, ExternalLink, Loader2, ShoppingBag,
+  RefreshCw, Ticket, Gift, FileText, CheckCircle, XCircle, X,
+  Truck,
+} from "lucide-react";
 import { useCartStore } from "@/stores/cartStore";
 import { formatPrice, shopifyImageUrl } from "@/lib/shopify";
 import { useT } from "@/i18n/strings";
+import { useCartDrawerConfig } from "@/lib/cartDrawerConfig";
 
 const FREE_SHIPPING_THRESHOLD = 150;
+
+function parseBold(text: string): React.ReactNode {
+  const parts = text.split(/\*\*(.*?)\*\*/g);
+  return parts.map((part, i) =>
+    i % 2 === 1 ? <strong key={i}>{part}</strong> : part
+  );
+}
+
+type Panel = "discount" | "giftcard" | "note";
 
 export function CartDrawer() {
   const {
@@ -21,17 +37,42 @@ export function CartDrawer() {
     setOpen,
     isLoading,
     isSyncing,
+    isApplyingCode,
     updateQuantity,
     removeItem,
     getCheckoutUrl,
     syncCart,
+    discountCodes,
+    appliedGiftCards,
+    totalAmount,
+    applyDiscountCode,
+    removeDiscountCode,
+    applyGiftCard,
+    removeGiftCard,
+    orderNote,
+    updateOrderNote,
   } = useCartStore();
 
   const t = useT();
+  const drawerConfig = useCartDrawerConfig();
+
+  const [activePanel, setActivePanel] = useState<Panel>("discount");
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [deliveryOpen, setDeliveryOpen] = useState(false);
+  const [discountInput, setDiscountInput] = useState("");
+  const [discountError, setDiscountError] = useState<string | null>(null);
+  const [giftCardInput, setGiftCardInput] = useState("");
+  const [giftCardError, setGiftCardError] = useState<string | null>(null);
+  const [noteValue, setNoteValue] = useState(orderNote);
+  const noteSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (isOpen) syncCart();
   }, [isOpen, syncCart]);
+
+  useEffect(() => {
+    setNoteValue(orderNote);
+  }, [orderNote]);
 
   const totalItems = items.reduce((n, i) => n + i.quantity, 0);
   const subtotal = items.reduce(
@@ -39,8 +80,13 @@ export function CartDrawer() {
     0
   );
   const currency = items[0]?.price.currencyCode ?? "AED";
-  const remaining = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal);
-  const progress = Math.min(100, (subtotal / FREE_SHIPPING_THRESHOLD) * 100);
+  const threshold = drawerConfig.freeShippingThreshold;
+  const remaining = Math.max(0, threshold - subtotal);
+  const progress = Math.min(100, (subtotal / threshold) * 100);
+
+  const hasDiscounts = discountCodes.some((d) => d.applicable) || appliedGiftCards.length > 0;
+  const displayTotal = hasDiscounts && totalAmount ? parseFloat(totalAmount.amount) : subtotal;
+  const displayCurrency = hasDiscounts && totalAmount ? totalAmount.currencyCode : currency;
 
   const handleCheckout = () => {
     const url = getCheckoutUrl();
@@ -50,16 +96,151 @@ export function CartDrawer() {
     }
   };
 
+  const handleApplyDiscount = async () => {
+    setDiscountError(null);
+    const result = await applyDiscountCode(discountInput);
+    if (result.success) {
+      setDiscountInput("");
+    } else {
+      setDiscountError(result.error ?? "Could not apply code");
+    }
+  };
+
+  const handleApplyGiftCard = async () => {
+    setGiftCardError(null);
+    const result = await applyGiftCard(giftCardInput);
+    if (result.success) {
+      setGiftCardInput("");
+    } else {
+      setGiftCardError(result.error ?? "Could not apply gift card");
+    }
+  };
+
+  const handleNoteSave = () => {
+    if (noteSaveTimer.current) clearTimeout(noteSaveTimer.current);
+    updateOrderNote(noteValue);
+    setNoteOpen(false);
+  };
+
+  const handleNoteCancel = () => {
+    setNoteValue(orderNote);
+    setNoteOpen(false);
+  };
+
+  const togglePanel = (p: Panel) => {
+    if (p === "note") {
+      setNoteOpen(true);
+      return;
+    }
+    setActivePanel((cur) => (cur === p ? "discount" : p));
+  };
+
   const itemLabel = totalItems === 1 ? t("cart.item") : t("cart.items");
+
+  const tabs: { id: Panel; icon: React.ReactNode; label: string; badge?: number }[] = [
+    {
+      id: "discount",
+      icon: <Ticket className="h-5 w-5" />,
+      label: "Discount code",
+      badge: discountCodes.filter((d) => d.applicable).length || undefined,
+    },
+    {
+      id: "giftcard",
+      icon: <Gift className="h-5 w-5" />,
+      label: "Gift card",
+      badge: appliedGiftCards.length || undefined,
+    },
+    {
+      id: "note",
+      icon: <FileText className="h-5 w-5" />,
+      label: "Order note",
+      badge: orderNote ? 1 : undefined,
+    },
+  ];
 
   return (
     <Sheet open={isOpen} onOpenChange={setOpen}>
       <SheetContent className="flex w-full flex-col p-0 sm:max-w-md">
-        <SheetHeader className="border-b border-border px-6 py-4">
-          <SheetTitle className="font-display text-xl">{t("cart.title")}</SheetTitle>
-          <SheetDescription>
-            {totalItems === 0 ? t("cart.empty") : `${totalItems} ${itemLabel}`}
-          </SheetDescription>
+        {/* inner wrapper — relative + overflow-hidden so absolute delivery panel is clipped correctly */}
+        <div className="relative flex flex-1 flex-col overflow-hidden">
+
+        {/* ── Floating delivery tab ─────────────────────────────── */}
+        <div className="absolute left-0 top-1/2 z-30 -translate-y-1/2">
+          <span className="pointer-events-none absolute inset-0 animate-ping rounded-r-lg opacity-40" style={{ background: "rgb(192 50 56)" }} />
+          <button
+            type="button"
+            onClick={() => setDeliveryOpen(true)}
+            className="group relative flex flex-col items-center gap-1 rounded-r-lg px-1.5 py-3 text-white shadow-md transition-all duration-200 hover:px-2 active:scale-95"
+            style={{ background: "rgb(192 50 56)" }}
+          >
+            <Truck className="h-3.5 w-3.5" />
+            <span className="rotate-180 [writing-mode:vertical-rl] text-[8px] font-bold uppercase tracking-widest">
+              Delivery
+            </span>
+          </button>
+        </div>
+
+        {/* ── Delivery info slide panel ──────────────────────────── */}
+        <div
+          className={`absolute inset-0 z-40 flex flex-col bg-background transition-transform duration-300 ease-out ${
+            deliveryOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
+        >
+          {/* panel header */}
+          <div className="flex items-center gap-3 border-b border-border px-4 py-3.5" style={{ background: "rgb(192 50 56 / 0.06)" }}>
+            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-white shadow-md" style={{ background: "rgb(192 50 56)" }}>
+              <Truck className="h-4 w-4" />
+            </div>
+            <div className="flex-1">
+              <h2 className="font-display text-sm font-bold">Delivery &amp; Offers</h2>
+              <p className="text-[11px] text-muted-foreground">What&apos;s available for your order</p>
+            </div>
+            <button
+              type="button"
+              aria-label="Close"
+              onClick={() => setDeliveryOpen(false)}
+              className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* panel body */}
+          <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
+            {drawerConfig.deliveryItems.map((item, i) => (
+              <div
+                key={i}
+                className="flex items-start gap-3 rounded-xl border px-3.5 py-3"
+                style={{
+                  borderColor: "rgb(192 50 56 / 0.18)",
+                  background: "rgb(192 50 56 / 0.04)",
+                }}
+              >
+                <span
+                  className="mt-1 h-2 w-2 shrink-0 rounded-full"
+                  style={{ background: "rgb(192 50 56)" }}
+                />
+                <p className="text-[13px] leading-relaxed text-foreground">
+                  {parseBold(item)}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* panel footer */}
+          <div className="border-t border-border px-3 py-3">
+            <Button
+              onClick={() => setDeliveryOpen(false)}
+              className="h-10 w-full text-white border-0 hover:opacity-90"
+              style={{ background: "rgb(192 50 56)" }}
+            >
+              Got it
+            </Button>
+          </div>
+        </div>
+
+        <SheetHeader className="border-b border-border px-4 py-3">
+          <SheetTitle className="font-display text-lg">{t("cart.title")}</SheetTitle>
         </SheetHeader>
 
         {items.length > 0 && (
@@ -105,7 +286,6 @@ export function CartDrawer() {
                     key={`${item.variantId}-${item.sellingPlanId ?? "none"}`}
                     className={`flex gap-3 p-4 transition-opacity ${pending ? "opacity-60" : ""}`}
                   >
-                    {/* Product image */}
                     <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-md bg-muted">
                       {img && (
                         <img
@@ -130,7 +310,6 @@ export function CartDrawer() {
                           item.variantTitle}
                       </div>
 
-                      {/* Subscription info */}
                       {item.sellingPlanId && (() => {
                         const subPrice = parseFloat(item.price.amount);
                         const regPrice = item.compareAtPrice ? parseFloat(item.compareAtPrice.amount) : 0;
@@ -148,7 +327,6 @@ export function CartDrawer() {
                       })()}
 
                       <div className="mt-auto flex items-center justify-between pt-1">
-                        {/* Qty controls — disabled while pending */}
                         <div className={`flex items-center rounded border border-border ${pending ? "pointer-events-none opacity-50" : ""}`}>
                           <button
                             type="button"
@@ -171,7 +349,6 @@ export function CartDrawer() {
                           </button>
                         </div>
 
-                        {/* Price */}
                         <div className="flex flex-col items-end gap-0">
                           {item.compareAtPrice && item.compareAtPrice.amount !== item.price.amount && (
                             <span className="text-xs text-muted-foreground line-through">
@@ -191,7 +368,6 @@ export function CartDrawer() {
                       </div>
                     </div>
 
-                    {/* Remove — disabled while pending */}
                     <button
                       type="button"
                       aria-label="Remove"
@@ -209,36 +385,204 @@ export function CartDrawer() {
         </div>
 
         {items.length > 0 && (
-          <div className="border-t border-border p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <span className="text-sm font-medium">{t("cart.subtotal")}</span>
-              <span className="font-display text-xl font-bold text-crimson">
-                {formatPrice(subtotal, currency)}
-              </span>
+          <div className="relative border-t border-border px-2 pt-2 pb-2 space-y-1.5">
+            {/* Tab row */}
+            <div className="grid grid-cols-3 gap-1.5">
+              {tabs.map((tab) => {
+                const active = tab.id !== "note" && activePanel === tab.id;
+                const noteActive = tab.id === "note" && orderNote;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => togglePanel(tab.id)}
+                    className={`relative flex flex-col items-center gap-0.5 rounded-md border py-1.5 text-[10px] font-medium transition-colors
+                      ${active || noteActive
+                        ? "border-crimson bg-crimson/5 text-crimson"
+                        : "border-border bg-card text-muted-foreground hover:border-crimson/40 hover:text-foreground"
+                      }`}
+                  >
+                    <span className="[&>svg]:h-4 [&>svg]:w-4">{tab.icon}</span>
+                    <span className="leading-tight text-center">{tab.label}</span>
+                    {tab.badge !== undefined && (
+                      <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-crimson text-[8px] font-bold text-white">
+                        {tab.badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
-            <Button
-              onClick={handleCheckout}
-              disabled={isLoading || isSyncing || items.some((i) => i.isPending)}
-              size="lg"
-              className="w-full bg-crimson text-crimson-foreground hover:bg-rich-red"
-            >
-              {isLoading || isSyncing ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <>
-                  <ExternalLink className="me-2 h-4 w-4" /> {t("cart.checkout")}
-                </>
+
+            {/* Inline panels — discount & gift card only */}
+            {activePanel === "discount" && (
+              <div className="rounded-md border border-border bg-card px-2 py-1.5">
+                <div className="flex gap-1.5">
+                  <Input
+                    value={discountInput}
+                    onChange={(e) => { setDiscountInput(e.target.value); setDiscountError(null); }}
+                    onKeyDown={(e) => e.key === "Enter" && handleApplyDiscount()}
+                    placeholder="Enter discount code"
+                    className="h-8 text-xs"
+                    disabled={isApplyingCode}
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleApplyDiscount}
+                    disabled={isApplyingCode || !discountInput.trim()}
+                    className="h-8 shrink-0 px-3 text-xs bg-crimson text-crimson-foreground hover:bg-rich-red border-crimson"
+                  >
+                    {isApplyingCode ? <Loader2 className="h-3 w-3 animate-spin" /> : "Apply"}
+                  </Button>
+                </div>
+                {discountError && (
+                  <p className="mt-1 flex items-center gap-1 text-[10px] text-destructive">
+                    <XCircle className="h-3 w-3 shrink-0" /> {discountError}
+                  </p>
+                )}
+                {discountCodes.length > 0 && (
+                  <ul className="mt-1 space-y-0.5">
+                    {discountCodes.map((dc) => (
+                      <li key={dc.code} className="flex items-center justify-between rounded bg-muted/50 px-2 py-0.5 text-[10px]">
+                        <span className="flex items-center gap-1">
+                          {dc.applicable
+                            ? <CheckCircle className="h-3 w-3 text-emerald-600 shrink-0" />
+                            : <XCircle className="h-3 w-3 text-destructive shrink-0" />}
+                          <span className={dc.applicable ? "font-semibold" : "line-through text-muted-foreground"}>{dc.code}</span>
+                          {!dc.applicable && <span className="text-destructive">invalid</span>}
+                        </span>
+                        <button type="button" aria-label="Remove" onClick={() => removeDiscountCode(dc.code)} disabled={isApplyingCode} className="ml-1 text-muted-foreground hover:text-crimson disabled:opacity-40">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+
+            {activePanel === "giftcard" && (
+              <div className="rounded-md border border-border bg-card px-2 py-1.5">
+                <div className="flex gap-1.5">
+                  <Input
+                    value={giftCardInput}
+                    onChange={(e) => { setGiftCardInput(e.target.value); setGiftCardError(null); }}
+                    onKeyDown={(e) => e.key === "Enter" && handleApplyGiftCard()}
+                    placeholder="Enter gift card code"
+                    className="h-8 text-xs"
+                    disabled={isApplyingCode}
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleApplyGiftCard}
+                    disabled={isApplyingCode || !giftCardInput.trim()}
+                    className="h-8 shrink-0 px-3 text-xs bg-crimson text-crimson-foreground hover:bg-rich-red border-crimson"
+                  >
+                    {isApplyingCode ? <Loader2 className="h-3 w-3 animate-spin" /> : "Apply"}
+                  </Button>
+                </div>
+                {giftCardError && (
+                  <p className="mt-1 flex items-center gap-1 text-[10px] text-destructive">
+                    <XCircle className="h-3 w-3 shrink-0" /> {giftCardError}
+                  </p>
+                )}
+                {appliedGiftCards.length > 0 && (
+                  <ul className="mt-1 space-y-0.5">
+                    {appliedGiftCards.map((gc) => (
+                      <li key={gc.id} className="flex items-center justify-between rounded bg-muted/50 px-2 py-0.5 text-[10px]">
+                        <span className="flex items-center gap-1">
+                          <CheckCircle className="h-3 w-3 text-emerald-600 shrink-0" />
+                          <span className="font-semibold">···· {gc.lastCharacters}</span>
+                          <span className="text-muted-foreground">-{formatPrice(gc.amountUsed.amount, gc.amountUsed.currencyCode)}</span>
+                        </span>
+                        <button type="button" aria-label="Remove" onClick={() => removeGiftCard(gc.id)} disabled={isApplyingCode} className="ml-1 text-muted-foreground hover:text-crimson disabled:opacity-40">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+
+            {/* Totals + checkout */}
+            <div className="border-t border-border pt-1.5">
+              {hasDiscounts && (
+                <div className="mb-0.5 flex items-center justify-between text-xs text-muted-foreground">
+                  <span>Subtotal</span>
+                  <span>{formatPrice(subtotal, currency)}</span>
+                </div>
               )}
-            </Button>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="mt-2 w-full text-center text-xs text-muted-foreground hover:text-foreground"
+              <div className="mb-1.5 flex items-center justify-between">
+                <span className="text-sm font-medium">
+                  {hasDiscounts ? "Total" : t("cart.subtotal")}
+                </span>
+                <span className="font-display text-xl font-bold text-crimson">
+                  {formatPrice(displayTotal, displayCurrency)}
+                </span>
+              </div>
+              <Button
+                onClick={handleCheckout}
+                disabled={isLoading || isSyncing || items.some((i) => i.isPending)}
+                className="h-10 w-full bg-crimson text-crimson-foreground hover:bg-rich-red"
+              >
+                {isLoading || isSyncing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <ExternalLink className="me-2 h-4 w-4" /> {t("cart.checkout")}
+                  </>
+                )}
+              </Button>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="mt-1.5 w-full text-center text-xs text-muted-foreground hover:text-foreground"
+              >
+                {t("cart.continue")}
+              </button>
+            </div>
+
+            {/* Order note bottom overlay — slides up from bottom of the drawer */}
+            <div
+              className={`absolute inset-x-0 bottom-0 z-10 flex flex-col rounded-t-2xl bg-background shadow-[0_-4px_24px_rgba(0,0,0,0.12)] transition-transform duration-300 ease-out ${
+                noteOpen ? "translate-y-0" : "translate-y-full"
+              }`}
             >
-              {t("cart.continue")}
-            </button>
+              <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                <span className="text-sm font-semibold">Order note</span>
+                <button
+                  type="button"
+                  aria-label="Close"
+                  onClick={handleNoteCancel}
+                  className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="px-4 py-3">
+                <Textarea
+                  value={noteValue}
+                  onChange={(e) => setNoteValue(e.target.value)}
+                  placeholder="Add a note for your order…"
+                  rows={5}
+                  className="resize-none text-sm"
+                />
+              </div>
+              <div className="px-4 pb-4">
+                <Button
+                  onClick={handleNoteSave}
+                  className="w-full bg-crimson text-crimson-foreground hover:bg-rich-red"
+                >
+                  Save
+                </Button>
+              </div>
+            </div>
           </div>
         )}
+        </div>{/* end inner overflow-hidden wrapper */}
       </SheetContent>
     </Sheet>
   );

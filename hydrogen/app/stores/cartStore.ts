@@ -20,13 +20,31 @@ export interface CartItem {
   isPending?: boolean;
 }
 
+export interface DiscountCodeInfo {
+  code: string;
+  applicable: boolean;
+}
+
+export interface AppliedGiftCard {
+  id: string;
+  lastCharacters: string;
+  amountUsed: MoneyV2;
+  balance: MoneyV2;
+}
+
 interface CartStore {
   items: CartItem[];
   cartId: string | null;
   checkoutUrl: string | null;
   isLoading: boolean;
   isSyncing: boolean;
+  isApplyingCode: boolean;
   isOpen: boolean;
+  discountCodes: DiscountCodeInfo[];
+  giftCardCodes: string[];
+  appliedGiftCards: AppliedGiftCard[];
+  totalAmount: MoneyV2 | null;
+  orderNote: string;
   setOpen: (open: boolean) => void;
   addItem: (item: Omit<CartItem, "lineId" | "isPending">) => Promise<void>;
   updateQuantity: (variantId: string, quantity: number) => Promise<void>;
@@ -34,9 +52,28 @@ interface CartStore {
   clearCart: () => void;
   syncCart: () => Promise<void>;
   getCheckoutUrl: () => string | null;
+  applyDiscountCode: (code: string) => Promise<{ success: boolean; error?: string }>;
+  removeDiscountCode: (code: string) => Promise<void>;
+  applyGiftCard: (code: string) => Promise<{ success: boolean; error?: string }>;
+  removeGiftCard: (id: string) => Promise<void>;
+  updateOrderNote: (note: string) => Promise<void>;
 }
 
-const CART_QUERY = `query cart($id: ID!) { cart(id: $id) { id totalQuantity } }`;
+const CART_QUERY = `query cart($id: ID!) {
+  cart(id: $id) {
+    id
+    note
+    totalQuantity
+    discountCodes { code applicable }
+    appliedGiftCards {
+      id
+      lastCharacters
+      amountUsed { amount currencyCode }
+      balance { amount currencyCode }
+    }
+    cost { totalAmount { amount currencyCode } }
+  }
+}`;
 
 const CART_CREATE_MUTATION = `
   mutation cartCreate($input: CartInput!) {
@@ -45,6 +82,7 @@ const CART_CREATE_MUTATION = `
         id
         checkoutUrl
         lines(first: 100) { edges { node { id merchandise { ... on ProductVariant { id } } } } }
+        cost { totalAmount { amount currencyCode } }
       }
       userErrors { field message }
     }
@@ -69,6 +107,46 @@ const CART_LINES_UPDATE_MUTATION = `
 const CART_LINES_REMOVE_MUTATION = `
   mutation cartLinesRemove($cartId: ID!, $lineIds: [ID!]!) {
     cartLinesRemove(cartId: $cartId, lineIds: $lineIds) { cart { id } userErrors { field message } }
+  }
+`;
+
+const CART_DISCOUNT_CODES_UPDATE = `
+  mutation cartDiscountCodesUpdate($cartId: ID!, $discountCodes: [String!]!) {
+    cartDiscountCodesUpdate(cartId: $cartId, discountCodes: $discountCodes) {
+      cart {
+        id
+        discountCodes { code applicable }
+        cost { totalAmount { amount currencyCode } }
+      }
+      userErrors { field message }
+    }
+  }
+`;
+
+const CART_NOTE_UPDATE = `
+  mutation cartNoteUpdate($cartId: ID!, $note: String!) {
+    cartNoteUpdate(cartId: $cartId, note: $note) {
+      cart { id note }
+      userErrors { field message }
+    }
+  }
+`;
+
+const CART_GIFT_CARD_CODES_UPDATE = `
+  mutation cartGiftCardCodesUpdate($cartId: ID!, $giftCardCodes: [String!]!) {
+    cartGiftCardCodesUpdate(cartId: $cartId, giftCardCodes: $giftCardCodes) {
+      cart {
+        id
+        appliedGiftCards {
+          id
+          lastCharacters
+          amountUsed { amount currencyCode }
+          balance { amount currencyCode }
+        }
+        cost { totalAmount { amount currencyCode } }
+      }
+      userErrors { field message }
+    }
   }
 `;
 
@@ -107,6 +185,7 @@ async function createShopifyCart(item: CartItem) {
     cartId: cart.id as string,
     checkoutUrl: formatCheckoutUrl(cart.checkoutUrl),
     lineId: lineId as string,
+    totalAmount: cart.cost?.totalAmount ?? null,
   };
 }
 
@@ -147,6 +226,16 @@ async function removeLineFromShopifyCart(cartId: string, lineId: string) {
   return { success: true as const };
 }
 
+const EMPTY: Pick<CartStore,
+  "discountCodes" | "giftCardCodes" | "appliedGiftCards" | "totalAmount" | "orderNote"
+> = {
+  discountCodes: [],
+  giftCardCodes: [],
+  appliedGiftCards: [],
+  totalAmount: null,
+  orderNote: "",
+};
+
 export const useCartStore = create<CartStore>()(
   persist(
     (set, get) => ({
@@ -155,7 +244,9 @@ export const useCartStore = create<CartStore>()(
       checkoutUrl: null,
       isLoading: false,
       isSyncing: false,
+      isApplyingCode: false,
       isOpen: false,
+      ...EMPTY,
 
       setOpen: (open) => set({ isOpen: open }),
 
@@ -167,7 +258,6 @@ export const useCartStore = create<CartStore>()(
 
         try {
           if (!cartId) {
-            // Optimistically show item immediately
             set({
               items: [{ ...item, lineId: null, isPending: true }, ...get().items],
               isOpen: true,
@@ -178,6 +268,7 @@ export const useCartStore = create<CartStore>()(
               set({
                 cartId: result.cartId,
                 checkoutUrl: result.checkoutUrl,
+                totalAmount: result.totalAmount,
                 items: get().items.map((i) =>
                   i.variantId === item.variantId && i.isPending
                     ? { ...i, lineId: result.lineId, isPending: false }
@@ -190,7 +281,6 @@ export const useCartStore = create<CartStore>()(
           } else if (existing) {
             const newQty = existing.quantity + item.quantity;
             if (!existing.lineId) return;
-            // Optimistically update quantity
             set({
               items: get().items.map((i) =>
                 i.variantId === item.variantId && i.sellingPlanId === item.sellingPlanId
@@ -212,7 +302,6 @@ export const useCartStore = create<CartStore>()(
             } else if (result.cartNotFound) {
               clearCart();
             } else {
-              // Revert optimistic quantity
               set({
                 items: get().items.map((i) =>
                   i.variantId === item.variantId && i.sellingPlanId === item.sellingPlanId
@@ -222,7 +311,6 @@ export const useCartStore = create<CartStore>()(
               });
             }
           } else {
-            // New item to existing cart — show it immediately
             set({
               items: [{ ...item, lineId: null, isPending: true }, ...get().items],
               isOpen: true,
@@ -263,12 +351,7 @@ export const useCartStore = create<CartStore>()(
         try {
           const result = await updateShopifyCartLine(cartId, item.lineId, quantity);
           if (result.success) {
-            const current = get().items;
-            set({
-              items: current.map((i) =>
-                i.variantId === variantId ? { ...i, quantity } : i
-              ),
-            });
+            set({ items: get().items.map((i) => i.variantId === variantId ? { ...i, quantity } : i) });
           } else if (result.cartNotFound) {
             clearCart();
           }
@@ -285,8 +368,7 @@ export const useCartStore = create<CartStore>()(
         try {
           const result = await removeLineFromShopifyCart(cartId, item.lineId);
           if (result.success) {
-            const current = get().items;
-            const next = current.filter((i) => i.variantId !== variantId);
+            const next = get().items.filter((i) => i.variantId !== variantId);
             if (next.length === 0) clearCart();
             else set({ items: next });
           } else if (result.cartNotFound) {
@@ -297,7 +379,7 @@ export const useCartStore = create<CartStore>()(
         }
       },
 
-      clearCart: () => set({ items: [], cartId: null, checkoutUrl: null }),
+      clearCart: () => set({ items: [], cartId: null, checkoutUrl: null, ...EMPTY }),
 
       getCheckoutUrl: () => get().checkoutUrl,
 
@@ -309,30 +391,162 @@ export const useCartStore = create<CartStore>()(
           const data = await storefrontApiRequest<any>(CART_QUERY, { id: cartId });
           if (!data) return;
           const cart = data?.data?.cart;
-          if (!cart || cart.totalQuantity === 0) clearCart();
+          if (!cart || cart.totalQuantity === 0) {
+            clearCart();
+          } else {
+            set({
+              discountCodes: cart.discountCodes ?? [],
+              appliedGiftCards: cart.appliedGiftCards ?? [],
+              totalAmount: cart.cost?.totalAmount ?? null,
+              orderNote: cart.note ?? "",
+            });
+          }
         } catch (err) {
           console.error("sync cart failed", err);
         } finally {
           set({ isSyncing: false });
         }
       },
+
+      applyDiscountCode: async (code) => {
+        const { cartId, discountCodes } = get();
+        if (!cartId) return { success: false, error: "Add an item to your cart first" };
+        const trimmed = code.trim().toUpperCase();
+        if (!trimmed) return { success: false, error: "Enter a discount code" };
+        if (discountCodes.some((d) => d.code.toUpperCase() === trimmed)) {
+          return { success: false, error: "Code already applied" };
+        }
+        set({ isApplyingCode: true });
+        try {
+          const currentCodes = discountCodes.map((d) => d.code);
+          const data = await storefrontApiRequest<any>(CART_DISCOUNT_CODES_UPDATE, {
+            cartId,
+            discountCodes: [...currentCodes, trimmed],
+          });
+          const userErrors = data?.data?.cartDiscountCodesUpdate?.userErrors ?? [];
+          if (userErrors.length > 0) return { success: false, error: userErrors[0].message };
+          const cart = data?.data?.cartDiscountCodesUpdate?.cart;
+          const newCodes: DiscountCodeInfo[] = cart?.discountCodes ?? [];
+          set({ discountCodes: newCodes, totalAmount: cart?.cost?.totalAmount ?? get().totalAmount });
+          const applied = newCodes.find((c) => c.code.toUpperCase() === trimmed);
+          if (!applied?.applicable) {
+            return { success: false, error: "This discount code is invalid or expired" };
+          }
+          return { success: true };
+        } finally {
+          set({ isApplyingCode: false });
+        }
+      },
+
+      removeDiscountCode: async (code) => {
+        const { cartId, discountCodes } = get();
+        if (!cartId) return;
+        set({ isApplyingCode: true });
+        try {
+          const remaining = discountCodes.filter((d) => d.code !== code).map((d) => d.code);
+          const data = await storefrontApiRequest<any>(CART_DISCOUNT_CODES_UPDATE, {
+            cartId,
+            discountCodes: remaining,
+          });
+          const cart = data?.data?.cartDiscountCodesUpdate?.cart;
+          set({
+            discountCodes: cart?.discountCodes ?? [],
+            totalAmount: cart?.cost?.totalAmount ?? get().totalAmount,
+          });
+        } finally {
+          set({ isApplyingCode: false });
+        }
+      },
+
+      applyGiftCard: async (code) => {
+        const { cartId, giftCardCodes } = get();
+        if (!cartId) return { success: false, error: "Add an item to your cart first" };
+        const trimmed = code.trim();
+        if (!trimmed) return { success: false, error: "Enter a gift card code" };
+        if (giftCardCodes.includes(trimmed)) return { success: false, error: "Gift card already applied" };
+        set({ isApplyingCode: true });
+        try {
+          const newCodes = [...giftCardCodes, trimmed];
+          const data = await storefrontApiRequest<any>(CART_GIFT_CARD_CODES_UPDATE, {
+            cartId,
+            giftCardCodes: newCodes,
+          });
+          const userErrors = data?.data?.cartGiftCardCodesUpdate?.userErrors ?? [];
+          if (userErrors.length > 0) return { success: false, error: userErrors[0].message };
+          const cart = data?.data?.cartGiftCardCodesUpdate?.cart;
+          const appliedCards: AppliedGiftCard[] = cart?.appliedGiftCards ?? [];
+          if (appliedCards.length <= giftCardCodes.length) {
+            return { success: false, error: "This gift card is invalid or has no remaining balance" };
+          }
+          set({
+            giftCardCodes: newCodes,
+            appliedGiftCards: appliedCards,
+            totalAmount: cart?.cost?.totalAmount ?? get().totalAmount,
+          });
+          return { success: true };
+        } finally {
+          set({ isApplyingCode: false });
+        }
+      },
+
+      removeGiftCard: async (id) => {
+        const { cartId, giftCardCodes, appliedGiftCards } = get();
+        if (!cartId) return;
+        const idx = appliedGiftCards.findIndex((c) => c.id === id);
+        const remaining = idx === -1 ? giftCardCodes : giftCardCodes.filter((_, i) => i !== idx);
+        set({ isApplyingCode: true });
+        try {
+          const data = await storefrontApiRequest<any>(CART_GIFT_CARD_CODES_UPDATE, {
+            cartId,
+            giftCardCodes: remaining,
+          });
+          const cart = data?.data?.cartGiftCardCodesUpdate?.cart;
+          set({
+            giftCardCodes: remaining,
+            appliedGiftCards: cart?.appliedGiftCards ?? [],
+            totalAmount: cart?.cost?.totalAmount ?? get().totalAmount,
+          });
+        } finally {
+          set({ isApplyingCode: false });
+        }
+      },
+
+      updateOrderNote: async (note) => {
+        const { cartId } = get();
+        set({ orderNote: note });
+        if (!cartId) return;
+        try {
+          await storefrontApiRequest<any>(CART_NOTE_UPDATE, { cartId, note });
+        } catch (err) {
+          console.error("updateOrderNote failed", err);
+        }
+      },
     }),
     {
       name: "mls-shopify-cart",
-      version: 2,
+      version: 4,
       storage: createJSONStorage(() => localStorage),
-      // Never persist pending items — if page reloads mid-add, the item is re-added cleanly
       partialize: (s) => ({
         items: s.items.filter((i) => !i.isPending),
         cartId: s.cartId,
         checkoutUrl: s.checkoutUrl,
+        giftCardCodes: s.giftCardCodes,
+        discountCodes: s.discountCodes,
+        appliedGiftCards: s.appliedGiftCards,
+        orderNote: s.orderNote,
       }),
       migrate: (persisted: any, fromVersion: number) => {
         if (fromVersion < 2) {
           const items = (persisted.items ?? []).map((item: any) =>
             item.sellingPlanId ? { ...item, sellingPlanName: item.sellingPlanName ?? null } : item
           );
-          return { ...persisted, items };
+          return { ...persisted, items, giftCardCodes: [], discountCodes: [], appliedGiftCards: [], orderNote: "" };
+        }
+        if (fromVersion < 3) {
+          return { ...persisted, giftCardCodes: persisted.giftCardCodes ?? [], discountCodes: persisted.discountCodes ?? [], appliedGiftCards: persisted.appliedGiftCards ?? [], orderNote: "" };
+        }
+        if (fromVersion < 4) {
+          return { ...persisted, orderNote: persisted.orderNote ?? "" };
         }
         return persisted;
       },

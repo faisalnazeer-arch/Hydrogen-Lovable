@@ -16,7 +16,8 @@
     "typecheck": "tsc --noEmit",
     "generate:metaobjects": "tsx scripts/generate-metaobjects.ts",
     "create:nav": "tsx scripts/create-nav-metaobjects.ts",
-    "create:categories": "tsx scripts/create-category-metaobjects.ts"
+    "create:categories": "tsx scripts/create-category-metaobjects.ts",
+    "create:cart-drawer": "tsx scripts/create-cart-drawer-metaobject.ts"
   },
   "dependencies": {
     "@graphql-codegen/cli": "^7.0.0",
