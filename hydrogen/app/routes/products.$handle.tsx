@@ -3,8 +3,7 @@ import { useLoaderData } from "react-router";
 import { type ShopifyProduct } from "~/lib/shopify";
 import { fetchJudgemeReviews, buildRatingSummary } from "~/lib/judgeme";
 import { DefaultTemplate } from "~/components/product-templates/DefaultTemplate";
-import { BeefRubsTemplate } from "~/components/product-templates/BeefRubsTemplate";
-import { ChickenRubsTemplate } from "~/components/product-templates/ChickenRubsTemplate";
+import { BeefRubsTemplate, ChickenRubsTemplate } from "~/components/product-templates/RubsTemplate";
 
 const RECOMMENDATIONS_QUERY = `#graphql
   query ProductRecommendations($productId: ID!, $country: CountryCode, $language: LanguageCode)

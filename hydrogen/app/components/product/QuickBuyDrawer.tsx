@@ -7,11 +7,12 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Loader2, Minus, Plus, ShoppingBag } from "lucide-react";
+import { Loader2, ShoppingBag } from "lucide-react";
+import { QuantitySelector } from "@/components/shared/QuantitySelector";
+import { OptionButton } from "@/components/shared/OptionButton";
 import { useQuickBuyStore } from "@/stores/quickBuyStore";
 import { useCartStore } from "@/stores/cartStore";
 import { formatPrice, shopifyImageUrl } from "@/lib/shopify";
-import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
   SubscriptionSelector,
@@ -178,7 +179,6 @@ export function QuickBuyDrawer() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {opt.values.map((value: string) => {
-                    const active = selected[opt.name] === value;
                     const candidate = variants.find(
                       (v: any) =>
                         v.selectedOptions.find((o: any) => o.name === opt.name)?.value === value &&
@@ -189,22 +189,14 @@ export function QuickBuyDrawer() {
                             selected[o.name] === o.value
                         )
                     );
-                    const disabled = candidate ? !candidate.availableForSale : true;
                     return (
-                      <button
+                      <OptionButton
                         key={value}
-                        type="button"
+                        label={value}
+                        active={selected[opt.name] === value}
+                        disabled={candidate ? !candidate.availableForSale : true}
                         onClick={() => setSelected((s) => ({ ...s, [opt.name]: value }))}
-                        className={cn(
-                          "rounded-md border px-3 py-1.5 text-sm font-medium transition-colors",
-                          active
-                            ? "border-crimson bg-crimson text-crimson-foreground"
-                            : "border-border bg-background hover:border-crimson",
-                          disabled && "cursor-not-allowed opacity-50 line-through hover:border-border"
-                        )}
-                      >
-                        {value}
-                      </button>
+                      />
                     );
                   })}
                 </div>
@@ -238,25 +230,7 @@ export function QuickBuyDrawer() {
               <div className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 Quantity
               </div>
-              <div className="inline-flex items-center rounded border border-border">
-                <button
-                  type="button"
-                  className="grid h-9 w-9 place-items-center hover:bg-muted"
-                  onClick={() => setQty((q) => Math.max(1, q - 1))}
-                  aria-label="Decrease"
-                >
-                  <Minus className="h-4 w-4" />
-                </button>
-                <span className="w-10 text-center text-sm">{qty}</span>
-                <button
-                  type="button"
-                  className="grid h-9 w-9 place-items-center hover:bg-muted"
-                  onClick={() => setQty((q) => q + 1)}
-                  aria-label="Increase"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
-              </div>
+              <QuantitySelector size="md" value={qty} onChange={setQty} />
             </div>
           </div>
         </div>

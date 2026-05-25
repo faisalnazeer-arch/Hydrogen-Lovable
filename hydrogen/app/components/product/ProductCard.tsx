@@ -172,10 +172,11 @@ export function ProductCard({ product, onQuickView, ratingOverride }: ProductCar
             )}
           </div>
           <Button
+            variant="primary"
             size="sm"
             onClick={handleClick}
             disabled={!isAvailable || isAdding}
-            className="w-full bg-crimson text-crimson-foreground hover:bg-rich-red disabled:opacity-60"
+            className="w-full"
           >
             {isAdding ? (
               <Loader2 className="h-4 w-4 animate-spin" />

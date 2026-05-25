@@ -1,5 +1,5 @@
 import { useState, useEffect, type ReactNode } from "react";
-import { Minus, Plus, Truck, ShieldCheck, RefreshCw, Loader2 } from "lucide-react";
+import { Truck, ShieldCheck, RefreshCw, Loader2 } from "lucide-react";
 import { Link } from "react-router";
 import { toast } from "sonner";
 import mlsLogo from "~/assets/mls-logo.png";
@@ -19,6 +19,10 @@ import { SubscriptionSelector, parseSellingPlanGroups } from "~/components/produ
 import { ProductCard } from "~/components/product/ProductCard";
 import { HScroller } from "~/components/home/HScroller";
 import { useT } from "~/i18n/strings";
+import { Button } from "~/components/ui/button";
+import { QuantitySelector } from "~/components/shared/QuantitySelector";
+import { OptionButton } from "~/components/shared/OptionButton";
+import type { JudgemeRatingSummary } from "~/lib/judgeme";
 
 export interface ProductPageShellProps {
   product: any;
@@ -26,7 +30,7 @@ export interface ProductPageShellProps {
   discountMap: Record<string, number>;
   reviews: any[];
   reviewsTotalCount: number;
-  rating: { average: number; count: number };
+  rating: JudgemeRatingSummary;
   externalId: string | null;
   recommendations: ShopifyProduct[];
   extraSections?: ReactNode;
@@ -265,19 +269,14 @@ export function ProductPageShell({
                         const matchingVariant = variants.find((v: any) =>
                           v.selectedOptions.every((o: any) => hypothetical[o.name] === o.value)
                         );
-                        const active = selectedOptions[option.name] === value;
                         return (
-                          <button
+                          <OptionButton
                             key={value}
-                            type="button"
-                            onClick={() => handleOptionSelect(option.name, value)}
+                            label={value}
+                            active={selectedOptions[option.name] === value}
                             disabled={!matchingVariant?.availableForSale}
-                            className={`rounded-md border px-3 py-1.5 text-sm font-medium transition-colors ${
-                              active ? "border-crimson bg-crimson text-crimson-foreground" : "border-border bg-card hover:border-crimson"
-                            } disabled:opacity-40`}
-                          >
-                            {value}
-                          </button>
+                            onClick={() => handleOptionSelect(option.name, value)}
+                          />
                         );
                       })}
                     </div>
@@ -308,29 +307,13 @@ export function ProductPageShell({
 
           {/* Quantity + Add to Cart */}
           <div className="flex items-center gap-3">
-            <div className="flex items-center rounded-lg border border-border">
-              <button
-                type="button"
-                onClick={() => setQty((q) => Math.max(1, q - 1))}
-                className="grid h-11 w-11 place-items-center text-muted-foreground transition-colors hover:text-foreground"
-              >
-                <Minus className="h-4 w-4" />
-              </button>
-              <span className="w-8 text-center text-sm font-semibold">{qty}</span>
-              <button
-                type="button"
-                onClick={() => setQty((q) => q + 1)}
-                className="grid h-11 w-11 place-items-center text-muted-foreground transition-colors hover:text-foreground"
-              >
-                <Plus className="h-4 w-4" />
-              </button>
-            </div>
-
-            <button
-              type="button"
+            <QuantitySelector size="lg" value={qty} onChange={setQty} />
+            <Button
+              variant="primary"
+              size="lg"
               onClick={handleAddToCart}
               disabled={!variant?.availableForSale || isLoading}
-              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-crimson px-6 py-3 text-sm font-bold uppercase tracking-wide text-crimson-foreground transition-colors hover:bg-rich-red disabled:opacity-50"
+              className="flex-1"
             >
               {isLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -339,7 +322,7 @@ export function ProductPageShell({
               ) : (
                 t("product.out_of_stock")
               )}
-            </button>
+            </Button>
           </div>
 
           {/* Trust badges */}

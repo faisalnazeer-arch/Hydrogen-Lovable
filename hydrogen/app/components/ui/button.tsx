@@ -9,18 +9,25 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
+        // ── Brand variants ───────────────────────────────────────────────
+        // Filled crimson — primary CTAs (Add to Cart, Checkout, Subscribe)
+        primary: "bg-crimson text-white hover:bg-rich-red active:bg-rich-red",
+        // Transparent with crimson border — secondary CTAs (Quick View, filters)
+        secondary: "border border-crimson bg-transparent text-crimson hover:bg-crimson/5 active:bg-crimson/10",
+        // White filled with crimson text — used on dark/image backgrounds
+        "white-secondary": "border border-white bg-white text-crimson hover:bg-white/90 active:bg-white/80",
+        // ── shadcn defaults (kept for compatibility) ─────────────────────
         default: "bg-primary text-primary-foreground shadow hover:bg-primary/90",
         destructive: "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
-        outline:
-          "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
-        secondary: "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
+        outline: "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
         default: "h-9 px-4 py-2",
         sm: "h-8 rounded-md px-3 text-xs",
-        lg: "h-10 rounded-md px-8",
+        lg: "h-11 rounded-lg px-8 text-sm font-bold uppercase tracking-wide",
+        xl: "h-13 rounded-lg px-10 text-base font-bold uppercase tracking-wide",
         icon: "h-9 w-9",
       },
     },

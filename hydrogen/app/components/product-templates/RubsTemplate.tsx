@@ -4,11 +4,16 @@ function getMeta(product: any, key: string): string | null {
   return product.metafields?.find((m: any) => m?.key === key)?.value ?? null;
 }
 
-function BeefRubsExtraSections({ product }: { product: any }) {
-  const usageGuide = getMeta(product, "usage_guide");
-  const pairing = getMeta(product, "pairing_suggestions");
+interface RubsExtraSectionsProps {
+  product: any;
+  pairingHeading: string;
+}
+
+function RubsExtraSections({ product, pairingHeading }: RubsExtraSectionsProps) {
+  const usageGuide   = getMeta(product, "usage_guide");
+  const pairing      = getMeta(product, "pairing_suggestions");
   const flavorProfile = getMeta(product, "flavor_profile");
-  const ingredients = getMeta(product, "ingredients");
+  const ingredients  = getMeta(product, "ingredients");
 
   if (!usageGuide && !pairing && !flavorProfile && !ingredients) return null;
 
@@ -30,7 +35,7 @@ function BeefRubsExtraSections({ product }: { product: any }) {
         {pairing && (
           <div className="rounded-xl border border-border bg-card p-6">
             <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              Best Beef Cuts for This Rub
+              {pairingHeading}
             </h3>
             <div
               className="prose prose-sm max-w-none text-muted-foreground [&_p]:leading-relaxed"
@@ -70,11 +75,24 @@ function BeefRubsExtraSections({ product }: { product: any }) {
   );
 }
 
-export function BeefRubsTemplate(props: ProductPageShellProps) {
+interface RubsTemplateProps extends ProductPageShellProps {
+  pairingHeading?: string;
+}
+
+export function RubsTemplate({ pairingHeading = "Best Cuts for This Rub", ...props }: RubsTemplateProps) {
   return (
     <ProductPageShell
       {...props}
-      extraSections={<BeefRubsExtraSections product={props.product} />}
+      extraSections={<RubsExtraSections product={props.product} pairingHeading={pairingHeading} />}
     />
   );
+}
+
+// Named convenience exports so existing tag-based routing stays readable
+export function BeefRubsTemplate(props: ProductPageShellProps) {
+  return <RubsTemplate {...props} pairingHeading="Best Beef Cuts for This Rub" />;
+}
+
+export function ChickenRubsTemplate(props: ProductPageShellProps) {
+  return <RubsTemplate {...props} pairingHeading="Best Chicken Dishes for This Rub" />;
 }

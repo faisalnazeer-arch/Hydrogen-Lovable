@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Minus, Plus, Trash2, ExternalLink, Loader2, ShoppingBag,
+  Trash2, ExternalLink, Loader2, ShoppingBag,
   RefreshCw, Ticket, FileText, CheckCircle, XCircle, X,
   Truck,
 } from "lucide-react";
@@ -17,6 +17,7 @@ import { useCartStore } from "@/stores/cartStore";
 import { formatPrice, shopifyImageUrl } from "@/lib/shopify";
 import { useT } from "@/i18n/strings";
 import { useCartDrawerConfig } from "@/lib/cartDrawerConfig";
+import { QuantitySelector } from "@/components/shared/QuantitySelector";
 
 function parseBold(text: string): React.ReactNode {
   const parts = text.split(/\*\*(.*?)\*\*/g);
@@ -63,19 +64,11 @@ export function CartDrawer() {
   const [noteValue, setNoteValue] = useState(orderNote);
   const noteSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    if (isOpen) syncCart();
-  }, [isOpen, syncCart]);
-
-  useEffect(() => {
-    setNoteValue(orderNote);
-  }, [orderNote]);
+  useEffect(() => { if (isOpen) syncCart(); }, [isOpen, syncCart]);
+  useEffect(() => { setNoteValue(orderNote); }, [orderNote]);
 
   const totalItems = items.reduce((n, i) => n + i.quantity, 0);
-  const subtotal = items.reduce(
-    (n, i) => n + parseFloat(i.price.amount) * i.quantity,
-    0
-  );
+  const subtotal = items.reduce((n, i) => n + parseFloat(i.price.amount) * i.quantity, 0);
   const currency = items[0]?.price.currencyCode ?? "AED";
   const threshold = drawerConfig.freeShippingThreshold;
   const remaining = Math.max(0, threshold - subtotal);
@@ -87,30 +80,21 @@ export function CartDrawer() {
 
   const handleCheckout = () => {
     const url = getCheckoutUrl();
-    if (url) {
-      window.open(url, "_blank");
-      setOpen(false);
-    }
+    if (url) { window.open(url, "_blank"); setOpen(false); }
   };
 
   const handleApplyDiscount = async () => {
     setDiscountError(null);
     const result = await applyDiscountCode(discountInput);
-    if (result.success) {
-      setDiscountInput("");
-    } else {
-      setDiscountError(result.error ?? "Could not apply code");
-    }
+    if (result.success) setDiscountInput("");
+    else setDiscountError(result.error ?? "Could not apply code");
   };
 
   const handleApplyGiftCard = async () => {
     setGiftCardError(null);
     const result = await applyGiftCard(giftCardInput);
-    if (result.success) {
-      setGiftCardInput("");
-    } else {
-      setGiftCardError(result.error ?? "Could not apply gift card");
-    }
+    if (result.success) setGiftCardInput("");
+    else setGiftCardError(result.error ?? "Could not apply gift card");
   };
 
   const handleNoteSave = () => {
@@ -119,10 +103,7 @@ export function CartDrawer() {
     setNoteOpen(false);
   };
 
-  const handleNoteCancel = () => {
-    setNoteValue(orderNote);
-    setNoteOpen(false);
-  };
+  const handleNoteCancel = () => { setNoteValue(orderNote); setNoteOpen(false); };
 
   const togglePanel = (p: Panel) => {
     if (p === "note") { setNoteOpen(true); return; }
@@ -137,11 +118,7 @@ export function CartDrawer() {
       label: "Discount code",
       badge: discountCodes.filter((d) => d.applicable).length || undefined,
     },
-    {
-      id: "delivery",
-      icon: <Truck className="h-5 w-5" />,
-      label: "Delivery info",
-    },
+    { id: "delivery", icon: <Truck className="h-5 w-5" />, label: "Delivery info" },
     {
       id: "note",
       icon: <FileText className="h-5 w-5" />,
@@ -153,383 +130,351 @@ export function CartDrawer() {
   return (
     <Sheet open={isOpen} onOpenChange={setOpen}>
       <SheetContent className="flex w-full flex-col p-0 sm:max-w-md">
-        {/* inner wrapper — relative + overflow-hidden so absolute delivery panel is clipped correctly */}
+        {/* inner wrapper — relative + overflow-hidden so panels are clipped correctly */}
         <div className="relative flex flex-1 flex-col overflow-hidden">
 
-        {/* ── Floating delivery tab ─────────────────────────────── */}
-        <div className="absolute left-0 top-1/2 z-30 -translate-y-1/2">
-          <span className="pointer-events-none absolute inset-0 animate-ping rounded-r-lg opacity-40" style={{ background: "rgb(192 50 56)" }} />
-          <button
-            type="button"
-            onClick={() => setDeliveryOpen(true)}
-            className="group relative flex flex-col items-center gap-1 rounded-r-lg px-1.5 py-3 text-white shadow-md transition-all duration-200 hover:px-2 active:scale-95"
-            style={{ background: "rgb(192 50 56)" }}
-          >
-            <Truck className="h-3.5 w-3.5" />
-            <span className="rotate-180 [writing-mode:vertical-rl] text-[8px] font-bold uppercase tracking-widest">
-              Delivery
-            </span>
-          </button>
-        </div>
-
-        {/* ── Delivery info slide panel ──────────────────────────── */}
-        <div
-          className={`absolute inset-0 z-40 flex flex-col bg-background transition-transform duration-300 ease-out ${
-            deliveryOpen ? "translate-x-0" : "-translate-x-full"
-          }`}
-        >
-          {/* panel header */}
-          <div className="flex items-center gap-3 border-b border-border px-4 py-3.5" style={{ background: "rgb(192 50 56 / 0.06)" }}>
-            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-white shadow-md" style={{ background: "rgb(192 50 56)" }}>
-              <Truck className="h-4 w-4" />
-            </div>
-            <div className="flex-1">
-              <h2 className="font-display text-sm font-bold">Delivery &amp; Offers</h2>
-              <p className="text-[11px] text-muted-foreground">What&apos;s available for your order</p>
-            </div>
+          {/* ── Floating delivery tab ─────────────────────────────── */}
+          <div className="absolute left-0 top-1/2 z-30 -translate-y-1/2">
+            <span className="pointer-events-none absolute inset-0 animate-ping rounded-r-lg bg-crimson opacity-40" />
             <button
               type="button"
-              aria-label="Close"
-              onClick={() => setDeliveryOpen(false)}
-              className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              onClick={() => setDeliveryOpen(true)}
+              className="group relative flex flex-col items-center gap-1 rounded-r-lg bg-crimson px-1.5 py-3 text-white shadow-md transition-all duration-200 hover:px-2 active:scale-95"
             >
-              <X className="h-4 w-4" />
+              <Truck className="h-3.5 w-3.5" />
+              <span className="rotate-180 [writing-mode:vertical-rl] text-[8px] font-bold uppercase tracking-widest">
+                Delivery
+              </span>
             </button>
           </div>
 
-          {/* panel body */}
-          <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
-            {drawerConfig.deliveryItems.map((item, i) => (
-              <div
-                key={i}
-                className="flex items-start gap-3 rounded-xl border px-3.5 py-3"
-                style={{
-                  borderColor: "rgb(192 50 56 / 0.18)",
-                  background: "rgb(192 50 56 / 0.04)",
-                }}
-              >
-                <span
-                  className="mt-1 h-2 w-2 shrink-0 rounded-full"
-                  style={{ background: "rgb(192 50 56)" }}
-                />
-                <p className="text-[13px] leading-relaxed text-foreground">
-                  {parseBold(item)}
-                </p>
+          {/* ── Delivery info slide panel ──────────────────────────── */}
+          <div
+            className={`absolute inset-0 z-40 flex flex-col bg-background transition-transform duration-300 ease-out ${
+              deliveryOpen ? "translate-x-0" : "-translate-x-full"
+            }`}
+          >
+            {/* panel header */}
+            <div className="flex items-center gap-3 border-b border-border bg-crimson/5 px-4 py-3.5">
+              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-crimson text-white shadow-md">
+                <Truck className="h-4 w-4" />
               </div>
-            ))}
-          </div>
-
-          {/* panel footer */}
-          <div className="border-t border-border px-3 py-3">
-            <Button
-              onClick={() => setDeliveryOpen(false)}
-              className="h-10 w-full text-white border-0 hover:opacity-90"
-              style={{ background: "rgb(192 50 56)" }}
-            >
-              Close
-            </Button>
-          </div>
-        </div>
-
-        <SheetHeader className="border-b border-border px-4 py-3">
-          <SheetTitle className="font-display text-lg">{t("cart.title")}</SheetTitle>
-        </SheetHeader>
-
-        {items.length > 0 && (
-          <div className="border-b border-border bg-bone px-6 py-3">
-            {remaining > 0 ? (
-              <p className="text-xs text-foreground">
-                {t("cart.add_prefix")}{" "}
-                <span className="font-bold text-crimson">
-                  {formatPrice(remaining, currency)}
-                </span>{" "}
-                {t("cart.add_suffix")}
-              </p>
-            ) : (
-              <p className="text-xs font-semibold text-emerald-700">
-                {t("cart.free_unlocked")}
-              </p>
-            )}
-            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-border">
-              <div
-                className="h-full bg-crimson transition-all"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-          </div>
-        )}
-
-        <div className="flex-1 overflow-y-auto">
-          {items.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
-              <ShoppingBag className="h-12 w-12 text-muted-foreground" />
-              <p className="text-muted-foreground">{t("cart.empty")}</p>
-              <Button onClick={() => setOpen(false)} variant="outline">
-                {t("cart.continue")}
-              </Button>
-            </div>
-          ) : (
-            <ul className="divide-y divide-border">
-              {items.map((item) => {
-                const img = item.product.node.images.edges[0]?.node;
-                const pending = !!item.isPending;
-                return (
-                  <li
-                    key={`${item.variantId}-${item.sellingPlanId ?? "none"}`}
-                    className={`flex gap-3 p-4 transition-opacity ${pending ? "opacity-60" : ""}`}
-                  >
-                    <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-md bg-muted">
-                      {img && (
-                        <img
-                          src={shopifyImageUrl(img.url, 200)}
-                          alt={img.altText ?? item.product.node.title}
-                          className="h-full w-full object-cover"
-                        />
-                      )}
-                      {pending && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-background/40">
-                          <Loader2 className="h-5 w-5 animate-spin text-crimson" />
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex flex-1 flex-col gap-1 min-w-0">
-                      <div className="text-sm font-medium leading-tight">
-                        {item.product.node.title}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {item.selectedOptions.map((o) => o.value).join(" · ") ||
-                          item.variantTitle}
-                      </div>
-
-                      {item.sellingPlanId && (() => {
-                        const subPrice = parseFloat(item.price.amount);
-                        const regPrice = item.compareAtPrice ? parseFloat(item.compareAtPrice.amount) : 0;
-                        const savePct = regPrice > subPrice ? Math.round((1 - subPrice / regPrice) * 100) : 0;
-                        const label = [
-                          item.sellingPlanName ?? "Subscribe & Save",
-                          savePct > 0 ? `with ${savePct}% discount` : "",
-                        ].filter(Boolean).join(" ");
-                        return (
-                          <div className="flex items-center gap-1 text-xs text-green-700">
-                            <RefreshCw className="h-3 w-3 flex-shrink-0" />
-                            <span>{label}</span>
-                          </div>
-                        );
-                      })()}
-
-                      <div className="mt-auto flex items-center justify-between pt-1">
-                        <div className={`flex items-center rounded border border-border ${pending ? "pointer-events-none opacity-50" : ""}`}>
-                          <button
-                            type="button"
-                            aria-label="Decrease"
-                            disabled={pending || isLoading}
-                            className="grid h-7 w-7 place-items-center hover:bg-muted disabled:cursor-not-allowed"
-                            onClick={() => updateQuantity(item.variantId, item.quantity - 1)}
-                          >
-                            <Minus className="h-3 w-3" />
-                          </button>
-                          <span className="w-8 text-center text-sm">{item.quantity}</span>
-                          <button
-                            type="button"
-                            aria-label="Increase"
-                            disabled={pending || isLoading}
-                            className="grid h-7 w-7 place-items-center hover:bg-muted disabled:cursor-not-allowed"
-                            onClick={() => updateQuantity(item.variantId, item.quantity + 1)}
-                          >
-                            <Plus className="h-3 w-3" />
-                          </button>
-                        </div>
-
-                        <div className="flex flex-col items-end gap-0">
-                          {item.compareAtPrice && item.compareAtPrice.amount !== item.price.amount && (
-                            <span className="text-xs text-muted-foreground line-through">
-                              {formatPrice(
-                                parseFloat(item.compareAtPrice.amount) * item.quantity,
-                                item.compareAtPrice.currencyCode
-                              )}
-                            </span>
-                          )}
-                          <span className="font-bold text-crimson">
-                            {formatPrice(
-                              parseFloat(item.price.amount) * item.quantity,
-                              item.price.currencyCode
-                            )}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      aria-label="Remove"
-                      disabled={pending}
-                      onClick={() => removeItem(item.variantId)}
-                      className={`self-start text-muted-foreground hover:text-crimson ${pending ? "cursor-not-allowed opacity-30" : ""}`}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
-
-        {items.length > 0 && (
-          <div className="relative border-t border-border px-2 pt-2 pb-2 space-y-1.5">
-            {/* Tab row */}
-            <div className="grid grid-cols-3 gap-1.5">
-              {tabs.map((tab) => {
-                const active = tab.id !== "note" && activePanel === tab.id;
-                const noteActive = tab.id === "note" && orderNote;
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => togglePanel(tab.id)}
-                    className={`relative flex flex-col items-center gap-0.5 rounded-md border py-1.5 text-[10px] font-medium transition-colors
-                      ${active || noteActive
-                        ? "border-crimson bg-crimson/5 text-crimson"
-                        : "border-border bg-card text-muted-foreground hover:border-crimson/40 hover:text-foreground"
-                      }`}
-                  >
-                    <span className="[&>svg]:h-4 [&>svg]:w-4">{tab.icon}</span>
-                    <span className="leading-tight text-center">{tab.label}</span>
-                    {tab.badge !== undefined && (
-                      <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-crimson text-[8px] font-bold text-white">
-                        {tab.badge}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Inline panels — discount & gift card only */}
-            {activePanel === "discount" && (
-              <div className="rounded-md border border-border bg-card px-2 py-1.5">
-                <div className="flex gap-1.5">
-                  <Input
-                    value={discountInput}
-                    onChange={(e) => { setDiscountInput(e.target.value); setDiscountError(null); }}
-                    onKeyDown={(e) => e.key === "Enter" && handleApplyDiscount()}
-                    placeholder="Enter discount code"
-                    className="h-8 text-xs"
-                    disabled={isApplyingCode}
-                  />
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleApplyDiscount}
-                    disabled={isApplyingCode || !discountInput.trim()}
-                    className="h-8 shrink-0 px-3 text-xs bg-crimson text-crimson-foreground hover:bg-rich-red border-crimson"
-                  >
-                    {isApplyingCode ? <Loader2 className="h-3 w-3 animate-spin" /> : "Apply"}
-                  </Button>
-                </div>
-                {discountError && (
-                  <p className="mt-1 flex items-center gap-1 text-[10px] text-destructive">
-                    <XCircle className="h-3 w-3 shrink-0" /> {discountError}
-                  </p>
-                )}
-                {discountCodes.length > 0 && (
-                  <ul className="mt-1 space-y-0.5">
-                    {discountCodes.map((dc) => (
-                      <li key={dc.code} className="flex items-center justify-between rounded bg-muted/50 px-2 py-0.5 text-[10px]">
-                        <span className="flex items-center gap-1">
-                          {dc.applicable
-                            ? <CheckCircle className="h-3 w-3 text-emerald-600 shrink-0" />
-                            : <XCircle className="h-3 w-3 text-destructive shrink-0" />}
-                          <span className={dc.applicable ? "font-semibold" : "line-through text-muted-foreground"}>{dc.code}</span>
-                          {!dc.applicable && <span className="text-destructive">invalid</span>}
-                        </span>
-                        <button type="button" aria-label="Remove" onClick={() => removeDiscountCode(dc.code)} disabled={isApplyingCode} className="ml-1 text-muted-foreground hover:text-crimson disabled:opacity-40">
-                          <X className="h-3 w-3" />
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+              <div className="flex-1">
+                <h2 className="font-display text-sm font-bold">Delivery &amp; Offers</h2>
+                <p className="text-[11px] text-muted-foreground">What&apos;s available for your order</p>
               </div>
-            )}
-
-            {/* Totals + checkout */}
-            <div className="border-t border-border pt-1.5">
-              {hasDiscounts && (
-                <div className="mb-0.5 flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Subtotal</span>
-                  <span>{formatPrice(subtotal, currency)}</span>
-                </div>
-              )}
-              <div className="mb-1.5 flex items-center justify-between">
-                <span className="text-sm font-medium">
-                  {hasDiscounts ? "Total" : t("cart.subtotal")}
-                </span>
-                <span className="font-display text-xl font-bold text-crimson">
-                  {formatPrice(displayTotal, displayCurrency)}
-                </span>
-              </div>
-              <Button
-                onClick={handleCheckout}
-                disabled={isLoading || isSyncing || items.some((i) => i.isPending)}
-                className="h-10 w-full bg-crimson text-crimson-foreground hover:bg-rich-red"
-              >
-                {isLoading || isSyncing ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <>
-                    <ExternalLink className="me-2 h-4 w-4" /> {t("cart.checkout")}
-                  </>
-                )}
-              </Button>
               <button
                 type="button"
-                onClick={() => setOpen(false)}
-                className="mt-1.5 w-full text-center text-xs text-muted-foreground hover:text-foreground"
+                aria-label="Close"
+                onClick={() => setDeliveryOpen(false)}
+                className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
-                {t("cart.continue")}
+                <X className="h-4 w-4" />
               </button>
             </div>
 
-            {/* Order note bottom overlay — slides up from bottom of the drawer */}
-            <div
-              className={`absolute inset-x-0 bottom-0 z-10 flex flex-col rounded-t-2xl bg-background shadow-[0_-4px_24px_rgba(0,0,0,0.12)] transition-transform duration-300 ease-out ${
-                noteOpen ? "translate-y-0" : "translate-y-full"
-              }`}
-            >
-              <div className="flex items-center justify-between border-b border-border px-4 py-3">
-                <span className="text-sm font-semibold">Order note</span>
-                <button
-                  type="button"
-                  aria-label="Close"
-                  onClick={handleNoteCancel}
-                  className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+            {/* panel body */}
+            <div className="flex-1 space-y-2 overflow-y-auto px-3 py-3">
+              {drawerConfig.deliveryItems.map((item, i) => (
+                <div
+                  key={i}
+                  className="flex items-start gap-3 rounded-xl border border-crimson/20 bg-crimson/[0.04] px-3.5 py-3"
                 >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-              <div className="px-4 py-3">
-                <Textarea
-                  value={noteValue}
-                  onChange={(e) => setNoteValue(e.target.value)}
-                  placeholder="Add a note for your order…"
-                  rows={5}
-                  className="resize-none text-sm"
-                />
-              </div>
-              <div className="px-4 pb-4">
-                <Button
-                  onClick={handleNoteSave}
-                  className="w-full bg-crimson text-crimson-foreground hover:bg-rich-red"
-                >
-                  Save
-                </Button>
-              </div>
+                  <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-crimson" />
+                  <p className="text-[13px] leading-relaxed text-foreground">{parseBold(item)}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* panel footer */}
+            <div className="border-t border-border px-3 py-3">
+              <Button variant="primary" size="lg" onClick={() => setDeliveryOpen(false)} className="w-full">
+                Close
+              </Button>
             </div>
           </div>
-        )}
-        </div>{/* end inner overflow-hidden wrapper */}
+
+          <SheetHeader className="border-b border-border px-4 py-3">
+            <SheetTitle className="font-display text-lg">{t("cart.title")}</SheetTitle>
+          </SheetHeader>
+
+          {/* Free shipping progress */}
+          {items.length > 0 && (
+            <div className="border-b border-border bg-bone px-6 py-3">
+              {remaining > 0 ? (
+                <p className="text-xs text-foreground">
+                  {t("cart.add_prefix")}{" "}
+                  <span className="font-bold text-crimson">{formatPrice(remaining, currency)}</span>{" "}
+                  {t("cart.add_suffix")}
+                </p>
+              ) : (
+                <p className="text-xs font-semibold text-emerald-700">{t("cart.free_unlocked")}</p>
+              )}
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-border">
+                <div className="h-full bg-crimson transition-all" style={{ width: `${progress}%` }} />
+              </div>
+            </div>
+          )}
+
+          {/* Cart items */}
+          <div className="flex-1 overflow-y-auto">
+            {items.length === 0 ? (
+              <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
+                <ShoppingBag className="h-12 w-12 text-muted-foreground" />
+                <p className="text-muted-foreground">{t("cart.empty")}</p>
+                <Button variant="secondary" onClick={() => setOpen(false)}>
+                  {t("cart.continue")}
+                </Button>
+              </div>
+            ) : (
+              <ul className="divide-y divide-border">
+                {items.map((item) => {
+                  const img = item.product.node.images.edges[0]?.node;
+                  const pending = !!item.isPending;
+                  return (
+                    <li
+                      key={`${item.variantId}-${item.sellingPlanId ?? "none"}`}
+                      className={`flex gap-3 p-4 transition-opacity ${pending ? "opacity-60" : ""}`}
+                    >
+                      <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-md bg-muted">
+                        {img && (
+                          <img
+                            src={shopifyImageUrl(img.url, 200)}
+                            alt={img.altText ?? item.product.node.title}
+                            className="h-full w-full object-cover"
+                          />
+                        )}
+                        {pending && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-background/40">
+                            <Loader2 className="h-5 w-5 animate-spin text-crimson" />
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex min-w-0 flex-1 flex-col gap-1">
+                        <div className="text-sm font-medium leading-tight">{item.product.node.title}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {item.selectedOptions.map((o) => o.value).join(" · ") || item.variantTitle}
+                        </div>
+
+                        {item.sellingPlanId && (() => {
+                          const subPrice = parseFloat(item.price.amount);
+                          const regPrice = item.compareAtPrice ? parseFloat(item.compareAtPrice.amount) : 0;
+                          const savePct = regPrice > subPrice ? Math.round((1 - subPrice / regPrice) * 100) : 0;
+                          const label = [
+                            item.sellingPlanName ?? "Subscribe & Save",
+                            savePct > 0 ? `with ${savePct}% discount` : "",
+                          ].filter(Boolean).join(" ");
+                          return (
+                            <div className="flex items-center gap-1 text-xs text-green-700">
+                              <RefreshCw className="h-3 w-3 flex-shrink-0" />
+                              <span>{label}</span>
+                            </div>
+                          );
+                        })()}
+
+                        <div className="mt-auto flex items-center justify-between pt-1">
+                          <QuantitySelector
+                            size="sm"
+                            value={item.quantity}
+                            onChange={(qty) => updateQuantity(item.variantId, qty)}
+                            min={0}
+                            className={pending || isLoading ? "pointer-events-none opacity-50" : ""}
+                          />
+
+                          <div className="flex flex-col items-end gap-0">
+                            {item.compareAtPrice && item.compareAtPrice.amount !== item.price.amount && (
+                              <span className="text-xs text-muted-foreground line-through">
+                                {formatPrice(
+                                  parseFloat(item.compareAtPrice.amount) * item.quantity,
+                                  item.compareAtPrice.currencyCode,
+                                )}
+                              </span>
+                            )}
+                            <span className="font-bold text-crimson">
+                              {formatPrice(
+                                parseFloat(item.price.amount) * item.quantity,
+                                item.price.currencyCode,
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        aria-label="Remove"
+                        disabled={pending}
+                        onClick={() => removeItem(item.variantId)}
+                        className={`self-start text-muted-foreground hover:text-crimson ${pending ? "cursor-not-allowed opacity-30" : ""}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+
+          {/* Footer — tabs + totals */}
+          {items.length > 0 && (
+            <div className="relative space-y-1.5 border-t border-border px-2 pb-2 pt-2">
+              {/* Tab row */}
+              <div className="grid grid-cols-3 gap-1.5">
+                {tabs.map((tab) => {
+                  const active = tab.id !== "note" && activePanel === tab.id;
+                  const noteActive = tab.id === "note" && orderNote;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => togglePanel(tab.id)}
+                      className={`relative flex flex-col items-center gap-0.5 rounded-md border py-1.5 text-[10px] font-medium transition-colors
+                        ${active || noteActive
+                          ? "border-crimson bg-crimson/5 text-crimson"
+                          : "border-border bg-card text-muted-foreground hover:border-crimson/40 hover:text-foreground"
+                        }`}
+                    >
+                      <span className="[&>svg]:h-4 [&>svg]:w-4">{tab.icon}</span>
+                      <span className="text-center leading-tight">{tab.label}</span>
+                      {tab.badge !== undefined && (
+                        <span className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-crimson text-[8px] font-bold text-white">
+                          {tab.badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Discount panel */}
+              {activePanel === "discount" && (
+                <div className="rounded-md border border-border bg-card px-2 py-1.5">
+                  <div className="flex gap-1.5">
+                    <Input
+                      value={discountInput}
+                      onChange={(e) => { setDiscountInput(e.target.value); setDiscountError(null); }}
+                      onKeyDown={(e) => e.key === "Enter" && handleApplyDiscount()}
+                      placeholder="Enter discount code"
+                      className="h-8 text-xs"
+                      disabled={isApplyingCode}
+                    />
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={handleApplyDiscount}
+                      disabled={isApplyingCode || !discountInput.trim()}
+                      className="h-8 shrink-0 px-3 text-xs"
+                    >
+                      {isApplyingCode ? <Loader2 className="h-3 w-3 animate-spin" /> : "Apply"}
+                    </Button>
+                  </div>
+                  {discountError && (
+                    <p className="mt-1 flex items-center gap-1 text-[10px] text-destructive">
+                      <XCircle className="h-3 w-3 shrink-0" /> {discountError}
+                    </p>
+                  )}
+                  {discountCodes.length > 0 && (
+                    <ul className="mt-1 space-y-0.5">
+                      {discountCodes.map((dc) => (
+                        <li key={dc.code} className="flex items-center justify-between rounded bg-muted/50 px-2 py-0.5 text-[10px]">
+                          <span className="flex items-center gap-1">
+                            {dc.applicable
+                              ? <CheckCircle className="h-3 w-3 shrink-0 text-emerald-600" />
+                              : <XCircle className="h-3 w-3 shrink-0 text-destructive" />}
+                            <span className={dc.applicable ? "font-semibold" : "text-muted-foreground line-through"}>{dc.code}</span>
+                            {!dc.applicable && <span className="text-destructive">invalid</span>}
+                          </span>
+                          <button
+                            type="button"
+                            aria-label="Remove"
+                            onClick={() => removeDiscountCode(dc.code)}
+                            disabled={isApplyingCode}
+                            className="ml-1 text-muted-foreground hover:text-crimson disabled:opacity-40"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+
+              {/* Totals + checkout */}
+              <div className="border-t border-border pt-1.5">
+                {hasDiscounts && (
+                  <div className="mb-0.5 flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Subtotal</span>
+                    <span>{formatPrice(subtotal, currency)}</span>
+                  </div>
+                )}
+                <div className="mb-1.5 flex items-center justify-between">
+                  <span className="text-sm font-medium">
+                    {hasDiscounts ? "Total" : t("cart.subtotal")}
+                  </span>
+                  <span className="font-display text-xl font-bold text-crimson">
+                    {formatPrice(displayTotal, displayCurrency)}
+                  </span>
+                </div>
+                <Button
+                  variant="primary"
+                  size="lg"
+                  onClick={handleCheckout}
+                  disabled={isLoading || isSyncing || items.some((i) => i.isPending)}
+                  className="w-full"
+                >
+                  {isLoading || isSyncing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <><ExternalLink className="me-2 h-4 w-4" /> {t("cart.checkout")}</>
+                  )}
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="mt-1.5 w-full text-center text-xs text-muted-foreground hover:text-foreground"
+                >
+                  {t("cart.continue")}
+                </button>
+              </div>
+
+              {/* Order note bottom overlay */}
+              <div
+                className={`absolute inset-x-0 bottom-0 z-10 flex flex-col rounded-t-2xl bg-background shadow-[0_-4px_24px_rgba(0,0,0,0.12)] transition-transform duration-300 ease-out ${
+                  noteOpen ? "translate-y-0" : "translate-y-full"
+                }`}
+              >
+                <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                  <span className="text-sm font-semibold">Order note</span>
+                  <button
+                    type="button"
+                    aria-label="Close"
+                    onClick={handleNoteCancel}
+                    className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="px-4 py-3">
+                  <Textarea
+                    value={noteValue}
+                    onChange={(e) => setNoteValue(e.target.value)}
+                    placeholder="Add a note for your order…"
+                    rows={5}
+                    className="resize-none text-sm"
+                  />
+                </div>
+                <div className="px-4 pb-4">
+                  <Button variant="primary" size="lg" onClick={handleNoteSave} className="w-full">
+                    Save
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </SheetContent>
     </Sheet>
   );
