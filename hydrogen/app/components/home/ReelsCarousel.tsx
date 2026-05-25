@@ -69,7 +69,7 @@ function ReelCard({ reel: r, onOpen }: { reel: ReelProduct; onOpen: () => void }
       onClick={onOpen}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      className="group relative aspect-[9/16] w-[44vw] flex-shrink-0 snap-start overflow-hidden rounded-xl bg-muted transition-transform hover:-translate-y-1 md:w-[260px]"
+      className="group relative aspect-[9/16] w-[76vw] flex-shrink-0 snap-start overflow-hidden rounded-xl bg-muted transition-transform hover:-translate-y-1 md:w-[260px]"
     >
       {/* Poster image */}
       {r.poster && (
