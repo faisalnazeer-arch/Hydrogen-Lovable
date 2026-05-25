@@ -10,16 +10,36 @@ interface RubsExtraSectionsProps {
 }
 
 function RubsExtraSections({ product, pairingHeading }: RubsExtraSectionsProps) {
+  const beefRubs     = getMeta(product, "beef_rubs");
+  const mlsRub       = getMeta(product, "mls_rub");
   const usageGuide   = getMeta(product, "usage_guide");
   const pairing      = getMeta(product, "pairing_suggestions");
   const flavorProfile = getMeta(product, "flavor_profile");
   const ingredients  = getMeta(product, "ingredients");
 
-  if (!usageGuide && !pairing && !flavorProfile && !ingredients) return null;
+  if (!beefRubs && !mlsRub && !usageGuide && !pairing && !flavorProfile && !ingredients) return null;
 
   return (
     <div className="container mx-auto px-4 pb-10">
       <div className="grid gap-5 md:grid-cols-2">
+        {beefRubs && (
+          <div className="rounded-xl border border-border bg-card p-6">
+            <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              Beef Rubs
+            </h3>
+            <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-line">{beefRubs}</p>
+          </div>
+        )}
+
+        {mlsRub && (
+          <div className="rounded-xl border border-border bg-card p-6">
+            <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              MLS Rub
+            </h3>
+            <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-line">{mlsRub}</p>
+          </div>
+        )}
+
         {usageGuide && (
           <div className="rounded-xl border border-border bg-card p-6">
             <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">

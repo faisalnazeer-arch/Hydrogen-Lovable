@@ -79,6 +79,8 @@ const PRODUCT_QUERY = `#graphql
       metafields(identifiers: [
         {namespace: "reviews", key: "rating"}
         {namespace: "reviews", key: "rating_count"}
+        {namespace: "custom", key: "beef_rubs"}
+        {namespace: "custom", key: "mls_rub"}
         {namespace: "custom", key: "usage_guide"}
         {namespace: "custom", key: "ingredients"}
         {namespace: "custom", key: "flavor_profile"}
