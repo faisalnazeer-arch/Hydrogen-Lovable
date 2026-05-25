@@ -1,65 +1,27 @@
-import { ProductPageShell, type ProductPageShellProps } from "./ProductPageShell";
-import {
-  Accordion,
-  AccordionItem,
-  AccordionTrigger,
-  AccordionContent,
-} from "~/components/ui/accordion";
+import { ProductPageShell, type ProductPageShellProps, type AccordionSection } from "./ProductPageShell";
 
 function getMeta(product: any, key: string): string | null {
   return product.metafields?.find((m: any) => m?.key === key)?.value ?? null;
 }
 
-interface RubsAccordionProps {
-  product: any;
-  pairingHeading: string;
+function FlavorTags({ value }: { value: string }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {value.split(",").map((tag) => (
+        <span
+          key={tag}
+          className="rounded-full bg-crimson/10 px-3 py-1 text-xs font-semibold text-crimson"
+        >
+          {tag.trim()}
+        </span>
+      ))}
+    </div>
+  );
 }
 
-function RubsAccordion({ product, pairingHeading }: RubsAccordionProps) {
-  const items = [
-    { key: "beef_rubs",          label: "Beef Rubs",       value: getMeta(product, "beef_rubs") },
-    { key: "mls_rub",            label: "MLS Rub",         value: getMeta(product, "mls_rub") },
-    { key: "usage_guide",        label: "How to Apply",    value: getMeta(product, "usage_guide") },
-    { key: "pairing_suggestions",label: pairingHeading,    value: getMeta(product, "pairing_suggestions") },
-    { key: "flavor_profile",     label: "Flavor Profile",  value: getMeta(product, "flavor_profile") },
-    { key: "ingredients",        label: "Ingredients",     value: getMeta(product, "ingredients") },
-  ].filter((item) => !!item.value);
-
-  if (items.length === 0) return null;
-
+function TextContent({ value }: { value: string }) {
   return (
-    <div className="border-t border-border pt-5">
-      <h3 className="mb-1 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-        Understanding Rubs
-      </h3>
-      <Accordion type="multiple" className="w-full">
-        {items.map((item) => (
-          <AccordionItem key={item.key} value={item.key}>
-            <AccordionTrigger className="text-sm font-medium hover:no-underline">
-              {item.label}
-            </AccordionTrigger>
-            <AccordionContent>
-              {item.key === "flavor_profile" ? (
-                <div className="flex flex-wrap gap-2">
-                  {item.value!.split(",").map((tag) => (
-                    <span
-                      key={tag}
-                      className="rounded-full bg-crimson/10 px-3 py-1 text-xs font-semibold text-crimson"
-                    >
-                      {tag.trim()}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-line">
-                  {item.value}
-                </p>
-              )}
-            </AccordionContent>
-          </AccordionItem>
-        ))}
-      </Accordion>
-    </div>
+    <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-line">{value}</p>
   );
 }
 
@@ -68,14 +30,24 @@ interface RubsTemplateProps extends ProductPageShellProps {
 }
 
 export function RubsTemplate({ pairingHeading = "Best Cuts for This Rub", ...props }: RubsTemplateProps) {
-  return (
-    <ProductPageShell
-      {...props}
-      productInfoExtra={
-        <RubsAccordion product={props.product} pairingHeading={pairingHeading} />
-      }
-    />
-  );
+  const p = props.product;
+
+  const rubSections: AccordionSection[] = [
+    { value: "beef_rubs",           label: "Beef Rubs",       raw: getMeta(p, "beef_rubs"),           flavor: false },
+    { value: "mls_rub",             label: "MLS Rub",         raw: getMeta(p, "mls_rub"),             flavor: false },
+    { value: "usage_guide",         label: "How to Apply",    raw: getMeta(p, "usage_guide"),         flavor: false },
+    { value: "pairing_suggestions", label: pairingHeading,    raw: getMeta(p, "pairing_suggestions"), flavor: false },
+    { value: "flavor_profile",      label: "Flavor Profile",  raw: getMeta(p, "flavor_profile"),      flavor: true  },
+    { value: "ingredients",         label: "Ingredients",     raw: getMeta(p, "ingredients"),         flavor: false },
+  ]
+    .filter((s) => !!s.raw)
+    .map(({ value, label, raw, flavor }) => ({
+      value,
+      label,
+      content: flavor ? <FlavorTags value={raw!} /> : <TextContent value={raw!} />,
+    }));
+
+  return <ProductPageShell {...props} accordionSections={rubSections} />;
 }
 
 export function BeefRubsTemplate(props: ProductPageShellProps) {

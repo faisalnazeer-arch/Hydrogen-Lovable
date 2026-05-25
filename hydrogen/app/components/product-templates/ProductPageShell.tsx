@@ -1,5 +1,11 @@
 import { useState, useEffect, type ReactNode } from "react";
 import { Truck, ShieldCheck, RefreshCw, Loader2 } from "lucide-react";
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from "~/components/ui/accordion";
 import { Link } from "react-router";
 import { toast } from "sonner";
 import mlsLogo from "~/assets/mls-logo.png";
@@ -24,6 +30,12 @@ import { QuantitySelector } from "~/components/shared/QuantitySelector";
 import { OptionButton } from "~/components/shared/OptionButton";
 import type { JudgemeRatingSummary } from "~/lib/judgeme";
 
+export interface AccordionSection {
+  value: string;
+  label: string;
+  content: ReactNode;
+}
+
 export interface ProductPageShellProps {
   product: any;
   sellingPlanGroupsRaw: any[];
@@ -34,7 +46,7 @@ export interface ProductPageShellProps {
   externalId: string | null;
   recommendations: ShopifyProduct[];
   extraSections?: ReactNode;
-  productInfoExtra?: ReactNode;
+  accordionSections?: AccordionSection[];
 }
 
 export function ProductPageShell({
@@ -47,7 +59,7 @@ export function ProductPageShell({
   externalId,
   recommendations,
   extraSections,
-  productInfoExtra,
+  accordionSections = [],
 }: ProductPageShellProps) {
   const t = useT();
   const variants = product.variants.nodes;
@@ -267,7 +279,7 @@ export function ProductPageShell({
                     <p className="mb-2 text-sm font-semibold">{option.name}</p>
                     <div className="flex flex-wrap gap-2">
                       {option.values.map((value: any) => {
-                        const hypothetical = { ...selectedOptions, [option.name]: value };
+                        const hypothetical: Record<string, string> = { ...selectedOptions, [option.name]: value };
                         const matchingVariant = variants.find((v: any) =>
                           v.selectedOptions.every((o: any) => hypothetical[o.name] === o.value)
                         );
@@ -341,21 +353,34 @@ export function ProductPageShell({
             ))}
           </div>
 
-          {/* Description */}
-          {product.descriptionHtml && (
-            <div className="border-t border-border pt-5">
-              <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                {t("product.details")}
-              </h3>
-              <div
-                className="prose prose-sm max-w-none text-muted-foreground [&_p]:leading-relaxed"
-                dangerouslySetInnerHTML={{ __html: product.descriptionHtml }}
-              />
+          {/* Description + template accordion sections */}
+          {(product.descriptionHtml || accordionSections.length > 0) && (
+            <div className="border-t border-border pt-2">
+              <Accordion type="multiple" defaultValue={["description"]}>
+                {product.descriptionHtml && (
+                  <AccordionItem value="description">
+                    <AccordionTrigger className="text-sm font-semibold uppercase tracking-wider text-foreground hover:no-underline">
+                      {t("product.details")}
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div
+                        className="prose prose-sm max-w-none text-muted-foreground [&_p]:leading-relaxed"
+                        dangerouslySetInnerHTML={{ __html: product.descriptionHtml }}
+                      />
+                    </AccordionContent>
+                  </AccordionItem>
+                )}
+                {accordionSections.map((section) => (
+                  <AccordionItem key={section.value} value={section.value}>
+                    <AccordionTrigger className="text-sm font-semibold uppercase tracking-wider text-foreground hover:no-underline">
+                      {section.label}
+                    </AccordionTrigger>
+                    <AccordionContent>{section.content}</AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
             </div>
           )}
-
-          {/* Template-specific content inside product info column */}
-          {productInfoExtra}
         </div>
       </div>
 
