@@ -36,18 +36,18 @@ export function PromoSideBySide({ promo }: PromoSideBySideProps) {
   if (!promo) return null;
 
   return (
-    <section className="container mx-auto px-4 py-12">
+    <section className="container mx-auto px-4 py-6 md:py-12">
       <div className="grid overflow-hidden rounded-xl border border-border bg-card shadow-[var(--shadow-card)] md:grid-cols-2">
-        <div className="flex flex-col justify-center gap-4 p-8 md:p-12">
+        <div className="flex flex-col justify-center gap-3 p-5 md:gap-4 md:p-12">
           {promo.badgeText && (
             <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-gold">{promo.badgeText}</span>
           )}
-          <h3 className="font-display text-3xl font-extrabold leading-tight md:text-4xl">{promo.heading}</h3>
-          {promo.bodyText && <p className="text-muted-foreground">{promo.bodyText}</p>}
+          <h3 className="font-display text-2xl font-extrabold leading-tight md:text-4xl">{promo.heading}</h3>
+          {promo.bodyText && <p className="text-sm text-muted-foreground md:text-base">{promo.bodyText}</p>}
           {promo.buttonLabel && promo.buttonUrl && (
             <div>
               <Link to={promo.buttonUrl}>
-                <Button size="lg" className="bg-crimson text-crimson-foreground hover:bg-rich-red">
+                <Button size="sm" className="bg-crimson text-crimson-foreground hover:bg-rich-red md:text-sm md:h-10 md:px-6">
                   {promo.buttonLabel}
                 </Button>
               </Link>
@@ -55,7 +55,7 @@ export function PromoSideBySide({ promo }: PromoSideBySideProps) {
           )}
         </div>
         {promo.imageUrl && (
-          <div className="relative min-h-[300px] bg-charcoal md:min-h-0">
+          <div className="relative min-h-[200px] bg-charcoal md:min-h-0">
             <img
               src={promo.imageUrl}
               alt={promo.imageAlt ?? promo.heading}
