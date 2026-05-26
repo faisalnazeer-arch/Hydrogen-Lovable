@@ -2,21 +2,21 @@ import { ProductPageShell, type ProductPageShellProps } from "./ProductPageShell
 import { MetafieldSubTabs } from "./SubAccordion";
 
 const METAFIELD_TITLES: Record<string, string> = {
-  mls_rub: "MLS Rub",
-  beef_rubs: "Rub Details",
-  usage_guide: "How to Apply",
-  pairing_suggestions: "Best Chicken Dishes for This Rub",
-  flavor_profile: "Flavor Profile",
-  ingredients: "Ingredients",
-  understanding_rubs: "About This Rub",
+  usage_guide: "What's Inside",
+  pairing_suggestions: "Serving Suggestions",
+  flavor_profile: "Flavor Profiles",
+  ingredients: "Box Contents",
+  understanding_rubs: "About This Box",
+  mls_rub: "MLS Notes",
+  beef_rubs: "Additional Info",
 };
 
-export function ChickenRubsTemplate(props: ProductPageShellProps) {
+export function BoxCollectionsTemplate(props: ProductPageShellProps) {
   const subTabs = (
     <MetafieldSubTabs
       product={props.product}
       metafieldTitles={METAFIELD_TITLES}
-      flavorTagClass="bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300"
+      flavorTagClass="bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300"
     />
   );
   const hasContent = Object.keys(METAFIELD_TITLES).some(
@@ -25,7 +25,7 @@ export function ChickenRubsTemplate(props: ProductPageShellProps) {
   return (
     <ProductPageShell
       {...props}
-      templateSuffix="chicken-rubs"
+      templateSuffix="box-collections"
       extraSections={hasContent ? subTabs : undefined}
     />
   );

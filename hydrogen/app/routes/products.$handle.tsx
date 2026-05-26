@@ -4,6 +4,9 @@ import { fetchJudgemeReviews, buildRatingSummary } from "~/lib/judgeme";
 import { DefaultTemplate } from "~/components/product-templates/DefaultTemplate";
 import { BeefRubsTemplate } from "~/components/product-templates/BeefRubsTemplate";
 import { ChickenRubsTemplate } from "~/components/product-templates/ChickenRubsTemplate";
+import { LambRubsTemplate } from "~/components/product-templates/LambRubsTemplate";
+import { WholeCutsTemplate } from "~/components/product-templates/WholeCutsTemplate";
+import { BoxCollectionsTemplate } from "~/components/product-templates/BoxCollectionsTemplate";
 
 const PRODUCT_QUERY = `#graphql
   query Product($handle: String!, $language: LanguageCode, $country: CountryCode)
@@ -50,7 +53,10 @@ const PRODUCT_QUERY = `#graphql
         {namespace: "custom", key: "ingredients"}
         {namespace: "custom", key: "flavor_profile"}
         {namespace: "custom", key: "pairing_suggestions"}
-      ]) { key value }
+        {namespace: "custom", key: "understanding_rubs"}
+        {namespace: "custom", key: "beef_rubs"}
+        {namespace: "custom", key: "mls_rub"}
+      ]) { namespace key value }
     }
   }
 ` as const;
@@ -128,6 +134,9 @@ export default function Product() {
 
   if (templateSuffix === "beef-rubs") return <BeefRubsTemplate {...loaderData} />;
   if (templateSuffix === "chicken-rubs") return <ChickenRubsTemplate {...loaderData} />;
+  if (templateSuffix === "lamb-rubs") return <LambRubsTemplate {...loaderData} />;
+  if (templateSuffix === "whole-cuts") return <WholeCutsTemplate {...loaderData} />;
+  if (templateSuffix === "box-collections") return <BoxCollectionsTemplate {...loaderData} />;
   return <DefaultTemplate {...loaderData} />;
 }
 

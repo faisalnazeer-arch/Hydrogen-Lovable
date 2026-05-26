@@ -1,5 +1,5 @@
-import { useState, useEffect, type ReactNode } from "react";
-import { Heart, Minus, Plus, Truck, ShieldCheck, RefreshCw, Loader2 } from "lucide-react";
+import { useState, useEffect, type ReactNode, useRef } from "react";
+import { Heart, Minus, Plus, Truck, ShieldCheck, RefreshCw, Loader2, ChevronDown } from "lucide-react";
 import { Link } from "react-router";
 import { toast } from "sonner";
 import mlsLogo from "~/assets/mls-logo.png";
@@ -25,7 +25,73 @@ export interface ProductPageShellProps {
   reviews: any[];
   reviewsTotalCount: number;
   rating: any;
+  templateSuffix?: string | null;
   extraSections?: ReactNode;
+}
+
+const DESC_CLAMP_PX = 120;
+
+function DescriptionWithToggle({ html }: { html: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const innerRef = useRef<HTMLDivElement>(null);
+  const [overflow, setOverflow] = useState(false);
+
+  useEffect(() => {
+    if (innerRef.current) {
+      setOverflow(innerRef.current.scrollHeight > DESC_CLAMP_PX + 10);
+    }
+  }, [html]);
+
+  return (
+    <div>
+      <div
+        className="overflow-hidden transition-[max-height] duration-500 ease-in-out"
+        style={{ maxHeight: expanded ? "none" : DESC_CLAMP_PX }}
+      >
+        <div
+          ref={innerRef}
+          className="prose prose-sm max-w-none [&_p]:leading-relaxed"
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
+      </div>
+      {overflow && (
+        <button
+          type="button"
+          onClick={() => setExpanded((e) => !e)}
+          className="mt-2 text-xs font-semibold text-crimson hover:underline"
+        >
+          {expanded ? "View less ↑" : "View more ↓"}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function AccordionItem({ title, children, defaultOpen = false }: { title: string; children: ReactNode; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  return (
+    <div className="border-b border-border last:border-b-0">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between py-4 text-left text-sm font-semibold transition-colors hover:text-crimson"
+      >
+        {title}
+        <ChevronDown className={`h-4 w-4 flex-shrink-0 text-muted-foreground transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+      </button>
+      <div
+        ref={contentRef}
+        className="overflow-hidden transition-[max-height] duration-300 ease-in-out"
+        style={{ maxHeight: open ? "none" : 0 }}
+      >
+        <div className="pb-4 text-sm text-muted-foreground leading-relaxed">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function ProductPageShell({
@@ -35,6 +101,7 @@ export function ProductPageShell({
   reviews,
   reviewsTotalCount,
   rating,
+  templateSuffix,
   extraSections,
 }: ProductPageShellProps) {
   const variants = product.variants.nodes;
@@ -327,23 +394,52 @@ export function ProductPageShell({
             ))}
           </div>
 
-          {/* Description */}
-          {product.descriptionHtml && (
-            <div className="border-t border-border pt-5">
-              <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                Product Details
-              </h3>
-              <div
-                className="prose prose-sm max-w-none text-muted-foreground [&_p]:leading-relaxed"
-                dangerouslySetInnerHTML={{ __html: product.descriptionHtml }}
-              />
-            </div>
-          )}
+          {/* Collapsible tabs */}
+          <div className="border-t border-border pt-2">
+            <AccordionItem title="Description" defaultOpen={true}>
+              {product.descriptionHtml ? (
+                <DescriptionWithToggle html={product.descriptionHtml} />
+              ) : (
+                <p>No description available.</p>
+              )}
+            </AccordionItem>
+
+            <AccordionItem title="Delivery Info">
+              <ul className="space-y-2">
+                <li>🚚 Same-day delivery available for orders placed before 2 PM.</li>
+                <li>📦 Orders are packed in insulated boxes to maintain freshness.</li>
+                <li>🌡️ All products are delivered chilled (0–4°C).</li>
+                <li>📍 Delivery available across Muscat and major cities in Oman.</li>
+              </ul>
+            </AccordionItem>
+
+            <AccordionItem title="Customer Support">
+              <ul className="space-y-2">
+                <li>📞 Call us: <span className="font-medium text-foreground">+968 XXXX XXXX</span></li>
+                <li>💬 WhatsApp support available 9 AM – 9 PM daily.</li>
+                <li>📧 Email: <span className="font-medium text-foreground">support@mls.om</span></li>
+                <li>🔄 Not happy? We offer hassle-free returns within 24 hours of delivery.</li>
+              </ul>
+            </AccordionItem>
+
+            {extraSections && product.metafields?.some((m: any) => m?.key?.toLowerCase().includes("rub")) && (
+              <AccordionItem title="Understanding Rubs">
+                {extraSections}
+              </AccordionItem>
+            )}
+            {extraSections && templateSuffix === "whole-cuts" && !product.metafields?.some((m: any) => m?.key?.toLowerCase().includes("rub")) && (
+              <AccordionItem title="About This Cut">
+                {extraSections}
+              </AccordionItem>
+            )}
+            {extraSections && templateSuffix === "box-collections" && !product.metafields?.some((m: any) => m?.key?.toLowerCase().includes("rub")) && (
+              <AccordionItem title="About This Box">
+                {extraSections}
+              </AccordionItem>
+            )}
+          </div>
         </div>
       </div>
-
-      {/* Template-specific extra sections (rendered between product info and reviews) */}
-      {extraSections}
 
       {/* Reviews */}
       <div id="reviews" className="container mx-auto px-4 pb-16">
