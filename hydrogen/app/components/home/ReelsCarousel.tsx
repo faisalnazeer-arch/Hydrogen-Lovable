@@ -18,8 +18,8 @@ export function ReelsCarousel({ reels, label = "Watch & Shop", heading = "MLS Re
   if (reels.length === 0) return null;
 
   return (
-    <section className="container mx-auto px-4 py-12">
-      <div className="mb-6 flex items-end justify-between gap-4">
+    <section className="container mx-auto px-4 py-6 md:py-12">
+      <div className="mb-4 flex items-end justify-between gap-4 md:mb-6">
         <div>
           <div className="mb-1 text-[11px] font-bold uppercase tracking-[0.2em] text-crimson">
             {label}

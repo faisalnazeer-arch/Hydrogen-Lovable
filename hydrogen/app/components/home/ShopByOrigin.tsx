@@ -23,9 +23,9 @@ export function ShopByOrigin({ section }: Props) {
   if (!section || section.items.length === 0) return null;
 
   return (
-    <section className="bg-bone py-12">
+    <section className="bg-bone py-6 md:py-12">
       <div className="container mx-auto px-4">
-        <div className="mb-6 text-center">
+        <div className="mb-4 text-center md:mb-6">
           <div className="mb-1 text-[11px] font-bold uppercase tracking-[0.2em] text-crimson">{section.eyebrow}</div>
           <h2 className="font-display text-2xl font-extrabold md:text-3xl">{section.heading}</h2>
         </div>
