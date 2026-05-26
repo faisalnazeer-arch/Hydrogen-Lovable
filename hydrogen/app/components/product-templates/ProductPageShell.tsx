@@ -20,6 +20,13 @@ import { SubscriptionSelector, parseSellingPlanGroups } from "~/components/produ
 import { ProductCard } from "~/components/product/ProductCard";
 import { HScroller } from "~/components/home/HScroller";
 
+export interface PageSettings {
+  deliveryTitle: string;
+  deliveryContent: string | null;
+  supportTitle: string;
+  supportContent: string | null;
+}
+
 export interface ProductPageShellProps {
   product: any;
   sellingPlanGroupsRaw: any[];
@@ -30,6 +37,7 @@ export interface ProductPageShellProps {
   templateSuffix?: string | null;
   extraSections?: ReactNode;
   recommendations?: ShopifyProduct[];
+  pageSettings?: PageSettings;
 }
 
 const DESC_CLAMP_PX = 120;
@@ -107,6 +115,7 @@ export function ProductPageShell({
   templateSuffix,
   extraSections,
   recommendations = [],
+  pageSettings,
 }: ProductPageShellProps) {
   const variants = product.variants.nodes;
   const images = product.images.nodes;
@@ -408,22 +417,38 @@ export function ProductPageShell({
               )}
             </AccordionItem>
 
-            <AccordionItem title="Delivery Info">
-              <ul className="space-y-2">
-                <li>🚚 Same-day delivery available for orders placed before 2 PM.</li>
-                <li>📦 Orders are packed in insulated boxes to maintain freshness.</li>
-                <li>🌡️ All products are delivered chilled (0–4°C).</li>
-                <li>📍 Delivery available across Muscat and major cities in Oman.</li>
-              </ul>
+            <AccordionItem title={pageSettings?.deliveryTitle ?? "Delivery Info"}>
+              {pageSettings?.deliveryContent ? (
+                <ul className="space-y-2">
+                  {pageSettings.deliveryContent.split("\n").filter(Boolean).map((line, i) => (
+                    <li key={i}>{line}</li>
+                  ))}
+                </ul>
+              ) : (
+                <ul className="space-y-2">
+                  <li>🚚 Same-day delivery available for orders placed before 2 PM.</li>
+                  <li>📦 Orders are packed in insulated boxes to maintain freshness.</li>
+                  <li>🌡️ All products are delivered chilled (0–4°C).</li>
+                  <li>📍 Delivery available across Muscat and major cities in Oman.</li>
+                </ul>
+              )}
             </AccordionItem>
 
-            <AccordionItem title="Customer Support">
-              <ul className="space-y-2">
-                <li>📞 Call us: <span className="font-medium text-foreground">+968 XXXX XXXX</span></li>
-                <li>💬 WhatsApp support available 9 AM – 9 PM daily.</li>
-                <li>📧 Email: <span className="font-medium text-foreground">support@mls.om</span></li>
-                <li>🔄 Not happy? We offer hassle-free returns within 24 hours of delivery.</li>
-              </ul>
+            <AccordionItem title={pageSettings?.supportTitle ?? "Customer Support"}>
+              {pageSettings?.supportContent ? (
+                <ul className="space-y-2">
+                  {pageSettings.supportContent.split("\n").filter(Boolean).map((line, i) => (
+                    <li key={i}>{line}</li>
+                  ))}
+                </ul>
+              ) : (
+                <ul className="space-y-2">
+                  <li>📞 Call us: <span className="font-medium text-foreground">+968 XXXX XXXX</span></li>
+                  <li>💬 WhatsApp support available 9 AM – 9 PM daily.</li>
+                  <li>📧 Email: <span className="font-medium text-foreground">support@mls.om</span></li>
+                  <li>🔄 Not happy? We offer hassle-free returns within 24 hours of delivery.</li>
+                </ul>
+              )}
             </AccordionItem>
 
             {extraSections && product.metafields?.some((m: any) => m?.key?.toLowerCase().includes("rub")) && (

@@ -9,6 +9,16 @@ import { LambRubsTemplate } from "~/components/product-templates/LambRubsTemplat
 import { WholeCutsTemplate } from "~/components/product-templates/WholeCutsTemplate";
 import { BoxCollectionsTemplate } from "~/components/product-templates/BoxCollectionsTemplate";
 
+const PAGE_SETTINGS_QUERY = `#graphql
+  query ProductPageSettings {
+    metaobjects(type: "product_page_settings", first: 1) {
+      nodes {
+        fields { key value }
+      }
+    }
+  }
+` as const;
+
 const RECOMMENDATIONS_QUERY = `#graphql
   query ProductRecommendations($productId: ID!, $country: CountryCode, $language: LanguageCode)
   @inContext(country: $country, language: $language) {
@@ -113,12 +123,13 @@ export async function loader({ params, context, request }: LoaderFunctionArgs) {
 
   const externalId = data.product.id.split("/").pop() ?? undefined;
 
-  const [reviewsData, judgemeRating, recsData] = await Promise.all([
+  const [reviewsData, judgemeRating, recsData, settingsData] = await Promise.all([
     fetchJudgemeReviews(handle, shopDomain, judgemeToken, 1, 10, externalId),
     fetchJudgemeRating(data.product.id, shopDomain, judgemeToken),
     context.storefront.query(RECOMMENDATIONS_QUERY, {
       variables: { productId: data.product.id, language, country: "AE" as const },
     }),
+    context.storefront.query(PAGE_SETTINGS_QUERY, {}),
   ]);
 
   // Use Judge.me's dedicated product endpoint for rating (most accurate).
@@ -152,6 +163,19 @@ export async function loader({ params, context, request }: LoaderFunctionArgs) {
     .slice(0, 8)
     .map((node: any) => ({ node }));
 
+  // Parse product_page_settings metaobject
+  const settingsNode = (settingsData as any)?.metaobjects?.nodes?.[0];
+  const settingsFields: Record<string, string> = {};
+  for (const f of settingsNode?.fields ?? []) {
+    if (f.key && f.value) settingsFields[f.key] = f.value;
+  }
+  const pageSettings = {
+    deliveryTitle: settingsFields["delivery_title"] ?? "Delivery Info",
+    deliveryContent: settingsFields["delivery_content"] ?? null,
+    supportTitle: settingsFields["support_title"] ?? "Customer Support",
+    supportContent: settingsFields["support_content"] ?? null,
+  };
+
   // Detect template from product tags: e.g. "template:beef-rubs" → "beef-rubs"
   const templateSuffix =
     (data.product.tags?.find((t: string) => t.startsWith("template:"))?.replace("template:", "") ?? null) as string | null;
@@ -166,6 +190,7 @@ export async function loader({ params, context, request }: LoaderFunctionArgs) {
     rating,
     externalId: externalId ?? null,
     recommendations,
+    pageSettings,
   };
 }
 
