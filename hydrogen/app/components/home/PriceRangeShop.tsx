@@ -60,9 +60,9 @@ export function PriceRangeShop({ section, tiles = [] }: PriceRangeShopProps) {
   const subHeading = section?.subHeading ?? "Every budget, premium quality";
 
   return (
-    <section className="container mx-auto px-4 py-12">
+    <section className="container mx-auto px-4 py-6 md:py-12">
       <SectionHeader title={heading} subtitle={subHeading} />
-      <div className="grid grid-cols-3 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="flex gap-3 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [scrollbar-width:none] md:grid md:grid-cols-6">
         {tiles.map((tile) => (
           <PriceTileCard key={tile.id} tile={tile} />
         ))}
@@ -77,7 +77,7 @@ function PriceTileCard({ tile }: { tile: PriceTile }) {
   return (
     <Link
       to={tile.linkUrl}
-      className="group relative flex aspect-square flex-col items-center justify-center overflow-hidden rounded-md border border-border text-crimson-foreground transition-transform hover:-translate-y-1 hover:shadow-[var(--shadow-elegant)]"
+      className="group relative flex aspect-square w-[28vw] flex-shrink-0 flex-col items-center justify-center overflow-hidden rounded-md border border-border text-crimson-foreground transition-transform hover:-translate-y-1 hover:shadow-[var(--shadow-elegant)] md:w-auto"
     >
       {/* Background: image if set, else default gradient */}
       {tile.backgroundImageUrl ? (
@@ -95,7 +95,7 @@ function PriceTileCard({ tile }: { tile: PriceTile }) {
 
       {/* Content */}
       <div className="relative z-10 flex flex-col items-center">
-        <div className="font-display text-2xl font-extrabold md:text-3xl">
+        <div className="font-display text-xl font-extrabold md:text-3xl">
           {tile.priceAmount}
         </div>
         <div className="text-[10px] uppercase tracking-[0.2em] opacity-90">
