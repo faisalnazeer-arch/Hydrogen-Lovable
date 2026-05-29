@@ -2,6 +2,7 @@ import type { LoaderFunctionArgs, MetaFunction } from "@shopify/remix-oxygen";
 import { useLoaderData } from "react-router";
 import { type ShopifyProduct } from "~/lib/shopify";
 import { fetchJudgemeReviews, fetchJudgemeRating, buildRatingSummary } from "~/lib/judgeme";
+import { extractGloboOptionsFromHtml, type GloboOptionSet } from "~/lib/globo";
 import { DefaultTemplate } from "~/components/product-templates/DefaultTemplate";
 import { BeefRubsTemplate } from "~/components/product-templates/BeefRubsTemplate";
 import { ChickenRubsTemplate } from "~/components/product-templates/ChickenRubsTemplate";
@@ -123,13 +124,29 @@ export async function loader({ params, context, request }: LoaderFunctionArgs) {
 
   const externalId = data.product.id.split("/").pop() ?? undefined;
 
-  const [reviewsData, judgemeRating, recsData, settingsData] = await Promise.all([
+  // Detect template early so we can conditionally fetch Globo options in parallel
+  const templateSuffix =
+    (data.product.tags?.find((t: string) => t.startsWith("template:"))?.replace("template:", "") ?? null) as string | null;
+
+  // Globo embeds option data in the Shopify storefront HTML — scrape it from there
+  const globoPromise: Promise<GloboOptionSet[]> =
+    templateSuffix === "whole-cuts" && externalId
+      ? fetch(`https://${shopDomain}/products/${handle}`, {
+          headers: { Accept: "text/html", "User-Agent": "Mozilla/5.0" },
+        })
+          .then((r) => (r.ok ? r.text() : ""))
+          .then((html) => extractGloboOptionsFromHtml(html, Number(externalId)))
+          .catch(() => [])
+      : Promise.resolve([]);
+
+  const [reviewsData, judgemeRating, recsData, settingsData, globoOptionSets] = await Promise.all([
     fetchJudgemeReviews(handle, shopDomain, judgemeToken, 1, 10, externalId),
     fetchJudgemeRating(data.product.id, shopDomain, judgemeToken),
     context.storefront.query(RECOMMENDATIONS_QUERY, {
       variables: { productId: data.product.id, language, country: "AE" as const },
     }),
     context.storefront.query(PAGE_SETTINGS_QUERY, {}),
+    globoPromise,
   ]);
 
   // Use Judge.me's dedicated product endpoint for rating (most accurate).
@@ -163,22 +180,15 @@ export async function loader({ params, context, request }: LoaderFunctionArgs) {
     .slice(0, 8)
     .map((node: any) => ({ node }));
 
-  // Parse product_page_settings metaobject
-  const settingsNode = (settingsData as any)?.metaobjects?.nodes?.[0];
-  const settingsFields: Record<string, string> = {};
-  for (const f of settingsNode?.fields ?? []) {
-    if (f.key && f.value) settingsFields[f.key] = f.value;
-  }
+  const metaobjectFields: Array<{ key: string; value: string }> =
+    (settingsData as any)?.metaobjects?.nodes?.[0]?.fields ?? [];
+  const getMeta = (key: string) => metaobjectFields.find((f) => f.key === key)?.value ?? null;
   const pageSettings = {
-    deliveryTitle: settingsFields["delivery_title"] ?? "Delivery Info",
-    deliveryContent: settingsFields["delivery_content"] ?? null,
-    supportTitle: settingsFields["support_title"] ?? "Customer Support",
-    supportContent: settingsFields["support_content"] ?? null,
+    deliveryTitle: getMeta("delivery_title") ?? "Delivery Info",
+    deliveryContent: getMeta("delivery_content"),
+    supportTitle: getMeta("support_title") ?? "Customer Support",
+    supportContent: getMeta("support_content"),
   };
-
-  // Detect template from product tags: e.g. "template:beef-rubs" → "beef-rubs"
-  const templateSuffix =
-    (data.product.tags?.find((t: string) => t.startsWith("template:"))?.replace("template:", "") ?? null) as string | null;
 
   return {
     product: data.product,
@@ -191,6 +201,7 @@ export async function loader({ params, context, request }: LoaderFunctionArgs) {
     externalId: externalId ?? null,
     recommendations,
     pageSettings,
+    globoOptionSets,
   };
 }
 

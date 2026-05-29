@@ -13,6 +13,7 @@ import {
   RefreshCw, Ticket, FileText, CheckCircle, XCircle, X,
   Truck,
 } from "lucide-react";
+import { Link } from "react-router";
 import { useCartStore } from "@/stores/cartStore";
 import { formatPrice, shopifyImageUrl } from "@/lib/shopify";
 import { useT } from "@/i18n/strings";
@@ -236,7 +237,11 @@ export function CartDrawer() {
                       key={`${item.variantId}-${item.sellingPlanId ?? "none"}`}
                       className={`flex gap-3 p-4 transition-opacity ${pending ? "opacity-60" : ""}`}
                     >
-                      <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-md bg-muted">
+                      <Link
+                        to={`/products/${item.product.node.handle}`}
+                        onClick={() => setOpen(false)}
+                        className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-md bg-muted"
+                      >
                         {img && (
                           <img
                             src={shopifyImageUrl(img.url, 200)}
@@ -249,13 +254,31 @@ export function CartDrawer() {
                             <Loader2 className="h-5 w-5 animate-spin text-crimson" />
                           </div>
                         )}
-                      </div>
+                      </Link>
 
                       <div className="flex min-w-0 flex-1 flex-col gap-1">
-                        <div className="text-sm font-medium leading-tight">{item.product.node.title}</div>
+                        <Link
+                          to={`/products/${item.product.node.handle}`}
+                          onClick={() => setOpen(false)}
+                          className="text-sm font-medium leading-tight hover:text-crimson transition-colors"
+                        >
+                          {item.product.node.title}
+                        </Link>
                         <div className="text-xs text-muted-foreground">
                           {item.selectedOptions.map((o) => o.value).join(" · ") || item.variantTitle}
                         </div>
+                        {item.attributes && item.attributes.filter((a) => !a.key.startsWith("_")).length > 0 && (
+                          <div className="flex flex-col gap-0.5">
+                            {item.attributes
+                              .filter((a) => !a.key.startsWith("_"))
+                              .map((attr) => (
+                                <div key={attr.key} className="text-xs text-muted-foreground">
+                                  <span className="font-medium text-foreground">{attr.key}:</span>{" "}
+                                  {attr.value}
+                                </div>
+                              ))}
+                          </div>
+                        )}
 
                         {item.sellingPlanId && (() => {
                           const subPrice = parseFloat(item.price.amount);

@@ -1,7 +1,5 @@
-import { useCallback, useState } from "react";
 import { ProductPageShell, type ProductPageShellProps } from "./ProductPageShell";
 import { MetafieldSubTabs } from "./SubAccordion";
-import { GloboProductOptions } from "~/components/product/GloboProductOptions";
 
 const METAFIELD_TITLES: Record<string, string> = {
   usage_guide: "Cooking Guide",
@@ -14,14 +12,6 @@ const METAFIELD_TITLES: Record<string, string> = {
 };
 
 export function WholeCutsTemplate(props: ProductPageShellProps) {
-  const [globoAttributes, setGloboAttributes] = useState<Array<{ key: string; value: string }>>([]);
-  const handleGloboChange = useCallback((attrs: Array<{ key: string; value: string }>) => {
-    setGloboAttributes(attrs);
-  }, []);
-
-  // Shopify GID → numeric ID for Globo API
-  const productNumericId = props.product.id?.split("/").pop() ?? "";
-
   const subTabs = (
     <MetafieldSubTabs
       product={props.product}
@@ -33,20 +23,11 @@ export function WholeCutsTemplate(props: ProductPageShellProps) {
     (key) => props.product.metafields?.find((m: any) => m?.key === key)?.value ?? null
   );
 
-  const globoOptionsSection = (
-    <GloboProductOptions
-      productNumericId={productNumericId}
-      onChange={handleGloboChange}
-    />
-  );
-
   return (
     <ProductPageShell
       {...props}
       templateSuffix="whole-cuts"
       extraSections={hasContent ? subTabs : undefined}
-      globoOptions={globoOptionsSection}
-      globoAttributes={globoAttributes}
     />
   );
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect, type ReactNode, useRef } from "react";
+import { useState, useEffect, useCallback, type ReactNode, useRef } from "react";
 import { Heart, Minus, Plus, Truck, ShieldCheck, RefreshCw, Loader2, ChevronDown } from "lucide-react";
 import { Link } from "react-router";
 import { toast } from "sonner";
@@ -19,6 +19,8 @@ import { StarRating } from "~/components/reviews/StarRating";
 import { SubscriptionSelector, parseSellingPlanGroups } from "~/components/product/SubscriptionSelector";
 import { ProductCard } from "~/components/product/ProductCard";
 import { HScroller } from "~/components/home/HScroller";
+import { GloboProductOptions } from "~/components/product/GloboProductOptions";
+import type { GloboOptionSet } from "~/lib/globo";
 
 export interface PageSettings {
   deliveryTitle: string;
@@ -38,8 +40,7 @@ export interface ProductPageShellProps {
   extraSections?: ReactNode;
   recommendations?: ShopifyProduct[];
   pageSettings?: PageSettings;
-  globoOptions?: ReactNode;
-  globoAttributes?: Array<{ key: string; value: string }>;
+  globoOptionSets?: GloboOptionSet[];
 }
 
 const DESC_CLAMP_PX = 120;
@@ -118,9 +119,12 @@ export function ProductPageShell({
   extraSections,
   recommendations = [],
   pageSettings,
-  globoOptions,
-  globoAttributes = [],
+  globoOptionSets = [],
 }: ProductPageShellProps) {
+  const [globoAttributes, setGloboAttributes] = useState<Array<{ key: string; value: string }>>([]);
+  const handleGloboChange = useCallback((attrs: Array<{ key: string; value: string }>) => {
+    setGloboAttributes(attrs);
+  }, []);
   const variants = product.variants.nodes;
   const images = product.images.nodes;
   const origin = getOriginFromTags(product.tags);
@@ -344,9 +348,12 @@ export function ProductPageShell({
           )}
 
           {/* Globo Product Options */}
-          {globoOptions && (
+          {globoOptionSets.length > 0 && (
             <div className="border-t border-border pt-4">
-              {globoOptions}
+              <GloboProductOptions
+                optionSets={globoOptionSets}
+                onChange={handleGloboChange}
+              />
             </div>
           )}
 
@@ -438,10 +445,10 @@ export function ProductPageShell({
                 </ul>
               ) : (
                 <ul className="space-y-2">
-                  <li>🚚 Same-day delivery available for orders placed before 2 PM.</li>
-                  <li>📦 Orders are packed in insulated boxes to maintain freshness.</li>
-                  <li>🌡️ All products are delivered chilled (0–4°C).</li>
-                  <li>📍 Delivery available across Muscat and major cities in Oman.</li>
+                  <li>Same-day delivery available for orders placed before 2 PM.</li>
+                  <li>Orders are packed in insulated boxes to maintain freshness.</li>
+                  <li>All products are delivered chilled (0–4°C).</li>
+                  <li>Delivery available across UAE and major cities.</li>
                 </ul>
               )}
             </AccordionItem>
@@ -455,10 +462,9 @@ export function ProductPageShell({
                 </ul>
               ) : (
                 <ul className="space-y-2">
-                  <li>📞 Call us: <span className="font-medium text-foreground">+968 XXXX XXXX</span></li>
-                  <li>💬 WhatsApp support available 9 AM – 9 PM daily.</li>
-                  <li>📧 Email: <span className="font-medium text-foreground">support@mls.om</span></li>
-                  <li>🔄 Not happy? We offer hassle-free returns within 24 hours of delivery.</li>
+                  <li>WhatsApp support available 9 AM – 9 PM daily.</li>
+                  <li>Email: <span className="font-medium text-foreground">support@mls.om</span></li>
+                  <li>Hassle-free returns within 24 hours of delivery.</li>
                 </ul>
               )}
             </AccordionItem>

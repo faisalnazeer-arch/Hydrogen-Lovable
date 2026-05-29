@@ -1,49 +1,61 @@
 import { useEffect, useState } from "react";
-import { useFetcher } from "react-router";
-import type { GloboOption, GloboOptionSet } from "~/routes/api.globo-options.$productId";
+import type { GloboOption, GloboOptionSet } from "~/lib/globo";
 
 interface Props {
-  productNumericId: string;
+  optionSets: GloboOptionSet[];
   onChange: (attributes: Array<{ key: string; value: string }>) => void;
 }
 
-export function GloboProductOptions({ productNumericId, onChange }: Props) {
-  const fetcher = useFetcher<{ optionSets: GloboOptionSet[] }>();
+export function GloboProductOptions({ optionSets, onChange }: Props) {
+  // keyed by elementId so conditional logic can reference sibling fields
   const [selections, setSelections] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-    if (productNumericId) {
-      fetcher.load(`/api/globo-options/${productNumericId}`);
-    }
-  }, [productNumericId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    const attrs = Object.entries(selections)
-      .filter(([, v]) => v !== "")
-      .map(([k, v]) => ({ key: k, value: v }));
-    onChange(attrs);
-  }, [selections, onChange]);
-
-  const optionSets = fetcher.data?.optionSets ?? [];
-  if (fetcher.state === "loading") {
-    return <div className="text-xs text-muted-foreground animate-pulse">Loading options…</div>;
+  function isVisible(opt: GloboOption): boolean {
+    if (!opt.conditional) return true;
+    const { match, conditions, display } = opt.conditional;
+    const results = conditions.map((c) => {
+      const val = selections[c.selectId] ?? "";
+      switch (c.where) {
+        case "EQUALS": return val === c.value;
+        case "NOT_EQUALS": return val !== c.value;
+        case "CONTAINS": return val.includes(c.value);
+        default: return true;
+      }
+    });
+    const met = match === "all" ? results.every(Boolean) : results.some(Boolean);
+    return display === "show" ? met : !met;
   }
+
+  useEffect(() => {
+    const attrs: Array<{ key: string; value: string }> = [];
+    for (const set of optionSets) {
+      for (const opt of set.options) {
+        if (!isVisible(opt)) continue;
+        const val = selections[opt.elementId] ?? "";
+        if (val !== "") attrs.push({ key: opt.name, value: val });
+      }
+    }
+    onChange(attrs);
+  }, [selections]); // eslint-disable-line react-hooks/exhaustive-deps
+
   if (optionSets.length === 0) return null;
 
-  const set = (val: string, key: string) =>
-    setSelections((prev) => ({ ...prev, [key]: val }));
+  const set = (val: string, elementId: string) =>
+    setSelections((prev) => ({ ...prev, [elementId]: val }));
 
   return (
     <div className="flex flex-col gap-4">
       {optionSets.map((optSet) =>
-        optSet.options.map((opt) => (
-          <OptionField
-            key={opt.id}
-            opt={opt}
-            value={selections[opt.name] ?? ""}
-            onChange={(v) => set(v, opt.name)}
-          />
-        ))
+        optSet.options
+          .filter((opt) => isVisible(opt))
+          .map((opt) => (
+            <OptionField
+              key={opt.elementId}
+              opt={opt}
+              value={selections[opt.elementId] ?? ""}
+              onChange={(v) => set(v, opt.elementId)}
+            />
+          ))
       )}
     </div>
   );
@@ -75,7 +87,7 @@ function OptionField({
             onChange={(e) => onChange(e.target.value)}
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-crimson focus:outline-none"
           >
-            <option value="">{opt.placeholder || "Select an option"}</option>
+            <option value="">{opt.placeholder || "-- Please select --"}</option>
             {opt.values?.map((v) => (
               <option key={v.value} value={v.value}>{v.label}</option>
             ))}
@@ -168,7 +180,9 @@ function OptionField({
               const checked = value.split(",").includes(v.value);
               const toggle = () => {
                 const current = value ? value.split(",") : [];
-                const next = checked ? current.filter((x) => x !== v.value) : [...current, v.value];
+                const next = checked
+                  ? current.filter((x) => x !== v.value)
+                  : [...current, v.value];
                 onChange(next.filter(Boolean).join(","));
               };
               return (
