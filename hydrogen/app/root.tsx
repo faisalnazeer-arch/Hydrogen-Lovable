@@ -91,6 +91,14 @@ const LAYOUT_QUERY = `#graphql
       items { ...MenuFields }
     }
 
+    footerShop: menu(handle: "footer-shop") {
+      items { id title url }
+    }
+
+    footerHelp: menu(handle: "footer-help") {
+      items { id title url }
+    }
+
     footerSettings: metaobjects(type: "mls_footer_settings", first: 1) {
       nodes {
         id
@@ -219,13 +227,25 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
     const footerSettings = parseFooterSettings(data?.footerSettings?.nodes ?? []);
     const footerColumns  = parseFooterColumns(data?.footerColumns?.nodes ?? []);
     const announcementMessages = parseAnnouncementMessages(data?.announcementBar?.nodes ?? []);
-    return { mainMenu, secondaryMenu, footerSettings, footerColumns, announcementMessages };
+
+    const footerShop: FooterLink[] = (data?.footerShop?.items ?? []).map((item: any) => ({
+      label: item.title,
+      url: toPath(item.url),
+    }));
+    const footerHelp: FooterLink[] = (data?.footerHelp?.items ?? []).map((item: any) => ({
+      label: item.title,
+      url: toPath(item.url),
+    }));
+
+    return { mainMenu, secondaryMenu, footerSettings, footerColumns, footerShop, footerHelp, announcementMessages };
   } catch {
     return {
       mainMenu: [] as NavEntry[],
       secondaryMenu: [] as NavEntry[],
       footerSettings: null as FooterSettings | null,
       footerColumns: [] as FooterColumn[],
+      footerShop: [] as FooterLink[],
+      footerHelp: [] as FooterLink[],
       announcementMessages: [] as string[],
     };
   }
@@ -278,7 +298,7 @@ function LocaleSync() {
 }
 
 export default function App() {
-  const { mainMenu, secondaryMenu, footerSettings, footerColumns, announcementMessages } = useLoaderData<typeof loader>();
+  const { mainMenu, secondaryMenu, footerSettings, footerColumns, footerShop, footerHelp, announcementMessages } = useLoaderData<typeof loader>();
   return (
     <QueryClientProvider client={queryClient}>
       <LocaleSync />
@@ -289,7 +309,7 @@ export default function App() {
         <main className="flex-1">
           <Outlet />
         </main>
-        <Footer settings={footerSettings} columns={footerColumns} />
+        <Footer settings={footerSettings} columns={footerColumns} shopLinks={footerShop ?? []} helpLinks={footerHelp ?? []} />
       </div>
       <CartDrawer />
       <QuickBuyDrawer />
