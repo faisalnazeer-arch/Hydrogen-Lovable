@@ -92,21 +92,22 @@ const LAYOUT_QUERY = `#graphql
       id title items { id title url }
     }
 
-    footerSettings: metaobjects(type: "mls_footer_settings", first: 1) {
-      nodes {
-        id
-        fields { key value }
-      }
-    }
-
-    announcementBar: metaobjects(type: "mls_announcement_bar", first: 1) {
-      nodes {
-        id
-        fields { key value }
-      }
-    }
   }
 ` as const;
+
+const ADMIN_FOOTER_QUERY = `
+  query {
+    footerSettings: metaobjects(type: "mls_footer_settings", first: 1) {
+      nodes { id fields { key value } }
+    }
+    announcementBar: metaobjects(type: "mls_announcement_bar", first: 1) {
+      nodes { id fields { key value } }
+    }
+    cartDrawer: metaobjects(type: "mls_cart_drawer_config", first: 1) {
+      nodes { id fields { key value } }
+    }
+  }
+`;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function toPath(u: string): string {
@@ -156,6 +157,19 @@ function parseFooterSettings(nodes: any[]): FooterSettings | null {
   };
 }
 
+function parseCartDrawerConfig(nodes: any[]): { freeShippingThreshold: number; deliveryItems: string[] } {
+  const node = nodes[0];
+  if (!node) return { freeShippingThreshold: 350, deliveryItems: [] };
+  const f = Object.fromEntries(node.fields.map((x: any) => [x.key, x]));
+  return {
+    freeShippingThreshold: parseInt(f.free_shipping_threshold?.value ?? "350", 10) || 350,
+    deliveryItems: [
+      f.delivery_item_1?.value, f.delivery_item_2?.value, f.delivery_item_3?.value,
+      f.delivery_item_4?.value, f.delivery_item_5?.value, f.delivery_item_6?.value,
+    ].filter((v): v is string => typeof v === "string" && v.trim().length > 0),
+  };
+}
+
 function parseAnnouncementMessages(nodes: any[]): string[] {
   const node = nodes[0];
   if (!node) return [];
@@ -173,13 +187,17 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
     ?.match(/(?:^|;\s*)lang=([a-z]{2})/)?.[1];
   const language = (lang === "ar" ? "AR" : "EN") as "AR" | "EN";
   try {
-    const data = await context.storefront.query(LAYOUT_QUERY, {
-      variables: { language, country: "AE" as const },
-    });
+    const [data, adminData] = await Promise.all([
+      context.storefront.query(LAYOUT_QUERY, {
+        variables: { language, country: "AE" as const },
+      }),
+      context.adminFetch(ADMIN_FOOTER_QUERY),
+    ]);
     const mainMenu       = parseShopifyMenu(data?.mainMenu,      "main");
     const secondaryMenu  = parseShopifyMenu(data?.secondaryMenu, "secondary");
-    const footerSettings = parseFooterSettings(data?.footerSettings?.nodes ?? []);
-    const announcementMessages = parseAnnouncementMessages(data?.announcementBar?.nodes ?? []);
+    const footerSettings = parseFooterSettings(adminData?.footerSettings?.nodes ?? []);
+    const announcementMessages = parseAnnouncementMessages(adminData?.announcementBar?.nodes ?? []);
+    const cartDrawerConfig = parseCartDrawerConfig(adminData?.cartDrawer?.nodes ?? []);
 
     function menuToCol(menu: any): { heading: string; links: FooterLink[] } | null {
       if (!menu?.items?.length) return null;
@@ -195,7 +213,7 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
       menuToCol(data?.footerHelp),
     ].filter((c): c is { heading: string; links: FooterLink[] } => c !== null);
 
-    return { mainMenu, secondaryMenu, footerSettings, footerMenuCols, announcementMessages };
+    return { mainMenu, secondaryMenu, footerSettings, footerMenuCols, announcementMessages, cartDrawerConfig };
   } catch {
     return {
       mainMenu: [] as NavEntry[],

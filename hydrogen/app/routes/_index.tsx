@@ -15,41 +15,8 @@ import { ValueBoxesBanner, type ValueBannerData } from "../components/home/Value
 import { RecentlyViewed } from "../components/home/RecentlyViewed";
 import { ReelsCarousel } from "../components/home/ReelsCarousel";
 
-const HOME_QUERY = `#graphql
-  fragment ProductCard on Product {
-    id
-    title
-    handle
-    availableForSale
-    priceRange {
-      minVariantPrice { amount currencyCode }
-      maxVariantPrice { amount currencyCode }
-    }
-    compareAtPriceRange { minVariantPrice { amount currencyCode } }
-    images(first: 4) { edges { node { url altText width height } } }
-    variants(first: 20) {
-      edges {
-        node {
-          id
-          title
-          price { amount currencyCode }
-          compareAtPrice { amount currencyCode }
-          availableForSale
-          selectedOptions { name value }
-        }
-      }
-    }
-    options { name values }
-    tags
-    vendor
-    productType
-    metafields(identifiers: [
-      {namespace: "reviews", key: "rating"}
-      {namespace: "reviews", key: "rating_count"}
-    ]) { key value }
-  }
-  query HomeData($language: LanguageCode, $country: CountryCode)
-  @inContext(language: $language, country: $country) {
+const ADMIN_HOME_META_QUERY = `
+  query {
     heroBanners: metaobjects(type: "hero_banner", first: 10) {
       nodes {
         id
@@ -254,9 +221,6 @@ const HOME_QUERY = `#graphql
             ... on Collection {
               handle
               title
-              products(first: 12) {
-                edges { node { ...ProductCard } }
-              }
             }
           }
           references(first: 8) {
@@ -270,9 +234,6 @@ const HOME_QUERY = `#graphql
                     ... on Collection {
                       handle
                       title
-                      products(first: 12) {
-                        edges { node { ...ProductCard } }
-                      }
                     }
                   }
                 }
@@ -283,7 +244,7 @@ const HOME_QUERY = `#graphql
       }
     }
   }
-` as const;
+`;
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -587,10 +548,8 @@ function pickReels(edges: any[]): ReelProduct[] {
 }
 
 export async function loader({ context, request }: LoaderFunctionArgs) {
-  const lang = request.headers.get("Cookie")?.match(/(?:^|;\s*)lang=([a-z]{2})/)?.[1];
-  const i18n = { language: lang === "ar" ? "AR" : "EN", country: "AE" } as const;
   const [data, reelTagged] = await Promise.all([
-    context.storefront.query(HOME_QUERY, { variables: i18n }),
+    context.adminFetch(ADMIN_HOME_META_QUERY),
     context.storefront.query(REELS_QUERY, { variables: { first: 20, query: "tag:reel" } }),
   ]);
 

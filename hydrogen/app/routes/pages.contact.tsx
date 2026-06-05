@@ -7,8 +7,8 @@ export const meta: MetaFunction = () => [
   { name: "description", content: "Reach MLS UAE — Premium halal meat delivered. Call, WhatsApp or email us 9 AM to 10 PM daily." },
 ];
 
-const CONTACT_QUERY = `#graphql
-  query ContactPage {
+const CONTACT_QUERY = `
+  query {
     metaobject(handle: { type: "mls_contact_page", handle: "contact-page" }) {
       fields {
         key
@@ -24,7 +24,7 @@ const CONTACT_QUERY = `#graphql
 ` as const;
 
 export async function loader({ context }: LoaderFunctionArgs) {
-  const data = await context.storefront.query(CONTACT_QUERY);
+  const data = await context.adminFetch(CONTACT_QUERY);
   const fields = Object.fromEntries(
     (data?.metaobject?.fields ?? []).map((f: any) => [f.key, f])
   );

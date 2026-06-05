@@ -17,6 +17,7 @@ declare global {
     PUBLIC_CUSTOMER_ACCOUNT_API_URL: string;
     PUBLIC_CHECKOUT_DOMAIN: string;
     JUDGEME_API_TOKEN: string;
+    SHOPIFY_ADMIN_API_TOKEN: string;
     PUBLIC_HEADER_MENU_HANDLE?: string;
     PUBLIC_FOOTER_MENU_HANDLE?: string;
   }
@@ -30,5 +31,6 @@ declare module "@shopify/remix-oxygen" {
     customerAccount: CustomerAccount;
     session: AppSession;
     waitUntil: ExecutionContext["waitUntil"];
+    adminFetch: (query: string, variables?: Record<string, any>) => Promise<any>;
   }
 }

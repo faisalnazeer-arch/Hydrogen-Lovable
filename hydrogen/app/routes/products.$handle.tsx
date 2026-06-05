@@ -10,15 +10,15 @@ import { LambRubsTemplate } from "~/components/product-templates/LambRubsTemplat
 import { WholeCutsTemplate } from "~/components/product-templates/WholeCutsTemplate";
 import { BoxCollectionsTemplate } from "~/components/product-templates/BoxCollectionsTemplate";
 
-const PAGE_SETTINGS_QUERY = `#graphql
-  query ProductPageSettings {
+const PAGE_SETTINGS_QUERY = `
+  query {
     metaobjects(type: "product_page_settings", first: 1) {
       nodes {
         fields { key value }
       }
     }
   }
-` as const;
+`;
 
 const RECOMMENDATIONS_QUERY = `#graphql
   query ProductRecommendations($productId: ID!, $country: CountryCode, $language: LanguageCode)
@@ -145,7 +145,7 @@ export async function loader({ params, context, request }: LoaderFunctionArgs) {
     context.storefront.query(RECOMMENDATIONS_QUERY, {
       variables: { productId: data.product.id, language, country: "AE" as const },
     }),
-    context.storefront.query(PAGE_SETTINGS_QUERY, {}),
+    context.adminFetch(PAGE_SETTINGS_QUERY),
     globoPromise,
   ]);
 

@@ -74,6 +74,22 @@ export default {
         setCartId: cartSetIdDefault(),
       });
 
+      const adminFetch = async <T = any>(query: string, variables: Record<string, any> = {}): Promise<T> => {
+        const res = await fetch(
+          `https://${env.PUBLIC_STORE_DOMAIN}/admin/api/2025-07/graphql.json`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Shopify-Access-Token": env.SHOPIFY_ADMIN_API_TOKEN,
+            },
+            body: JSON.stringify({ query, variables }),
+          }
+        );
+        const json = await res.json() as any;
+        return json.data as T;
+      };
+
       const handleRequest = createRequestHandler({
         // @ts-expect-error virtual module resolved at build time
         build: await import("virtual:react-router/server-build"),
@@ -85,6 +101,7 @@ export default {
           cart,
           env,
           waitUntil,
+          adminFetch,
         }),
       });
 
