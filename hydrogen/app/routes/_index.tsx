@@ -28,13 +28,13 @@ const Q_COL_CFG    = `{ nodes: metaobjects(type: "mls_collection_section", first
 const Q_ORIGIN     = `{ nodes: metaobjects(type: "mls_origin_section", first: 1) { nodes { id fields { key value references(first: 20) { nodes { ... on Metaobject { id handle fields { ${imgFields} } } } } } } } }`;
 const Q_CATEGORY   = `{ nodes: metaobjects(type: "mls_category_section", first: 1) { nodes { id fields { key value references(first: 20) { nodes { ... on Metaobject { id fields { ${imgFields} } } } } } } } }`;
 const Q_CUTS       = `{ nodes: metaobjects(type: "mls_cuts_section", first: 1) { nodes { id fields { key value references(first: 12) { nodes { ... on Metaobject { id fields { key value } } } } } } } }`;
-const Q_FEATURED   = `{ nodes: metaobjects(type: "featured_collection", first: 10) { nodes { id fields { key value reference { ... on Collection { handle title } } } } } }`;
+const Q_FEATURED   = `{ nodes: metaobjects(type: "featured_collection", first: 10) { nodes { id fields { key value reference { ... on Collection { handle title } } references(first: 10) { nodes { ... on Metaobject { id fields { key value reference { ... on Collection { handle title } } } } } } } } } }`;
 const Q_COL_LIST   = `{ nodes: metaobjects(type: "featured_collection_list", first: 20) { nodes { id fields { ${imgFields} } } } }`;
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
 import type { ShopifyProduct, ReelProduct } from "../lib/shopify";
-import { REELS_QUERY } from "../lib/shopify";
+import { REELS_QUERY, COLLECTION_PRODUCTS_QUERY } from "../lib/shopify";
 
 interface ReelsSectionConfig {
   subHeading: string;
@@ -115,7 +115,6 @@ function parseFeaturedCollections(nodes: any[]): FeaturedCollectionEntry[] {
       const isHandleLike = metaTitle ? /^[a-z0-9-]+$/.test(metaTitle) : true;
       const subTitle = (fieldMap["sub_title"]?.value ?? undefined) as string | undefined;
 
-      // Parse tabs if present (new per-collection-tab mode)
       const tabNodes: any[] = fieldMap["tabs"]?.references?.nodes ?? [];
       if (tabNodes.length > 0) {
         const tabs: CollectionTab[] = tabNodes
@@ -128,39 +127,24 @@ function parseFeaturedCollections(nodes: any[]): FeaturedCollectionEntry[] {
               handle: col.handle as string,
               title: col.title as string,
               position: parseInt(tf["position"]?.value ?? "0", 10),
-              products: (col.products?.edges ?? []) as ShopifyProduct[],
+              products: [] as ShopifyProduct[],
             };
           })
           .filter(Boolean)
           .sort((a: any, b: any) => a.position - b.position) as CollectionTab[];
 
         if (tabs.length > 0) {
-          // Use the fallback single collection (or first tab) as the section's primary handle
           const primaryCol = fieldMap["collection"]?.reference;
           const primaryHandle = (primaryCol?.handle ?? tabs[0].handle) as string;
           const title = (!isHandleLike && metaTitle) ? metaTitle : (primaryCol?.title ?? tabs[0].title ?? "");
-          return {
-            id: node.id as string,
-            handle: primaryHandle,
-            title,
-            subTitle,
-            products: tabs[0].products,
-            tabs,
-          };
+          return { id: node.id as string, handle: primaryHandle, title, subTitle, products: [] as ShopifyProduct[], tabs };
         }
       }
 
-      // Fallback: single collection mode
       const collection = fieldMap["collection"]?.reference;
       if (!collection?.handle) return null;
       const title = (!isHandleLike && metaTitle) ? metaTitle : (collection.title ?? "");
-      return {
-        id: node.id as string,
-        handle: collection.handle as string,
-        title,
-        subTitle,
-        products: (collection.products?.edges ?? []) as ShopifyProduct[],
-      };
+      return { id: node.id as string, handle: collection.handle as string, title, subTitle, products: [] as ShopifyProduct[] };
     })
     .filter((e): e is FeaturedCollectionEntry => e !== null);
 }
@@ -364,8 +348,28 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
   };
 
   const parsed = parseFeaturedCollections(data?.featuredCollections?.nodes ?? []);
+
+  // Fetch products for each unique collection handle via Storefront API (Admin API prices are incompatible)
+  const allHandles = [...new Set(
+    parsed.flatMap(e => [e.handle, ...(e.tabs?.map(t => t.handle) ?? [])]).filter(Boolean)
+  )];
+  const productsByHandle = new Map<string, ShopifyProduct[]>();
+  if (allHandles.length > 0) {
+    await Promise.all(allHandles.map(async (handle) => {
+      try {
+        const res = await context.storefront.query(COLLECTION_PRODUCTS_QUERY, { variables: { handle, first: 20 } });
+        productsByHandle.set(handle, res?.collection?.products?.edges ?? []);
+      } catch { /* ignore missing collection */ }
+    }));
+  }
+  const parsedWithProducts = parsed.map(e => ({
+    ...e,
+    products: productsByHandle.get(e.handle) ?? [],
+    tabs: e.tabs?.map(t => ({ ...t, products: productsByHandle.get(t.handle) ?? [] })),
+  }));
+
   const collectionSectionConfig = parseCollectionSectionConfig(data?.collectionSectionConfig?.nodes ?? []);
-  const rawSection = buildFeaturedSection(parsed);
+  const rawSection = buildFeaturedSection(parsedWithProducts);
   const featuredSection = rawSection && collectionSectionConfig
     ? { ...rawSection, title: collectionSectionConfig.heading, subTitle: collectionSectionConfig.subHeading || undefined }
     : rawSection;
