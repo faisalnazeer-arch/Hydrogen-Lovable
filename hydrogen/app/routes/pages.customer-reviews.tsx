@@ -40,7 +40,7 @@ export default function CustomerReviewsPage() {
   const { settings, miracle, header, reviews0, reviews1, count, rating } = useLoaderData<typeof loader>();
 
   useEffect(() => {
-    // Load Judge.me CSS
+    // Load Judge.me CSS for styling
     const cssFiles = [
       "https://cdn.judge.me/shopify_v2.css",
       `${JDGM_CDN}/widget_v3_theme_leex.css`,
@@ -55,39 +55,10 @@ export default function CustomerReviewsPage() {
       }
     });
 
-    const initJdgm = () => {
-      const jdgm = (window as any).jdgm;
-      if (!jdgm) return;
-      // Mark all reviews as setup so the CSS no longer hides them
-      document.querySelectorAll(".jdgm-rev").forEach((el) => {
-        el.classList.add("jdgm--leex-done-setup");
-      });
-      // Also try calling jdgm init methods if available
-      jdgm.customizationsFromSettings?.();
-      jdgm.reinit?.();
-      jdgm.initWidgets?.();
-    };
-
-    // Load main Judge.me JS (adds jdgm--leex-done-setup to reviews)
-    const mainSrc = `${JDGM_CDN}/shopify_v2_leex.js`;
-    if (!document.querySelector(`script[src="${mainSrc}"]`)) {
-      const script = document.createElement("script");
-      script.src = mainSrc;
-      script.async = true;
-      script.onload = initJdgm;
-      document.head.appendChild(script);
-    } else {
-      initJdgm();
-    }
-
-    // Also load loader.js for full widget features
-    const loaderSrc = `${JDGM_CDN}/loader.js`;
-    if (!document.querySelector(`script[src="${loaderSrc}"]`)) {
-      const script = document.createElement("script");
-      script.src = loaderSrc;
-      script.async = true;
-      document.head.appendChild(script);
-    }
+    // Add jdgm--leex-done-setup to all reviews so CSS doesn't hide them
+    document.querySelectorAll(".jdgm-rev").forEach((el) => {
+      el.classList.add("jdgm--leex-done-setup");
+    });
   }, []);
 
   const reviewsHtml = reviews0 + reviews1;
@@ -121,34 +92,15 @@ export default function CustomerReviewsPage() {
       <div className="container mx-auto max-w-5xl px-4 py-14">
         {hasData ? (
           <>
-            {/* Judge.me settings + miracle styles rendered inline */}
-            <div
-              dangerouslySetInnerHTML={{ __html: settings + miracle }}
-            />
+            {/* Judge.me settings + miracle styles */}
+            <div dangerouslySetInnerHTML={{ __html: settings + miracle }} />
 
-            {/* Widget container — Judge.me v2025 loader will initialise this */}
-            <div
-              className="jdgm-widget jdgm-all-reviews-widget-v2025"
-              data-widget="all-reviews-v2025"
-              data-auto-install="true"
-              data-entry-point="all_reviews_widget_v2025.js"
-              data-entry-key="all-reviews-widget-v2025/main.js"
-            >
-              {/* Pre-rendered HTML fallback (shown while JS loads) */}
-              <div
-                className="jdgm-legacy-widget-content"
-                dangerouslySetInnerHTML={{
-                  __html: `
-                    <article class="jdgm-widget jdgm-all-reviews-widget">
-                      ${header}
-                      <div class="jdgm-all-reviews__body">
-                        ${reviewsHtml}
-                      </div>
-                    </article>
-                  `,
-                }}
-              />
-            </div>
+            {/* Pre-rendered reviews from Shopify metafields */}
+            <article className="jdgm-widget jdgm-all-reviews-widget"
+              dangerouslySetInnerHTML={{
+                __html: header + `<div class="jdgm-all-reviews__body">${reviewsHtml}</div>`,
+              }}
+            />
           </>
         ) : (
           <p className="text-center text-muted-foreground">No reviews found.</p>
