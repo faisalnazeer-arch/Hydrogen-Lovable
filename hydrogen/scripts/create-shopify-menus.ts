@@ -10,7 +10,7 @@ import path from "node:path";
 import os from "node:os";
 import { execSync } from "node:child_process";
 
-const SHOP = "mls-uae-test-store.myshopify.com";
+const SHOP = "mls-uae.myshopify.com";
 const BASE = `https://${SHOP}`;
 
 async function cli<T = any>(query: string): Promise<T> {

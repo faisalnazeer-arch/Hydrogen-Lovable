@@ -2,8 +2,8 @@
 // Token + domain are public (storefront-scoped) and bundled into the client.
 
 export const SHOPIFY_API_VERSION = "2025-07";
-export const SHOPIFY_STORE_PERMANENT_DOMAIN = "mls-uae-test-store.myshopify.com";
-export const SHOPIFY_STOREFRONT_TOKEN = "73936922b12f6960d20479931fc05c1c";
+export const SHOPIFY_STORE_PERMANENT_DOMAIN = "mls-uae.myshopify.com";
+export const SHOPIFY_STOREFRONT_TOKEN = "97f0e5324d0396262b6df834040c123e";
 export const SHOPIFY_STOREFRONT_URL = `https://${SHOPIFY_STORE_PERMANENT_DOMAIN}/api/${SHOPIFY_API_VERSION}/graphql.json`;
 
 export async function storefrontApiRequest<T = any>(
