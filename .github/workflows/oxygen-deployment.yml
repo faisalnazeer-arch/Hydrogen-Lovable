@@ -36,7 +36,7 @@ jobs:
         run: npx shopify hydrogen deploy --force
         working-directory: hydrogen
         env:
-          SHOPIFY_HYDROGEN_DEPLOYMENT_TOKEN: ${{ secrets.OXYGEN_DEPLOYMENT_TOKEN_1000145219 }}
+          SHOPIFY_HYDROGEN_DEPLOYMENT_TOKEN: ${{ secrets.SHOPIFY_HYDROGEN_DEPLOYMENT_TOKEN }}
           PUBLIC_STORE_DOMAIN: ${{ secrets.PUBLIC_STORE_DOMAIN }}
           PUBLIC_STOREFRONT_API_TOKEN: ${{ secrets.PUBLIC_STOREFRONT_API_TOKEN }}
           PRIVATE_STOREFRONT_API_TOKEN: ${{ secrets.PRIVATE_STOREFRONT_API_TOKEN }}
