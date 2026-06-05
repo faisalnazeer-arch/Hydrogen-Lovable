@@ -15,236 +15,21 @@ import { ValueBoxesBanner, type ValueBannerData } from "../components/home/Value
 import { RecentlyViewed } from "../components/home/RecentlyViewed";
 import { ReelsCarousel } from "../components/home/ReelsCarousel";
 
-const ADMIN_HOME_META_QUERY = `
-  query {
-    heroBanners: metaobjects(type: "hero_banner", first: 10) {
-      nodes {
-        id
-        fields {
-          key
-          value
-          type
-          reference {
-            ... on MediaImage {
-              image { url altText width height }
-            }
-          }
-        }
-      }
-    }
-    trustBadges: metaobjects(type: "icon_with_text", first: 10) {
-      nodes {
-        id
-        handle
-        fields {
-          key
-          value
-          reference {
-            ... on MediaImage {
-              image { url }
-            }
-          }
-        }
-      }
-    }
-    featuredCollectionList: metaobjects(type: "featured_collection_list", first: 20) {
-      nodes {
-        id
-        fields {
-          key
-          value
-          reference {
-            ... on MediaImage {
-              image { url altText }
-            }
-          }
-        }
-      }
-    }
-    priceRangeSection: metaobjects(type: "price_range_section", first: 1) {
-      nodes {
-        id
-        fields { key value }
-      }
-    }
-    priceTiles: metaobjects(type: "price_range_tile", first: 20) {
-      nodes {
-        id
-        fields {
-          key
-          value
-          reference {
-            ... on MediaImage {
-              image { url altText }
-            }
-          }
-        }
-      }
-    }
-    reelsSection: metaobjects(type: "reels_section", first: 1) {
-      nodes {
-        id
-        fields { key value }
-      }
-    }
-    reelItems: metaobjects(type: "reel_item", first: 20) {
-      nodes {
-        id
-        fields {
-          key
-          value
-          reference {
-            ... on Product {
-              id
-              title
-              handle
-              priceRange { minVariantPrice { amount currencyCode } }
-              featuredImage { url altText }
-            }
-            ... on Video {
-              previewImage { url }
-              sources { url mimeType }
-            }
-          }
-        }
-      }
-    }
-    promoSideBySide: metaobjects(type: "promo_side_by_side", first: 1) {
-      nodes {
-        id
-        fields {
-          key
-          value
-          reference {
-            ... on MediaImage {
-              image { url altText }
-            }
-          }
-        }
-      }
-    }
-    valueBanner: metaobjects(type: "mls_value_banner", first: 1) {
-      nodes {
-        id
-        fields {
-          key
-          value
-          reference {
-            ... on MediaImage {
-              image { url altText }
-            }
-          }
-        }
-      }
-    }
-    originSection: metaobjects(type: "mls_origin_section", first: 1) {
-      nodes {
-        id
-        fields {
-          key
-          value
-          references(first: 20) {
-            nodes {
-              ... on Metaobject {
-                id
-                handle
-                fields {
-                  key
-                  value
-                  reference {
-                    ... on MediaImage {
-                      image { url altText }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    collectionSectionConfig: metaobjects(type: "mls_collection_section", first: 1) {
-      nodes {
-        id
-        fields { key value }
-      }
-    }
-    categorySection: metaobjects(type: "mls_category_section", first: 1) {
-      nodes {
-        id
-        fields {
-          key
-          value
-          references(first: 20) {
-            nodes {
-              ... on Metaobject {
-                id
-                fields {
-                  key
-                  value
-                  reference {
-                    ... on MediaImage {
-                      image { url altText }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    cutsSection: metaobjects(type: "mls_cuts_section", first: 1) {
-      nodes {
-        id
-        fields {
-          key
-          value
-          references(first: 12) {
-            nodes {
-              ... on Metaobject {
-                id
-                fields { key value }
-              }
-            }
-          }
-        }
-      }
-    }
-    featuredCollections: metaobjects(type: "featured_collection", first: 10) {
-      nodes {
-        id
-        fields {
-          key
-          value
-          reference {
-            ... on Collection {
-              handle
-              title
-            }
-          }
-          references(first: 8) {
-            nodes {
-              ... on Metaobject {
-                id
-                fields {
-                  key
-                  value
-                  reference {
-                    ... on Collection {
-                      handle
-                      title
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-`;
+const imgFields = `key value reference { ... on MediaImage { image { url altText } } }`;
+
+const Q_HERO       = `{ nodes: metaobjects(type: "hero_banner", first: 10) { nodes { id fields { key value reference { ... on MediaImage { image { url altText width height } } } } } } }`;
+const Q_BADGES     = `{ nodes: metaobjects(type: "icon_with_text", first: 10) { nodes { id handle fields { ${imgFields} } } } }`;
+const Q_PRICE_SEC  = `{ nodes: metaobjects(type: "price_range_section", first: 1) { nodes { id fields { key value } } } }`;
+const Q_PRICE_TILE = `{ nodes: metaobjects(type: "price_range_tile", first: 20) { nodes { id fields { ${imgFields} } } } }`;
+const Q_REELS_SEC  = `{ nodes: metaobjects(type: "reels_section", first: 1) { nodes { id fields { key value } } } }`;
+const Q_PROMO      = `{ nodes: metaobjects(type: "promo_side_by_side", first: 1) { nodes { id fields { ${imgFields} } } } }`;
+const Q_VALUE      = `{ nodes: metaobjects(type: "mls_value_banner", first: 1) { nodes { id fields { ${imgFields} } } } }`;
+const Q_COL_CFG    = `{ nodes: metaobjects(type: "mls_collection_section", first: 1) { nodes { id fields { key value } } } }`;
+const Q_ORIGIN     = `{ nodes: metaobjects(type: "mls_origin_section", first: 1) { nodes { id fields { key value references(first: 20) { nodes { ... on Metaobject { id handle fields { ${imgFields} } } } } } } } }`;
+const Q_CATEGORY   = `{ nodes: metaobjects(type: "mls_category_section", first: 1) { nodes { id fields { key value references(first: 20) { nodes { ... on Metaobject { id fields { ${imgFields} } } } } } } } }`;
+const Q_CUTS       = `{ nodes: metaobjects(type: "mls_cuts_section", first: 1) { nodes { id fields { key value references(first: 12) { nodes { ... on Metaobject { id fields { key value } } } } } } } }`;
+const Q_FEATURED   = `{ nodes: metaobjects(type: "featured_collection", first: 10) { nodes { id fields { key value reference { ... on Collection { handle title } } } } } }`;
+const Q_COL_LIST   = `{ nodes: metaobjects(type: "featured_collection_list", first: 20) { nodes { id fields { ${imgFields} } } } }`;
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -548,10 +333,35 @@ function pickReels(edges: any[]): ReelProduct[] {
 }
 
 export async function loader({ context, request }: LoaderFunctionArgs) {
-  const [data, reelTagged] = await Promise.all([
-    context.adminFetch(ADMIN_HOME_META_QUERY),
+  const af = (q: string) => context.adminFetch(q).then((d: any) => d?.nodes ?? {});
+
+  const [
+    heroRes, badgesRes, priceSecRes, priceTileRes, reelSecRes,
+    promoRes, valueRes, colCfgRes, originRes, categoryRes,
+    cutsRes, featuredRes, colListRes, reelTagged,
+  ] = await Promise.all([
+    af(Q_HERO), af(Q_BADGES), af(Q_PRICE_SEC), af(Q_PRICE_TILE), af(Q_REELS_SEC),
+    af(Q_PROMO), af(Q_VALUE), af(Q_COL_CFG), af(Q_ORIGIN), af(Q_CATEGORY),
+    af(Q_CUTS), af(Q_FEATURED), af(Q_COL_LIST),
     context.storefront.query(REELS_QUERY, { variables: { first: 20, query: "tag:reel" } }),
   ]);
+
+  const data = {
+    heroBanners:          heroRes,
+    trustBadges:          badgesRes,
+    priceRangeSection:    priceSecRes,
+    priceTiles:           priceTileRes,
+    reelsSection:         reelSecRes,
+    promoSideBySide:      promoRes,
+    valueBanner:          valueRes,
+    collectionSectionConfig: colCfgRes,
+    originSection:        originRes,
+    categorySection:      categoryRes,
+    cutsSection:          cutsRes,
+    featuredCollections:  featuredRes,
+    featuredCollectionList: colListRes,
+    reelItems:            { nodes: [] },
+  };
 
   const parsed = parseFeaturedCollections(data?.featuredCollections?.nodes ?? []);
   const collectionSectionConfig = parseCollectionSectionConfig(data?.collectionSectionConfig?.nodes ?? []);
