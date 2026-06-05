@@ -71,7 +71,7 @@ export function Footer({ settings, menuCols }: Props) {
 // ── Brand column ──────────────────────────────────────────────────────────────
 function BrandCol({ settings }: { settings: FooterSettings }) {
   return (
-    <div className="min-w-[200px] max-w-[240px] shrink-0">
+    <div className="flex-1 min-w-[260px] max-w-[320px]">
       <div className="mb-4">
         <img
           src={logo}

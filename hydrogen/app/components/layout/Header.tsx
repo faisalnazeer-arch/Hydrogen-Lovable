@@ -158,7 +158,7 @@ export function Header({ mainMenu = [], secondaryMenu = [] }: HeaderProps) {
               العربية
             </button>
           </div>
-          <Link to="/account/login" aria-label={t("nav.account")} className="hidden sm:inline-flex">
+          <Link to="/account/login" aria-label={t("nav.account")}>
             <Button variant="ghost" size="icon">
               <User className="h-5 w-5" />
             </Button>

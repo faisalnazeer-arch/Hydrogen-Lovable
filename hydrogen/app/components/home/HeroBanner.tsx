@@ -176,17 +176,16 @@ function SlideItem({ slide, active }: { slide: HeroSlide; active: boolean }) {
 
   return (
     <div
-      className="relative w-full"
+      className="relative w-full min-h-[320px] sm:min-h-[420px] md:min-h-[560px] lg:min-h-[680px]"
       style={{ flexShrink: 0 }}
     >
-      {/* Images flow naturally to drive container height — no fixed crop */}
       {slide.mobileImage && (
         <img
           src={slide.mobileImage.url}
           alt={slide.mobileImage.altText ?? ""}
           draggable={false}
           className={cn(
-            "pointer-events-none block w-full select-none",
+            "pointer-events-none block w-full select-none h-full object-cover absolute inset-0",
             slide.desktopImage ? "md:hidden" : "",
           )}
         />
@@ -197,7 +196,7 @@ function SlideItem({ slide, active }: { slide: HeroSlide; active: boolean }) {
           alt={slide.desktopImage.altText ?? ""}
           draggable={false}
           className={cn(
-            "pointer-events-none w-full select-none",
+            "pointer-events-none w-full select-none h-full object-cover absolute inset-0",
             slide.mobileImage ? "hidden md:block" : "block",
           )}
         />
