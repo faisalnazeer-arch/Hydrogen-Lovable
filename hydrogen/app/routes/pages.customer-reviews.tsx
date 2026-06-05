@@ -1,56 +1,75 @@
 import type { LoaderFunctionArgs, MetaFunction } from "@shopify/remix-oxygen";
-import { useLoaderData, useFetcher } from "react-router";
-import { useState, useEffect } from "react";
-import { ShieldCheck, User, Star, PenLine } from "lucide-react";
-import { fetchJudgemeStoreReviews, buildRatingSummary } from "~/lib/judgeme";
-import type { JudgemeReview } from "~/lib/judgeme";
-import { StarRating } from "~/components/reviews/StarRating";
-import { cn } from "~/lib/utils";
+import { useLoaderData } from "react-router";
+import { useEffect } from "react";
 
 export const meta: MetaFunction = () => [
   { title: "Customer Reviews — MLS UAE" },
   { name: "description", content: "Read genuine customer reviews for MLS UAE. Over 7000 verified buyers share their experience with our premium halal meat." },
 ];
 
+const JDGM_CDN = "https://cdn.shopify.com/extensions/019e9257-9cd0-7747-929e-9d784ac61d90/judgeme-556/assets";
+
+const METAFIELD_QUERY = `{
+  shop {
+    settings:     metafield(namespace: "judgeme", key: "settings")           { value }
+    miracle:      metafield(namespace: "judgeme", key: "html_miracle_0")     { value }
+    header:       metafield(namespace: "judgeme", key: "all_reviews_header") { value }
+    reviews0:     metafield(namespace: "judgeme", key: "all_reviews_0")      { value }
+    reviews1:     metafield(namespace: "judgeme", key: "all_reviews_1")      { value }
+    count:        metafield(namespace: "judgeme", key: "all_reviews_count")  { value }
+    rating:       metafield(namespace: "judgeme", key: "all_reviews_rating") { value }
+  }
+}`;
+
 export async function loader({ context }: LoaderFunctionArgs) {
-  const { env } = context;
-  const data = await fetchJudgemeStoreReviews(
-    env.PUBLIC_STORE_DOMAIN,
-    env.JUDGEME_API_TOKEN,
-    1,
-    10,
-  );
+  const data = await context.adminFetch(METAFIELD_QUERY);
+  const shop = data?.shop ?? {};
 
-  const rating = buildRatingSummary(data);
-  const totalCount = data.total_count ?? 0;
-
-  return { reviews: data.reviews, rating, totalCount };
+  return {
+    settings:  shop.settings?.value  ?? "",
+    miracle:   shop.miracle?.value   ?? "",
+    header:    shop.header?.value    ?? "",
+    reviews0:  shop.reviews0?.value  ?? "",
+    reviews1:  shop.reviews1?.value  ?? "",
+    count:     Number(shop.count?.value  ?? 0),
+    rating:    Number(shop.rating?.value ?? 0),
+  };
 }
 
 export default function CustomerReviewsPage() {
-  const { reviews: initialReviews, rating, totalCount } = useLoaderData<typeof loader>();
-  const [allReviews, setAllReviews] = useState<JudgemeReview[]>(initialReviews);
-  const [page, setPage] = useState(1);
-  const fetcher = useFetcher<{ reviews: JudgemeReview[]; totalCount: number }>();
+  const { settings, miracle, header, reviews0, reviews1, count, rating } = useLoaderData<typeof loader>();
 
   useEffect(() => {
-    if (fetcher.state === "idle" && fetcher.data?.reviews?.length) {
-      setAllReviews((prev) => {
-        const existing = new Set(prev.map((r) => r.id));
-        const fresh = fetcher.data!.reviews.filter((r) => !existing.has(r.id));
-        return [...prev, ...fresh];
-      });
+    // Load Judge.me CSS
+    const cssFiles = [
+      "https://cdn.judge.me/shopify_v2.css",
+      `${JDGM_CDN}/widget_v3_theme_leex.css`,
+      `${JDGM_CDN}/shopify_v2.css`,
+    ];
+    cssFiles.forEach((href) => {
+      if (!document.querySelector(`link[href="${href}"]`)) {
+        const link = document.createElement("link");
+        link.rel = "stylesheet";
+        link.href = href;
+        document.head.appendChild(link);
+      }
+    });
+
+    // Load Judge.me JS loader (triggers widget initialization)
+    const loaderSrc = `${JDGM_CDN}/loader.js`;
+    if (!document.querySelector(`script[src="${loaderSrc}"]`)) {
+      const script = document.createElement("script");
+      script.src = loaderSrc;
+      script.async = true;
+      document.head.appendChild(script);
+    } else {
+      // Re-init if already loaded
+      if ((window as any).jdgm?.reinit) (window as any).jdgm.reinit();
     }
-  }, [fetcher.state, fetcher.data]);
+  }, []);
 
-  const loadMore = () => {
-    const next = page + 1;
-    setPage(next);
-    fetcher.load(`/api/reviews/store?page=${next}`);
-  };
-
-  const hasMore = allReviews.length < totalCount;
-  const starLabels = ["5 stars", "4 stars", "3 stars", "2 stars", "1 star"];
+  const reviewsHtml = reviews0 + reviews1;
+  const hasData = !!header;
 
   return (
     <div className="min-h-screen bg-background">
@@ -65,165 +84,54 @@ export default function CustomerReviewsPage() {
           <span className="mb-4 inline-block rounded-full border border-crimson/40 bg-crimson/20 px-4 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-white/80">
             Verified Reviews
           </span>
-          <h1 className="font-display text-4xl font-extrabold md:text-5xl lg:text-6xl">
+          <h1 className="font-display text-4xl font-extrabold md:text-5xl">
             Take our customers' words<br className="hidden md:block" /> for our products
           </h1>
-          <p className="mx-auto mt-4 max-w-xl text-base text-white/70">
-            {totalCount > 0 ? `${totalCount.toLocaleString()} verified buyers can't be wrong.` : "Read what our customers say about MLS UAE."}
-          </p>
-        </div>
-      </div>
-
-      <div className="container mx-auto max-w-4xl px-4 py-14">
-
-        {/* Rating summary */}
-        {totalCount > 0 && (
-          <div className="mb-12 flex flex-col items-center gap-6 rounded-2xl border border-border bg-card p-8 sm:flex-row sm:items-start sm:justify-center">
-            {/* Score */}
-            <div className="flex shrink-0 flex-col items-center gap-2">
-              <span className="font-display text-6xl font-extrabold tabular-nums text-foreground">
-                {rating.average > 0 ? rating.average.toFixed(2) : "—"}
-              </span>
-              <StarRating rating={rating.average} size="lg" />
-              <span className="text-sm text-muted-foreground">
-                Based on {totalCount.toLocaleString()} reviews
-              </span>
-            </div>
-
-            {/* Histogram */}
-            {rating.histogram.some((n) => n > 0) && (
-              <div className="flex w-full max-w-xs flex-col gap-2 sm:flex-1">
-                {[4, 3, 2, 1, 0].map((idx) => {
-                  const histTotal = rating.histogram.reduce((s, n) => s + n, 0);
-                  const pct = histTotal > 0 ? Math.round((rating.histogram[idx] / histTotal) * 100) : 0;
-                  return (
-                    <div key={idx} className="flex items-center gap-3 text-sm">
-                      <span className="w-12 shrink-0 text-right text-muted-foreground">{starLabels[4 - idx]}</span>
-                      <div className="relative h-2.5 flex-1 overflow-hidden rounded-full bg-muted">
-                        <div
-                          className="absolute inset-y-0 left-0 rounded-full bg-amber-400 transition-all duration-500"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                      <span className="w-8 shrink-0 tabular-nums text-muted-foreground">{rating.histogram[idx]}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Write review CTA */}
-            <div className="flex shrink-0 flex-col items-center gap-3">
-              <a
-                href={`https://judge.me/stores/mls-uae.myshopify.com`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-5 py-3 text-sm font-bold text-amber-900 transition-colors hover:bg-amber-300"
-              >
-                <PenLine className="h-4 w-4" />
-                Write a Store Review
-              </a>
-              <span className="flex items-center gap-1 text-xs text-emerald-600 font-medium">
-                <ShieldCheck className="h-3.5 w-3.5" />
-                Verified by Judge.me
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Photos strip */}
-        {allReviews.some((r) => r.pictures?.length > 0) && (
-          <div className="mb-10">
-            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">Customer photos &amp; videos</h2>
-            <div className="flex gap-3 overflow-x-auto pb-2">
-              {allReviews
-                .flatMap((r) => r.pictures ?? [])
-                .slice(0, 12)
-                .map((pic, i) => (
-                  <a key={i} href={pic.urls.original} target="_blank" rel="noopener noreferrer" className="shrink-0">
-                    <img
-                      src={pic.urls.small}
-                      alt={`Customer photo ${i + 1}`}
-                      className="h-20 w-20 rounded-xl object-cover ring-1 ring-border hover:ring-crimson transition-all"
-                    />
-                  </a>
-                ))}
-            </div>
-          </div>
-        )}
-
-        {/* Reviews list */}
-        <div className="flex flex-col gap-4">
-          {allReviews.map((review) => (
-            <ReviewCard key={review.id} review={review} />
-          ))}
-        </div>
-
-        {/* Load more */}
-        {hasMore && (
-          <div className="mt-8 flex justify-center">
-            <button
-              type="button"
-              onClick={loadMore}
-              disabled={fetcher.state === "loading"}
-              className={cn(
-                "rounded-xl border border-border px-8 py-3 text-sm font-semibold transition-colors",
-                "hover:border-crimson hover:text-crimson disabled:opacity-50",
-              )}
-            >
-              {fetcher.state === "loading"
-                ? "Loading…"
-                : `Load more (${(totalCount - allReviews.length).toLocaleString()} remaining)`}
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function ReviewCard({ review }: { review: JudgemeReview }) {
-  return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-5 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-crimson/10 text-crimson">
-            <User className="h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold">{review.reviewer.name}</p>
-            <p className="text-xs text-muted-foreground">
-              {new Date(review.created_at).toLocaleDateString("en-AE", { year: "numeric", month: "short", day: "numeric" })}
+          {count > 0 && (
+            <p className="mx-auto mt-4 max-w-xl text-base text-white/70">
+              {rating.toFixed(2)} ★ from {count.toLocaleString()} verified buyers
             </p>
-          </div>
-        </div>
-        <div className="flex shrink-0 flex-col items-end gap-1">
-          <StarRating rating={review.rating} size="sm" />
-          {review.verified === "verified_buyer" && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-600">
-              <ShieldCheck className="h-3 w-3" />
-              Verified Buyer
-            </span>
           )}
         </div>
       </div>
 
-      {review.title && <p className="text-sm font-semibold">{review.title}</p>}
-      {review.body && <p className="text-sm leading-relaxed text-muted-foreground">{review.body}</p>}
+      {/* Judge.me Widget */}
+      <div className="container mx-auto max-w-5xl px-4 py-14">
+        {hasData ? (
+          <>
+            {/* Judge.me settings + miracle styles rendered inline */}
+            <div
+              dangerouslySetInnerHTML={{ __html: settings + miracle }}
+            />
 
-      {review.pictures?.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {review.pictures.map((pic, i) => (
-            <a key={i} href={pic.urls.original} target="_blank" rel="noopener noreferrer">
-              <img
-                src={pic.urls.small}
-                alt={`Review photo ${i + 1}`}
-                className="h-16 w-16 rounded-lg object-cover ring-1 ring-border hover:ring-crimson transition-all"
+            {/* Widget container — Judge.me v2025 loader will initialise this */}
+            <div
+              className="jdgm-widget jdgm-all-reviews-widget-v2025"
+              data-widget="all-reviews-v2025"
+              data-auto-install="false"
+              data-entry-point="all_reviews_widget_v2025.js"
+              data-entry-key="all-reviews-widget-v2025/main.js"
+            >
+              {/* Pre-rendered HTML fallback (shown while JS loads) */}
+              <div
+                className="jdgm-legacy-widget-content"
+                dangerouslySetInnerHTML={{
+                  __html: `
+                    <article class="jdgm-widget jdgm-all-reviews-widget">
+                      ${header}
+                      <div class="jdgm-all-reviews__body">
+                        ${reviewsHtml}
+                      </div>
+                    </article>
+                  `,
+                }}
               />
-            </a>
-          ))}
-        </div>
-      )}
+            </div>
+          </>
+        ) : (
+          <p className="text-center text-muted-foreground">No reviews found.</p>
+        )}
+      </div>
     </div>
   );
 }
