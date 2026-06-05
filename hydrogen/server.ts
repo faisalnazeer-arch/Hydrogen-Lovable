@@ -89,6 +89,9 @@ export default {
             }
           );
           const json = await res.json() as any;
+          if (json.errors?.length) {
+            console.error("[adminFetch] GraphQL errors:", JSON.stringify(json.errors.slice(0, 3)));
+          }
           return json.data ?? {};
         } catch {
           return {};
