@@ -8,19 +8,21 @@ export const meta: MetaFunction = () => [
 ];
 
 const FAQ_QUERY = `
-  query {
-    metaobject(handle: { type: "mls_faq_page", handle: "faq-page" }) {
-      fields {
-        key
-        value
-        reference {
-          ... on MediaImage { image { url altText } }
-        }
-        references(first: 20) {
-          nodes {
-            ... on Metaobject {
-              id
-              fields { key value }
+  {
+    nodes: metaobjects(type: "mls_faq_page", first: 1) {
+      nodes {
+        fields {
+          key
+          value
+          reference {
+            ... on MediaImage { image { url altText } }
+          }
+          references(first: 20) {
+            nodes {
+              ... on Metaobject {
+                id
+                fields { key value }
+              }
             }
           }
         }
@@ -31,8 +33,9 @@ const FAQ_QUERY = `
 
 export async function loader({ context }: LoaderFunctionArgs) {
   const data = await context.adminFetch(FAQ_QUERY);
+  const node = data?.nodes?.nodes?.[0];
   const f = Object.fromEntries(
-    (data?.metaobject?.fields ?? []).map((x: any) => [x.key, x])
+    (node?.fields ?? []).map((x: any) => [x.key, x])
   );
   return {
     heroTitle:    f.hero_title?.value    ?? "Frequently Asked Questions",
