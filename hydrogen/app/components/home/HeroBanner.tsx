@@ -176,7 +176,7 @@ function SlideItem({ slide, active }: { slide: HeroSlide; active: boolean }) {
 
   return (
     <div
-      className="relative w-full min-h-[220px] sm:min-h-[300px] md:min-h-[400px] lg:min-h-[480px]"
+      className="relative w-full min-h-[420px] sm:min-h-[380px] md:min-h-[460px] lg:min-h-[540px]"
       style={{ flexShrink: 0 }}
     >
       {slide.mobileImage && (
@@ -185,7 +185,7 @@ function SlideItem({ slide, active }: { slide: HeroSlide; active: boolean }) {
           alt={slide.mobileImage.altText ?? ""}
           draggable={false}
           className={cn(
-            "pointer-events-none block w-full select-none h-full object-cover absolute inset-0",
+            "pointer-events-none block w-full select-none h-full object-cover object-top absolute inset-0",
             slide.desktopImage ? "md:hidden" : "",
           )}
         />
@@ -196,7 +196,7 @@ function SlideItem({ slide, active }: { slide: HeroSlide; active: boolean }) {
           alt={slide.desktopImage.altText ?? ""}
           draggable={false}
           className={cn(
-            "pointer-events-none w-full select-none h-full object-cover absolute inset-0",
+            "pointer-events-none w-full select-none h-full object-cover object-center absolute inset-0",
             slide.mobileImage ? "hidden md:block" : "block",
           )}
         />
