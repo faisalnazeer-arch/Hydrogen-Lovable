@@ -19,13 +19,11 @@ export function ReelsCarousel({ reels, label = "Watch & Shop", heading = "MLS Re
 
   return (
     <section className="container mx-auto px-4 py-6 md:py-12">
-      <div className="mb-3 flex items-end justify-between gap-4 md:mb-6">
-        <div>
-          <div className="mb-0.5 text-[10px] font-bold uppercase tracking-[0.2em] text-crimson md:mb-1 md:text-[11px]">
-            {label}
-          </div>
-          <h2 className="font-display text-lg font-extrabold md:text-3xl">{heading}</h2>
-        </div>
+      <div className="mb-3 text-center md:mb-6">
+        <p className="mb-0.5 text-[10px] font-bold uppercase tracking-[0.2em] text-crimson md:mb-1 md:text-[11px]">
+          {label}
+        </p>
+        <h2 className="font-display text-lg font-extrabold md:text-3xl">{heading}</h2>
       </div>
 
       <HScroller>
