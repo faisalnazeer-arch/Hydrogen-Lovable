@@ -444,7 +444,7 @@ export function ProductPageShell({
         </div>
 
         {/* ── Product info ── */}
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-6">
           <div>
             <h1 className="font-display text-2xl font-extrabold leading-tight sm:text-3xl">{product.title}</h1>
             {displayRating.average > 0 && (
@@ -571,9 +571,9 @@ export function ProductPageShell({
           {variant?.availableForSale ? (
             <div className="flex items-center gap-3">
               <div className="flex items-center rounded-lg border border-border">
-                <button type="button" onClick={() => setQty((q) => Math.max(1, q - 1))} className="grid h-11 w-11 place-items-center text-muted-foreground transition-colors hover:text-foreground"><Minus className="h-4 w-4" /></button>
+                <button type="button" onClick={() => setQty((q) => Math.max(1, q - 1))} className="grid h-10 w-10 place-items-center text-muted-foreground transition-colors hover:text-foreground"><Minus className="h-4 w-4" /></button>
                 <span className="w-8 text-center text-sm font-semibold">{qty}</span>
-                <button type="button" onClick={() => setQty((q) => q + 1)} className="grid h-11 w-11 place-items-center text-muted-foreground transition-colors hover:text-foreground"><Plus className="h-4 w-4" /></button>
+                <button type="button" onClick={() => setQty((q) => q + 1)} className="grid h-10 w-10 place-items-center text-muted-foreground transition-colors hover:text-foreground"><Plus className="h-4 w-4" /></button>
               </div>
               <button type="button" onClick={handleAddToCart} disabled={isLoading}
                 className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-crimson px-6 py-3 text-sm font-bold uppercase tracking-wide text-crimson-foreground transition-colors hover:bg-rich-red disabled:opacity-50">
@@ -642,19 +642,19 @@ export function ProductPageShell({
             <p className="text-sm font-bold text-crimson">{formatPrice(displayPrice?.amount ?? "0", currency)}</p>
           </div>
           {variant?.availableForSale ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <div className="flex items-center rounded-lg border border-border">
-                <button type="button" onClick={() => setQty((q) => Math.max(1, q - 1))} className="grid h-9 w-9 place-items-center text-muted-foreground hover:text-foreground"><Minus className="h-3.5 w-3.5" /></button>
-                <span className="w-6 text-center text-sm font-semibold">{qty}</span>
-                <button type="button" onClick={() => setQty((q) => q + 1)} className="grid h-9 w-9 place-items-center text-muted-foreground hover:text-foreground"><Plus className="h-3.5 w-3.5" /></button>
+                <button type="button" onClick={() => setQty((q) => Math.max(1, q - 1))} className="grid h-10 w-10 place-items-center text-muted-foreground hover:text-foreground"><Minus className="h-3.5 w-3.5" /></button>
+                <span className="w-7 text-center text-sm font-semibold">{qty}</span>
+                <button type="button" onClick={() => setQty((q) => q + 1)} className="grid h-10 w-10 place-items-center text-muted-foreground hover:text-foreground"><Plus className="h-3.5 w-3.5" /></button>
               </div>
               <button type="button" onClick={handleAddToCart} disabled={isLoading}
-                className="rounded-lg bg-crimson px-4 py-2.5 text-sm font-bold text-crimson-foreground transition-colors hover:bg-rich-red disabled:opacity-50">
+                className="rounded-lg bg-crimson px-4 py-3 text-sm font-bold uppercase tracking-wide text-crimson-foreground transition-colors hover:bg-rich-red disabled:opacity-50">
                 {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add to Cart"}
               </button>
             </div>
           ) : (
-            <span className="rounded-lg bg-muted px-4 py-2.5 text-sm font-bold text-muted-foreground">Out of Stock</span>
+            <span className="rounded-lg bg-muted px-4 py-3 text-sm font-bold uppercase tracking-wide text-muted-foreground">Out of Stock</span>
           )}
         </div>
       </div>

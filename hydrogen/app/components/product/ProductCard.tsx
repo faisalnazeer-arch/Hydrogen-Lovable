@@ -137,7 +137,7 @@ export function ProductCard({ product, onQuickView, ratingOverride }: ProductCar
       </Link>
 
       {/* ── Card body ── */}
-      <div className="flex flex-1 flex-col p-2 sm:p-3">
+      <div className="flex flex-1 flex-col p-3">
         <Link
           to={`/products/${node.handle}`}
           className="text-balance text-xs font-medium leading-snug text-foreground transition-colors hover:text-crimson sm:text-sm"
@@ -154,7 +154,7 @@ export function ProductCard({ product, onQuickView, ratingOverride }: ProductCar
         )}
 
         {/* Price + button pushed to bottom */}
-        <div className="mt-auto flex flex-col gap-1 pt-1.5">
+        <div className="mt-auto flex flex-col gap-1.5 pt-2">
           <div className="flex flex-wrap items-baseline gap-x-1.5 leading-tight">
             {showFrom && (
               <span className="text-[9px] uppercase tracking-wider text-muted-foreground">

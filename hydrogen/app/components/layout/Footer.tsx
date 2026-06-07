@@ -150,7 +150,7 @@ function ContactCol({ contact }: { contact: ContactData }) {
 
 function ContactList({ contact }: { contact: ContactData }) {
   return (
-    <ul className="space-y-3 text-sm text-off-white/80">
+    <ul className="space-y-2.5 text-sm text-off-white/80">
       {contact.address && (
         <li className="flex items-start gap-2">
           <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
@@ -184,7 +184,7 @@ function ContactList({ contact }: { contact: ContactData }) {
 
 function LinkList({ links }: { links: FooterLink[] }) {
   return (
-    <ul className="space-y-2 text-sm text-off-white/80">
+    <ul className="space-y-2.5 text-sm text-off-white/80">
       {links.map((l) => (
         <li key={l.label}>
           <Link to={l.url} className="hover:text-gold">

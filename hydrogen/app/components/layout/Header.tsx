@@ -209,7 +209,7 @@ export function Header({ mainMenu = [], secondaryMenu = [] }: HeaderProps) {
             )
           )}
         </div>
-        <div className="container relative mx-auto flex items-center justify-center gap-6 border-t border-border/60 px-4 py-1.5">
+        <div className="container relative mx-auto flex items-center justify-center gap-6 border-t border-border/60 px-4 py-2">
           {secondaryMenu.map((entry) =>
             entry.columns.length > 0 ? (
               <SecondaryNavItem
