@@ -34,8 +34,17 @@ export function parsePriceTiles(nodes: any[]): PriceTile[] {
     .map((node: any) => {
       const f = Object.fromEntries(node.fields.map((x: any) => [x.key, x]));
       const amount = f["price_amount"]?.value;
-      const url = f["link_url"]?.value;
-      if (!amount || !url) return null;
+      if (!amount) return null;
+
+      // Prefer collection reference → derive URL from handle
+      const collectionHandle = f["collection"]?.reference?.handle;
+      const fallbackUrl = f["link_url"]?.value ?? "";
+      const url = collectionHandle
+        ? `/collections/${collectionHandle}`
+        : fallbackUrl;
+
+      if (!url) return null;
+
       return {
         id: node.id as string,
         priceAmount: amount as string,
