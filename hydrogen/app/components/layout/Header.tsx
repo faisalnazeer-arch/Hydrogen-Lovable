@@ -104,7 +104,7 @@ export function Header({ mainMenu = [], secondaryMenu = [] }: HeaderProps) {
                 </Link>
               ))}
               <Link
-                to="/account/login"
+                to="/account"
                 onClick={closeMobile}
                 className="mt-3 flex items-center gap-3 rounded-sm border-t border-border px-3 py-2 pt-4 hover:bg-muted"
               >
@@ -158,7 +158,7 @@ export function Header({ mainMenu = [], secondaryMenu = [] }: HeaderProps) {
               العربية
             </button>
           </div>
-          <Link to="/account/login" aria-label={t("nav.account")}>
+          <Link to="/account" aria-label={t("nav.account")}>
             <Button variant="ghost" size="icon">
               <User className="h-5 w-5" />
             </Button>
