@@ -93,7 +93,7 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 // Timeline week colours cycling
-const WEEK_COLOURS = ["from-crimson to-rich-red", "from-[#c0392b] to-crimson", "from-rich-red to-charcoal", "from-charcoal to-[#1a0a0a]"];
+const WEEK_COLOURS = ["bg-crimson", "bg-crimson", "bg-rich-red", "bg-[#7a0007]"];
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -153,11 +153,11 @@ export default function SubscriptionsPage() {
 
       {/* ══ TIMELINE ══════════════════════════════════════════════════════════ */}
       {page.timeline.length > 0 && (
-        <section className="bg-charcoal py-16 text-white md:py-20">
+        <section className="bg-muted/30 py-16 md:py-20">
           <div className="container mx-auto px-4">
             <div className="mb-12 text-center">
-              <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.22em] text-gold">Your Health Journey</p>
-              <h2 className="font-display text-2xl font-extrabold md:text-4xl">
+              <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.22em] text-crimson">Your Health Journey</p>
+              <h2 className="font-display text-2xl font-extrabold text-foreground md:text-4xl">
                 {page.timelineTitle.replace("(In Health & Savings)", "")}
                 <span className="text-crimson"> (In Health &amp; Savings)</span>
               </h2>
@@ -167,21 +167,19 @@ export default function SubscriptionsPage() {
             <div className="hidden gap-0 md:grid md:grid-cols-4">
               {page.timeline.map((item, i) => (
                 <div key={item.id} className="relative flex flex-col">
-                  {/* connector */}
                   {i < page.timeline.length - 1 && (
-                    <div className="absolute left-[calc(50%+1.5rem)] right-0 top-5 h-0.5 bg-white/10 z-0" />
+                    <div className="absolute left-[calc(50%+1.5rem)] right-0 top-5 h-0.5 bg-border z-0" />
                   )}
-                  {/* step dot */}
                   <div className="relative z-10 mb-5 flex justify-center">
-                    <div className={`grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br ${WEEK_COLOURS[i]} text-xs font-extrabold text-white shadow-lg ring-4 ring-charcoal`}>
+                    <div className={`grid h-10 w-10 place-items-center rounded-full ${WEEK_COLOURS[i]} text-xs font-extrabold text-white shadow-lg ring-4 ring-background`}>
                       {i + 1}
                     </div>
                   </div>
-                  <div className="flex flex-1 flex-col rounded-2xl border border-white/10 bg-white/5 p-5 mx-2">
-                    <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.18em] text-gold">{item.weekLabel}</p>
+                  <div className="flex flex-1 flex-col rounded-2xl border border-border bg-card p-5 mx-2 shadow-sm">
+                    <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.18em] text-crimson">{item.weekLabel}</p>
                     <ul className="mb-4 space-y-1.5">
                       {item.healthBenefits.map((h) => (
-                        <li key={h} className="flex items-start gap-2 text-sm text-white/80">
+                        <li key={h} className="flex items-start gap-2 text-sm text-muted-foreground">
                           <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-crimson" />
                           {h}
                         </li>
@@ -189,7 +187,7 @@ export default function SubscriptionsPage() {
                     </ul>
                     <div className="mt-auto flex flex-wrap gap-1.5">
                       {item.perks.map((p) => (
-                        <span key={p} className="rounded-full bg-crimson/20 px-2 py-0.5 text-[10px] font-semibold text-crimson">
+                        <span key={p} className="rounded-full bg-crimson/10 px-2 py-0.5 text-[10px] font-semibold text-crimson border border-crimson/20">
                           {p}
                         </span>
                       ))}
@@ -204,16 +202,16 @@ export default function SubscriptionsPage() {
               {page.timeline.map((item, i) => (
                 <div key={item.id} className="flex gap-4">
                   <div className="flex flex-col items-center">
-                    <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-br ${WEEK_COLOURS[i]} text-xs font-extrabold text-white shadow ring-4 ring-charcoal`}>
+                    <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${WEEK_COLOURS[i]} text-xs font-extrabold text-white shadow ring-4 ring-background`}>
                       {i + 1}
                     </div>
-                    {i < page.timeline.length - 1 && <div className="mt-1 w-0.5 flex-1 bg-white/10" />}
+                    {i < page.timeline.length - 1 && <div className="mt-1 w-0.5 flex-1 bg-border" />}
                   </div>
-                  <div className="flex-1 rounded-2xl border border-white/10 bg-white/5 p-4 mb-2">
-                    <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-gold">{item.weekLabel}</p>
+                  <div className="flex-1 rounded-2xl border border-border bg-card p-4 mb-2 shadow-sm">
+                    <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-crimson">{item.weekLabel}</p>
                     <ul className="mb-3 space-y-1">
                       {item.healthBenefits.map((h) => (
-                        <li key={h} className="flex items-start gap-2 text-sm text-white/80">
+                        <li key={h} className="flex items-start gap-2 text-sm text-muted-foreground">
                           <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-crimson" />
                           {h}
                         </li>
@@ -221,7 +219,7 @@ export default function SubscriptionsPage() {
                     </ul>
                     <div className="flex flex-wrap gap-1.5">
                       {item.perks.map((p) => (
-                        <span key={p} className="rounded-full bg-crimson/20 px-2 py-0.5 text-[10px] font-semibold text-crimson">{p}</span>
+                        <span key={p} className="rounded-full bg-crimson/10 px-2 py-0.5 text-[10px] font-semibold text-crimson border border-crimson/20">{p}</span>
                       ))}
                     </div>
                   </div>
@@ -310,26 +308,26 @@ export default function SubscriptionsPage() {
 
       {/* ══ TESTIMONIALS ══════════════════════════════════════════════════════ */}
       {page.reviews.length > 0 && (
-        <section className="bg-charcoal py-16 text-white md:py-20">
+        <section className="bg-background py-16 md:py-20">
           <div className="container mx-auto px-4">
             <div className="mb-10 text-center">
-              <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-gold">Real Customers</p>
-              <h2 className="font-display text-2xl font-extrabold md:text-3xl">{page.reviewsTitle}</h2>
-              <p className="mt-2 text-sm text-white/50">What They're Talking About MLS</p>
+              <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-crimson">Real Customers</p>
+              <h2 className="font-display text-2xl font-extrabold text-foreground md:text-3xl">{page.reviewsTitle}</h2>
+              <p className="mt-2 text-sm text-muted-foreground">What They're Talking About MLS</p>
             </div>
             <div className="grid gap-5 md:grid-cols-3">
               {page.reviews.map(({ id, name, title, body, rating }) => (
-                <div key={id} className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-white/5 p-6">
+                <div key={id} className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
                   <div className="flex gap-0.5">
                     {Array.from({ length: rating }).map((_, i) => (
-                      <Star key={i} className="h-4 w-4 fill-gold text-gold" />
+                      <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
                     ))}
                   </div>
                   <div>
-                    <p className="font-display text-base font-bold">{title}</p>
-                    <p className="mt-2 text-sm leading-relaxed text-white/65">{body}</p>
+                    <p className="font-display text-base font-bold text-foreground">{title}</p>
+                    <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{body}</p>
                   </div>
-                  <p className="mt-auto text-xs font-semibold text-gold">— {name}</p>
+                  <p className="mt-auto text-xs font-semibold text-crimson">— {name}</p>
                 </div>
               ))}
             </div>
@@ -359,25 +357,22 @@ export default function SubscriptionsPage() {
       )}
 
       {/* ══ BOTTOM CTA ════════════════════════════════════════════════════════ */}
-      <section
-        className="py-16 text-center"
-        style={{ background: "linear-gradient(135deg,#1a0a0a 0%,#a70a10 50%,#1a0a0a 100%)" }}
-      >
+      <section className="bg-crimson/5 border-t border-crimson/20 py-16 text-center">
         <div className="container mx-auto px-4">
-          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-gold">Start Today</p>
-          <h2 className="font-display text-3xl font-extrabold text-white md:text-4xl">{page.bottomCtaTitle}</h2>
-          <p className="mx-auto mt-3 max-w-md text-sm text-white/65 md:text-base">{page.bottomCtaSub}</p>
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-crimson">Start Today</p>
+          <h2 className="font-display text-3xl font-extrabold text-foreground md:text-4xl">{page.bottomCtaTitle}</h2>
+          <p className="mx-auto mt-3 max-w-md text-sm text-muted-foreground md:text-base">{page.bottomCtaSub}</p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Link
               to={page.heroCtaUrl}
-              className="inline-flex items-center gap-2 rounded-lg bg-white px-8 py-4 text-sm font-bold uppercase tracking-wide text-crimson shadow-xl transition-all hover:scale-105 hover:shadow-2xl"
+              className="inline-flex items-center gap-2 rounded-lg bg-crimson px-8 py-4 text-sm font-bold uppercase tracking-wide text-white shadow-lg transition-all hover:bg-rich-red hover:shadow-xl"
             >
               Start My Subscription <ArrowRight className="h-4 w-4" />
             </Link>
             {page.manageUrl && (
               <a
                 href={page.manageUrl}
-                className="inline-flex items-center gap-2 rounded-lg border border-white/30 px-8 py-4 text-sm font-bold uppercase tracking-wide text-white transition-all hover:border-white hover:bg-white/10"
+                className="inline-flex items-center gap-2 rounded-lg border border-crimson px-8 py-4 text-sm font-bold uppercase tracking-wide text-crimson transition-all hover:bg-crimson hover:text-white"
               >
                 <Settings className="h-4 w-4" /> Manage My Plan
               </a>
