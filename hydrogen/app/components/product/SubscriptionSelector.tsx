@@ -91,9 +91,9 @@ export function SubscriptionSelector({
             : "cursor-pointer border-border hover:border-muted-foreground",
         )}
       >
-        {/* Badge — centred on top border */}
+        {/* Badge — sits on top-right border, vertically aligned with prices */}
         {bestDiscount > 0 && (
-          <span className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 rounded-full bg-crimson px-4 py-1 text-xs font-bold text-white whitespace-nowrap">
+          <span className="absolute end-4 top-0 -translate-y-1/2 rounded-full bg-crimson px-3 py-0.5 text-[11px] font-bold text-white whitespace-nowrap">
             {t("subscription.save_up_to")} {bestDiscount}%
           </span>
         )}
