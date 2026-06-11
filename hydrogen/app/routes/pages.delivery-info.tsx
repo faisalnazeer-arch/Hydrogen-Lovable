@@ -115,11 +115,13 @@ export default function DeliveryInfoPage() {
     <div className="min-h-screen bg-background">
 
       {/* Hero */}
-      <div className="bg-charcoal py-12 text-center text-white md:py-16">
+      <div className="bg-charcoal py-6 text-center text-white md:py-8">
         <div className="container mx-auto px-4">
-          <Truck className="mx-auto mb-3 h-10 w-10 text-crimson" />
-          <h1 className="font-display text-3xl font-extrabold md:text-4xl">Delivery Info</h1>
-          <p className="mx-auto mt-3 max-w-lg text-base text-white/70">
+          <div className="flex items-center justify-center gap-2 mb-1">
+            <Truck className="h-5 w-5 text-crimson" />
+            <h1 className="font-display text-xl font-extrabold md:text-2xl">Delivery Info</h1>
+          </div>
+          <p className="text-sm text-white/60">
             Same-day delivery across the UAE. Fresh, chilled, and on time.
           </p>
         </div>

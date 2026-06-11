@@ -368,7 +368,7 @@ function DeliveryTab({ pageSettings }: { pageSettings: PageSettings | undefined 
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="mx-auto max-w-2xl space-y-8">
 
       {/* Returns */}
       <section>
