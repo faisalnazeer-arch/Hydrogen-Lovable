@@ -69,7 +69,7 @@ function DescriptionWithToggle({ html }: { html: string }) {
         className="overflow-hidden transition-[max-height] duration-500 ease-in-out"
         style={{ maxHeight: expanded ? "none" : DESC_CLAMP_PX }}
       >
-        <div ref={innerRef} className="prose prose-sm max-w-none [&_p]:leading-relaxed"
+        <div ref={innerRef} className="prose prose-sm max-w-none [&_p]:leading-relaxed [&_table]:block [&_table]:overflow-x-auto [&_pre]:overflow-x-auto [&_img]:max-w-full"
           dangerouslySetInnerHTML={{ __html: html }} />
       </div>
       {overflow && (
@@ -462,13 +462,13 @@ function InfoTabs({
               key={id}
               type="button"
               onClick={() => setActive(id)}
-              className={`flex shrink-0 items-center gap-2 border-b-2 px-5 py-4 text-sm font-semibold transition-colors ${
+              className={`flex shrink-0 items-center gap-1.5 border-b-2 px-3 py-3 text-[11px] font-semibold transition-colors sm:gap-2 sm:px-5 sm:py-4 sm:text-sm ${
                 active === id
                   ? "border-crimson text-crimson"
                   : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
-              <Icon className="h-4 w-4" />
+              <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               {label}
             </button>
           ))}
@@ -758,7 +758,7 @@ export function ProductPageShell({
   }
 
   return (
-    <div className="bg-background min-h-screen pb-20">
+    <div className="bg-background min-h-screen overflow-x-hidden pb-20">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
       {/* Breadcrumb */}
@@ -774,7 +774,7 @@ export function ProductPageShell({
 
       <div className="container mx-auto grid gap-6 px-4 pb-4 md:grid-cols-2 md:items-start md:gap-10">
         {/* ── Media gallery — sticky on desktop so it stays visible while user reads long right col ── */}
-        <div className="flex flex-col gap-3 md:sticky md:top-36 md:self-start">
+        <div className="flex min-w-0 flex-col gap-3 md:sticky md:top-36 md:self-start">
           <div className="relative aspect-square overflow-hidden rounded-xl bg-muted">
             {activeMedia?.type === "video" && activeMedia.mp4Url ? (
               <video src={activeMedia.mp4Url} poster={activeMedia.poster ?? undefined}
@@ -800,7 +800,7 @@ export function ProductPageShell({
                 const thumb = media.type === "image" ? shopifyImageUrl(media.url, 160) : media.type === "video" ? (media.poster ?? "") : (media as any).poster ?? "";
                 return (
                   <button key={i} type="button" onClick={() => setActiveMediaIdx(i)}
-                    className={`relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-colors ${i === activeMediaIdx ? "border-crimson" : "border-transparent hover:border-muted-foreground"}`}>
+                    className={`relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-colors sm:h-20 sm:w-20 ${i === activeMediaIdx ? "border-crimson" : "border-transparent hover:border-muted-foreground"}`}>
                     {thumb && <img src={thumb} alt="" className="h-full w-full object-cover" />}
                     {(media.type === "video" || media.type === "external_video") && (
                       <div className="absolute inset-0 flex items-center justify-center bg-black/30">
@@ -815,9 +815,9 @@ export function ProductPageShell({
         </div>
 
         {/* ── Product info ── */}
-        <div className="flex flex-col gap-4 sm:gap-5">
+        <div className="flex min-w-0 flex-col gap-4 sm:gap-5">
           <div>
-            <h1 className="font-display text-2xl font-extrabold leading-tight sm:text-3xl">{product.title}</h1>
+            <h1 className="font-display text-xl font-extrabold leading-tight sm:text-2xl md:text-3xl">{product.title}</h1>
             {displayRating.average > 0 && (
               <button type="button" onClick={() => document.getElementById("reviews")?.scrollIntoView({ behavior: "smooth" })}
                 className="mt-2 flex items-center gap-2 transition-opacity hover:opacity-80">
@@ -992,11 +992,11 @@ export function ProductPageShell({
           })()}
 
           {/* Trust badges */}
-          <div className="grid grid-cols-3 gap-3 rounded-xl border border-border p-4">
+          <div className="grid grid-cols-3 gap-2 rounded-xl border border-border p-3 sm:gap-3 sm:p-4">
             {[{ icon: Truck, label: "2-hour delivery" }, { icon: ShieldCheck, label: "100% Halal certified" }, { icon: RefreshCw, label: "Quality guarantee" }].map(({ icon: Icon, label }) => (
-              <div key={label} className="flex flex-col items-center gap-1.5 text-center">
-                <Icon className="h-6 w-6 text-crimson" />
-                <span className="text-xs font-medium text-muted-foreground">{label}</span>
+              <div key={label} className="flex flex-col items-center gap-1 text-center">
+                <Icon className="h-5 w-5 text-crimson sm:h-6 sm:w-6" />
+                <span className="text-[10px] font-medium leading-snug text-muted-foreground sm:text-xs">{label}</span>
               </div>
             ))}
           </div>
@@ -1037,7 +1037,7 @@ export function ProductPageShell({
       />
 
       {/* ── Sticky Add to Cart bar ── */}
-      <div className={`fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-background/95 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] backdrop-blur transition-transform duration-300 ${stickyVisible ? "translate-y-0" : "translate-y-full"}`}>
+      <div className={`fixed bottom-0 left-0 right-0 z-40 overflow-hidden border-t border-border bg-background/95 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] backdrop-blur transition-transform duration-300 ${stickyVisible ? "translate-y-0" : "translate-y-full"}`}>
 
         {/* ── Expandable panel: variants + subscription ── */}
         <div className={`transition-all duration-300 ease-in-out ${stickyExpanded ? "max-h-[65vh] overflow-y-auto" : "max-h-0 overflow-hidden"}`}>
@@ -1085,16 +1085,16 @@ export function ProductPageShell({
         </div>
 
         {/* ── Main ATC row ── */}
-        <div className="container mx-auto flex items-center gap-2 px-3 py-2.5">
+        <div className="flex w-full items-center gap-2 px-3 py-2.5">
           {images[0] && (
-            <img src={shopifyImageUrl(images[0].url, 80)} alt={product.title} className="h-10 w-10 flex-shrink-0 rounded-lg object-cover" />
+            <img src={shopifyImageUrl(images[0].url, 80)} alt={product.title} className="h-9 w-9 flex-shrink-0 rounded-lg object-cover sm:h-10 sm:w-10" />
           )}
           <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-semibold">{product.title}</p>
+            <p className="truncate text-[11px] font-semibold sm:text-xs">{product.title}</p>
             {variant?.title && variant.title !== "Default Title" && (
-              <p className="truncate text-[11px] text-muted-foreground">{variant.title}</p>
+              <p className="truncate text-[10px] text-muted-foreground sm:text-[11px]">{variant.title}</p>
             )}
-            <p className="text-xs font-bold text-crimson">{formatPrice(displayPrice?.amount ?? "0", currency)}</p>
+            <p className="text-[11px] font-bold text-crimson sm:text-xs">{formatPrice(displayPrice?.amount ?? "0", currency)}</p>
           </div>
 
           {/* Expand toggle */}
@@ -1102,15 +1102,15 @@ export function ProductPageShell({
             <button
               type="button"
               onClick={() => setStickyExpanded((e) => !e)}
-              className="flex flex-shrink-0 items-center gap-1 rounded-lg border border-crimson/60 bg-crimson/5 px-2.5 py-2 text-xs font-semibold text-crimson transition-colors hover:bg-crimson/10"
+              className="flex flex-shrink-0 items-center gap-1 rounded-lg border border-crimson/60 bg-crimson/5 px-2 py-1.5 text-[11px] font-semibold text-crimson transition-colors hover:bg-crimson/10 sm:px-2.5 sm:py-2 sm:text-xs"
             >
-              {stickyExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}
-              <span className="hidden sm:inline">{stickyExpanded ? "Close" : "Options"}</span>
+              {stickyExpanded ? <ChevronDown className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> : <ChevronUp className="h-3 w-3 sm:h-3.5 sm:w-3.5" />}
+              <span>{stickyExpanded ? "Close" : "Options"}</span>
             </button>
           )}
 
           {variant?.availableForSale ? (
-            <div className="flex items-center gap-1.5">
+            <div className="flex flex-shrink-0 items-center gap-1.5">
               {/* Qty — hidden on very small screens, always visible on sm+ */}
               <div className="hidden items-center rounded-lg border border-border sm:flex">
                 <button type="button" onClick={() => setQty((q) => Math.max(1, q - 1))} className="grid h-9 w-8 place-items-center text-muted-foreground hover:text-foreground"><Minus className="h-3 w-3" /></button>
@@ -1118,12 +1118,12 @@ export function ProductPageShell({
                 <button type="button" onClick={() => setQty((q) => q + 1)} className="grid h-9 w-8 place-items-center text-muted-foreground hover:text-foreground"><Plus className="h-3 w-3" /></button>
               </div>
               <button type="button" onClick={handleAddToCart} disabled={isLoading}
-                className="flex-shrink-0 rounded-lg bg-crimson px-3 py-2.5 text-xs font-bold uppercase tracking-wide text-crimson-foreground transition-colors hover:bg-rich-red disabled:opacity-50 sm:px-4 sm:text-sm">
-                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add to Cart"}
+                className="flex-shrink-0 rounded-lg bg-crimson px-2.5 py-2 text-[11px] font-bold uppercase tracking-normal text-crimson-foreground transition-colors hover:bg-rich-red disabled:opacity-50 sm:px-3 sm:py-2.5 sm:text-xs sm:tracking-wide">
+                {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Add to Cart"}
               </button>
             </div>
           ) : (
-            <span className="flex-shrink-0 rounded-lg bg-muted px-3 py-2.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">Out of Stock</span>
+            <span className="flex-shrink-0 rounded-lg bg-muted px-2.5 py-2 text-[11px] font-bold uppercase text-muted-foreground sm:px-3 sm:py-2.5 sm:text-xs">Out of Stock</span>
           )}
         </div>
       </div>
