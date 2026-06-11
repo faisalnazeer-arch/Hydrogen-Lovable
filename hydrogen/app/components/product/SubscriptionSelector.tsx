@@ -152,7 +152,7 @@ export function SubscriptionSelector({
                       type="button"
                       onClick={(e) => { e.stopPropagation(); onSelect(plan.id); }}
                       className={cn(
-                        "flex min-w-[80px] flex-col items-center rounded-lg border px-4 py-2.5 text-sm font-semibold transition-colors",
+                        "flex min-w-[110px] flex-col items-center rounded-lg border px-4 py-2.5 text-sm font-semibold transition-colors",
                         plan.id === selectedPlanId
                           ? "border-crimson bg-crimson text-white"
                           : "border-border bg-muted/50 hover:border-crimson",
