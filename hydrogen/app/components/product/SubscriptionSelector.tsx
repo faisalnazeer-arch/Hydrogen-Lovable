@@ -158,7 +158,7 @@ export function SubscriptionSelector({
                           : "border-border bg-muted/50 hover:border-crimson",
                       )}
                     >
-                      <span>{plan.name}</span>
+                      <span>{shortPlanName(plan.name)}</span>
                       {plan.discount > 0 && (
                         <span
                           className={cn(
@@ -181,6 +181,16 @@ export function SubscriptionSelector({
       </div>
     </div>
   );
+}
+
+function shortPlanName(name: string): string {
+  const lower = name.toLowerCase();
+  const num = parseInt(name.match(/^(\d+)/)?.[1] ?? "0", 10);
+  if (!num) return name;
+  if (lower.includes("month")) return num === 1 ? "Monthly" : `${num} Months`;
+  if (lower.includes("week"))  return num === 1 ? "Weekly"  : `${num} Weeks`;
+  if (lower.includes("day"))   return `${num} Days`;
+  return name;
 }
 
 function BenefitItem({ text }: { text: string }) {
