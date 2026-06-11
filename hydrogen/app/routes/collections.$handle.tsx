@@ -110,17 +110,39 @@ export async function loader({ params, request, context }: LoaderFunctionArgs) {
 
 function CollectionDescription({ text }: { text: string }) {
   const [expanded, setExpanded] = useState(false);
-  const [clamped, setClamped] = useState(false);
+  const [isMultiLine, setIsMultiLine] = useState(false);
   const ref = useRef<HTMLParagraphElement>(null);
+
   useEffect(() => {
-    if (ref.current) setClamped(ref.current.scrollHeight > ref.current.clientHeight + 4);
+    const el = ref.current;
+    if (!el) return;
+    // Measure natural (unclamped) height vs single-line height
+    el.style.webkitLineClamp = "none";
+    el.style.overflow = "visible";
+    const full = el.scrollHeight;
+    el.style.webkitLineClamp = "1";
+    el.style.overflow = "hidden";
+    const single = el.scrollHeight;
+    setIsMultiLine(full > single + 2);
+    // Restore
+    el.style.webkitLineClamp = "";
+    el.style.overflow = "";
   }, [text]);
+
   return (
-    <div className="mx-auto mt-2 max-w-2xl">
-      <p ref={ref} className={`text-sm text-muted-foreground ${!expanded ? "line-clamp-3" : ""}`}>{text}</p>
-      {(clamped || expanded) && (
-        <button type="button" onClick={() => setExpanded((e) => !e)}
-          className="mt-1 text-xs font-semibold text-crimson hover:underline">
+    <div className="mx-auto mt-2 max-w-2xl text-center">
+      <p
+        ref={ref}
+        className={`text-sm text-muted-foreground transition-all ${!expanded ? "line-clamp-1" : ""}`}
+      >
+        {text}
+      </p>
+      {isMultiLine && (
+        <button
+          type="button"
+          onClick={() => setExpanded((e) => !e)}
+          className="mt-1 text-xs font-semibold text-crimson hover:underline"
+        >
           {expanded ? "Read Less ↑" : "Read More ↓"}
         </button>
       )}
