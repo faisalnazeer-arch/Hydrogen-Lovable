@@ -1107,10 +1107,10 @@ export function ProductPageShell({
             <button
               type="button"
               onClick={() => setStickyExpanded((e) => !e)}
-              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:border-crimson hover:text-crimson"
-              aria-label="Toggle options"
+              className="flex flex-shrink-0 items-center gap-1.5 rounded-lg border border-crimson/60 bg-crimson/5 px-3 py-2 text-xs font-semibold text-crimson transition-colors hover:bg-crimson/10"
             >
-              {stickyExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+              {stickyExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}
+              {stickyExpanded ? "Close" : "Options"}
             </button>
           )}
 
