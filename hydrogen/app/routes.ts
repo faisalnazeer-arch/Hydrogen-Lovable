@@ -24,6 +24,7 @@ export default hydrogenRoutes([
   route('pages/mls-affiliate', 'routes/pages.mls-affiliate.tsx'),
   route('pages/subscription-policy', 'routes/pages.subscription-policy.tsx'),
   route('pages/subscriptions', 'routes/pages.subscriptions.tsx'),
+  route('pages/subscription', 'routes/pages.subscription.tsx'),
   route('pages/:handle', 'routes/pages.$handle.tsx'),
   route('account', 'routes/account.tsx', [
     index('routes/account._index.tsx'),
