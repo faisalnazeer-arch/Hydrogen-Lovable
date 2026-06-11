@@ -15,8 +15,8 @@ const DEFAULT_CONFIG: CartDrawerConfig = {
     "🎁 **Special Offer Activated:** FREE gift of 2x Angus beef burgers and 1x AUS Grass-fed Beef Striploin on orders above **AED 40** with your first purchase!",
     "**Free Shipping** above AED 350",
   ],
-  freeGiftSubVariantId: "",
-  freeGiftCarVariantId: "",
+  freeGiftSubVariantId: "gid://shopify/ProductVariant/48766692720956",
+  freeGiftCarVariantId: "gid://shopify/ProductVariant/48650846765372",
 };
 
 export function useCartDrawerConfig(): CartDrawerConfig {
