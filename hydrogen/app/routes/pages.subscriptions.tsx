@@ -151,38 +151,42 @@ export default function SubscriptionsPage() {
 
       {/* ══ 2. TIMELINE ═══════════════════════════════════════════════════════ */}
       {page.timeline.length > 0 && (
-        <section className="bg-muted/30 py-12 md:py-16">
+        <section className="py-12 md:py-16 overflow-hidden" style={{background:"linear-gradient(160deg,#fff5f5 0%,#fff 40%,#fff5f5 100%)"}}>
           <div className="container mx-auto px-4">
-            <SectionHead
-              label="Your Health Journey"
-              title={`${page.timelineTitle.replace("(In Health & Savings)", "").trim()} (In Health & Savings)`}
-            />
+            {/* Heading */}
+            <div className="mb-10 text-center md:mb-14">
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.25em] text-crimson">Your Health Journey</p>
+              <h2 className="font-display text-2xl font-extrabold text-foreground md:text-4xl">
+                Consistency Pays Off
+              </h2>
+              <p className="mt-1 font-display text-lg font-semibold text-crimson md:text-2xl">(In Health &amp; Savings)</p>
+            </div>
 
-            {/* Desktop */}
-            <div className="hidden md:grid md:grid-cols-4 gap-0">
+            {/* Desktop — 4 columns */}
+            <div className="hidden md:grid md:grid-cols-4 gap-4">
               {page.timeline.map((item, i) => (
-                <div key={item.id} className="relative flex flex-col">
-                  {i < page.timeline.length - 1 && (
-                    <div className="absolute left-[calc(50%+1.25rem)] right-0 top-[1.2rem] h-0.5 bg-border z-0" />
-                  )}
-                  <div className="relative z-10 mb-4 flex justify-center">
-                    <div className={`grid h-9 w-9 place-items-center rounded-full ${WEEK_BG[i]} text-xs font-extrabold text-white shadow ring-4 ring-background`}>
-                      {i + 1}
-                    </div>
+                <div key={item.id} className="relative flex flex-col overflow-hidden rounded-2xl shadow-md border border-border bg-white">
+                  {/* Coloured header strip */}
+                  <div className={`${WEEK_BG[i]} px-5 py-4 text-white`}>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] opacity-80 mb-0.5">Week</p>
+                    <p className="font-display text-2xl font-extrabold leading-none">{item.weekLabel.replace('Week','').replace('WEEK','').trim()}</p>
                   </div>
-                  <div className="flex flex-1 flex-col rounded-2xl border border-border bg-card p-4 mx-2 shadow-sm">
-                    <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-crimson">{item.weekLabel}</p>
-                    <ul className="mb-3 space-y-1.5">
+                  {/* Body */}
+                  <div className="flex flex-1 flex-col p-5">
+                    <ul className="mb-4 space-y-2">
                       {item.healthBenefits.map((h) => (
-                        <li key={h} className="flex items-start gap-2 text-sm text-muted-foreground">
-                          <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-crimson" />
+                        <li key={h} className="flex items-start gap-2 text-sm text-foreground font-medium">
+                          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-crimson" />
                           {h}
                         </li>
                       ))}
                     </ul>
-                    <div className="mt-auto flex flex-wrap gap-1.5">
+                    <div className="mt-auto pt-3 border-t border-border/50 flex flex-col gap-1.5">
                       {item.perks.map((p) => (
-                        <span key={p} className="rounded-full border border-crimson/20 bg-crimson/10 px-2 py-0.5 text-[10px] font-semibold text-crimson">{p}</span>
+                        <span key={p} className="flex items-center gap-1.5 text-[11px] font-semibold text-crimson">
+                          <span className="h-1.5 w-1.5 rounded-full bg-crimson shrink-0" />
+                          {p}
+                        </span>
                       ))}
                     </div>
                   </div>
@@ -190,29 +194,32 @@ export default function SubscriptionsPage() {
               ))}
             </div>
 
-            {/* Mobile */}
-            <div className="flex flex-col gap-3 md:hidden">
+            {/* Mobile — vertical */}
+            <div className="flex flex-col gap-4 md:hidden">
               {page.timeline.map((item, i) => (
-                <div key={item.id} className="flex gap-3">
-                  <div className="flex flex-col items-center">
-                    <div className={`grid h-8 w-8 shrink-0 place-items-center rounded-full ${WEEK_BG[i]} text-xs font-extrabold text-white ring-4 ring-background`}>
-                      {i + 1}
+                <div key={item.id} className="overflow-hidden rounded-2xl shadow-sm border border-border bg-white">
+                  <div className={`${WEEK_BG[i]} flex items-center gap-4 px-4 py-3 text-white`}>
+                    <span className="font-display text-2xl font-extrabold leading-none opacity-30">{String(i+1).padStart(2,'0')}</span>
+                    <div>
+                      <p className="text-[9px] font-bold uppercase tracking-[0.2em] opacity-75">Week</p>
+                      <p className="font-display text-base font-extrabold leading-tight">{item.weekLabel.replace('Week','').replace('WEEK','').trim()}</p>
                     </div>
-                    {i < page.timeline.length - 1 && <div className="mt-1 w-0.5 flex-1 bg-border" />}
                   </div>
-                  <div className="flex-1 rounded-xl border border-border bg-card p-3 mb-2 shadow-sm">
-                    <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-crimson">{item.weekLabel}</p>
-                    <ul className="mb-2 space-y-1">
+                  <div className="p-4">
+                    <ul className="mb-3 space-y-1.5">
                       {item.healthBenefits.map((h) => (
-                        <li key={h} className="flex items-start gap-2 text-sm text-muted-foreground">
-                          <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-crimson" />
+                        <li key={h} className="flex items-start gap-2 text-sm font-medium text-foreground">
+                          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-crimson" />
                           {h}
                         </li>
                       ))}
                     </ul>
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex flex-col gap-1 pt-3 border-t border-border/50">
                       {item.perks.map((p) => (
-                        <span key={p} className="rounded-full border border-crimson/20 bg-crimson/10 px-2 py-0.5 text-[10px] font-semibold text-crimson">{p}</span>
+                        <span key={p} className="flex items-center gap-1.5 text-[11px] font-semibold text-crimson">
+                          <span className="h-1.5 w-1.5 rounded-full bg-crimson shrink-0" />
+                          {p}
+                        </span>
                       ))}
                     </div>
                   </div>
