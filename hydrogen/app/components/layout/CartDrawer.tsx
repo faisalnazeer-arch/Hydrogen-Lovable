@@ -274,9 +274,12 @@ export function CartDrawer() {
                         >
                           {item.product.node.title}
                         </Link>
-                        <div className="text-xs text-muted-foreground">
-                          {item.selectedOptions.map((o) => o.value).join(" · ") || item.variantTitle}
-                        </div>
+                        {(() => {
+                          const label =
+                            item.selectedOptions.map((o) => o.value).filter((v) => v !== "Default Title").join(" · ") ||
+                            (item.variantTitle !== "Default Title" ? item.variantTitle : "");
+                          return label ? <div className="text-xs text-muted-foreground">{label}</div> : null;
+                        })()}
                         {item.attributes && item.attributes.filter((a) => !a.key.startsWith("_")).length > 0 && (
                           <div className="flex flex-col gap-0.5">
                             {item.attributes
