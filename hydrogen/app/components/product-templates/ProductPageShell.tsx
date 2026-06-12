@@ -636,10 +636,10 @@ export function ProductPageShell({
   const [stickyVisible, setStickyVisible] = useState(false);
   const [stickyExpanded, setStickyExpanded] = useState(false);
   const [pickupDrawerOpen, setPickupDrawerOpen] = useState(false);
-  const [thumbStart, setThumbStart] = useState(0);
-  const THUMB_VISIBLE = 5;
-  const VERT_STEP  = 86; // 80px thumb + 6px gap (gap-1.5)
-  const HORIZ_STEP = 88; // 80px thumb + 8px gap (gap-2)
+  const thumbTrackRef = useRef<HTMLDivElement>(null);
+  const [thumbCanLeft,  setThumbCanLeft]  = useState(false);
+  const [thumbCanRight, setThumbCanRight] = useState(false);
+  const THUMB_SCROLL = 88; // scroll 1 thumb+gap per arrow click
   const atcSentinelRef = useRef<HTMLDivElement>(null);
 
   // Track this product as recently viewed
@@ -702,14 +702,34 @@ export function ProductPageShell({
     if (idx !== -1) setActiveMediaIdx(idx);
   }, [selectedVariantId]); // eslint-disable-line
 
-  // Keep active thumb visible inside the slider window
+  // Update left/right arrow visibility whenever media list size or scroll position changes
   useEffect(() => {
-    setThumbStart((s) => {
-      if (activeMediaIdx < s) return activeMediaIdx;
-      if (activeMediaIdx >= s + THUMB_VISIBLE) return activeMediaIdx - THUMB_VISIBLE + 1;
-      return s;
-    });
-  }, [activeMediaIdx, THUMB_VISIBLE]);
+    const el = thumbTrackRef.current;
+    if (!el) return;
+    const update = () => {
+      setThumbCanLeft(el.scrollLeft > 1);
+      setThumbCanRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 1);
+    };
+    update();
+    el.addEventListener('scroll', update, { passive: true });
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => { el.removeEventListener('scroll', update); ro.disconnect(); };
+  }, [allMedia.length]); // eslint-disable-line
+
+  // Scroll active thumbnail into view when selection changes
+  useEffect(() => {
+    const el = thumbTrackRef.current;
+    if (!el) return;
+    const thumb = el.children[activeMediaIdx] as HTMLElement | undefined;
+    if (!thumb) return;
+    const { offsetLeft, offsetWidth } = thumb;
+    if (offsetLeft < el.scrollLeft) {
+      el.scrollTo({ left: offsetLeft, behavior: 'smooth' });
+    } else if (offsetLeft + offsetWidth > el.scrollLeft + el.clientWidth) {
+      el.scrollTo({ left: offsetLeft + offsetWidth - el.clientWidth, behavior: 'smooth' });
+    }
+  }, [activeMediaIdx]);
 
   const hasOptions =
     product.options.length > 1 ||
@@ -825,11 +845,19 @@ export function ProductPageShell({
             </div>
           </div>
 
-          {/* Thumbnail row — below main image on all screen sizes */}
+          {/* Thumbnail row — below main image, native scroll + overlay arrows */}
           {allMedia.length > 1 && (
-            allMedia.length <= THUMB_VISIBLE ? (
-              /* All fit — plain centred row, no arrows */
-              <div className="flex justify-center gap-2">
+            <div className="relative">
+              {/* Left arrow — only visible when scrolled right */}
+              <button type="button" aria-label="Previous images"
+                onClick={() => thumbTrackRef.current?.scrollBy({ left: -THUMB_SCROLL, behavior: 'smooth' })}
+                className={`absolute left-0 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background shadow-md transition-all duration-200 hover:bg-muted hover:shadow-lg ${thumbCanLeft ? 'opacity-100' : 'pointer-events-none opacity-0'}`}>
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+
+              {/* Scrollable track — hides scrollbar, fills full width */}
+              <div ref={thumbTrackRef}
+                className="flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {allMedia.map((media, i) => {
                   const thumb = media.type === "image" ? shopifyImageUrl(media.url, 200) : media.type === "video" ? (media.poster ?? "") : (media as any).poster ?? "";
                   const isActive = i === activeMediaIdx;
@@ -851,50 +879,14 @@ export function ProductPageShell({
                   );
                 })}
               </div>
-            ) : (
-              /* More than visible — arrow slider */
-              <div className="relative flex items-center">
-                <button type="button" aria-label="Previous images"
-                  onClick={() => setThumbStart((s) => Math.max(0, s - 1))}
-                  className={`absolute left-0 z-10 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-border bg-background shadow-md transition-all duration-200 hover:bg-muted hover:shadow-lg ${thumbStart > 0 ? "opacity-100" : "pointer-events-none opacity-0"}`}>
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
 
-                <div className="mx-10 overflow-hidden">
-                  <div
-                    className="flex gap-2 transition-transform duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)]"
-                    style={{ transform: `translateX(-${thumbStart * HORIZ_STEP}px)` }}
-                  >
-                    {allMedia.map((media, i) => {
-                      const thumb = media.type === "image" ? shopifyImageUrl(media.url, 200) : media.type === "video" ? (media.poster ?? "") : (media as any).poster ?? "";
-                      const isActive = i === activeMediaIdx;
-                      return (
-                        <button key={i} type="button" onClick={() => setActiveMediaIdx(i)}
-                          className={`relative h-[80px] w-[80px] flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all duration-200 ${
-                            isActive
-                              ? "border-crimson shadow-[inset_0_0_0_1px_rgba(180,0,0,0.25)]"
-                              : "border-transparent opacity-60 hover:opacity-100 hover:border-border/60"
-                          }`}>
-                          {thumb && <img src={thumb} alt="" className="h-full w-full object-cover" />}
-                          {(media.type === "video" || media.type === "external_video") && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                              <Play className="h-5 w-5 fill-white text-white" />
-                            </div>
-                          )}
-                          {isActive && <span className="absolute bottom-1 left-1/2 h-[3px] w-6 -translate-x-1/2 rounded-full bg-crimson" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <button type="button" aria-label="Next images"
-                  onClick={() => setThumbStart((s) => Math.min(allMedia.length - THUMB_VISIBLE, s + 1))}
-                  className={`absolute right-0 z-10 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-border bg-background shadow-md transition-all duration-200 hover:bg-muted hover:shadow-lg ${thumbStart + THUMB_VISIBLE < allMedia.length ? "opacity-100" : "pointer-events-none opacity-0"}`}>
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </div>
-            )
+              {/* Right arrow — only visible when more content to the right */}
+              <button type="button" aria-label="Next images"
+                onClick={() => thumbTrackRef.current?.scrollBy({ left: THUMB_SCROLL, behavior: 'smooth' })}
+                className={`absolute right-0 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background shadow-md transition-all duration-200 hover:bg-muted hover:shadow-lg ${thumbCanRight ? 'opacity-100' : 'pointer-events-none opacity-0'}`}>
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
           )}
         </div>
 
