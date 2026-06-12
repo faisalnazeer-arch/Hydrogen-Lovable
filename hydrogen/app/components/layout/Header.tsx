@@ -79,7 +79,8 @@ export function Header({ mainMenu = [], secondaryMenu = [] }: HeaderProps) {
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>
-          <SheetContent side={drawerSide} className="w-[320px] p-0 flex flex-col">
+          {/* [&>button:first-child]:hidden hides Sheet's built-in close button — we have our own */}
+          <SheetContent side={drawerSide} className="w-[320px] p-0 flex flex-col [&>button:first-child]:hidden">
             <MobileMenuDrawer
               mainMenu={mainMenu}
               secondaryMenu={secondaryMenu}
@@ -340,34 +341,28 @@ function MobileMenuDrawer({
   onClose: () => void;
 }) {
   const [activeTabIdx, setActiveTabIdx] = useState(0);
-  // Set of column indexes that are expanded (accordion)
   const [openCols, setOpenCols] = useState<Set<number>>(new Set());
 
   const tabbedEntries = mainMenu.filter((e) => e.columns.length > 0);
   const flatMainEntries = mainMenu.filter((e) => e.columns.length === 0);
-
   const activeEntry = tabbedEntries[activeTabIdx];
   const activeColumns = activeEntry?.columns ?? [];
 
-  // Multi-column = each column is an accordion row (e.g. CATEGORIES > All Beef > sub-links)
-  // Single untitled column = flat list (e.g. BEEF > Steaks, Bone-in Cubes, ...)
-  const isAccordion = activeColumns.length > 1 || (activeColumns.length === 1 && !!activeColumns[0].title);
-  // Flat mode links (single un-titled column)
+  const isAccordion =
+    activeColumns.length > 1 || (activeColumns.length === 1 && !!activeColumns[0].title);
   const flatLinks = !isAccordion ? (activeColumns[0]?.links ?? []) : [];
 
   const handleTabSwitch = (i: number) => {
     setActiveTabIdx(i);
-    setOpenCols(new Set()); // collapse all accordion items on tab change
+    setOpenCols(new Set());
   };
 
-  const toggleCol = (i: number) => {
+  const toggleCol = (i: number) =>
     setOpenCols((prev) => {
       const next = new Set(prev);
-      if (next.has(i)) next.delete(i);
-      else next.add(i);
+      next.has(i) ? next.delete(i) : next.add(i);
       return next;
     });
-  };
 
   const secondaryLinks = [
     ...flatMainEntries.map((e) => ({ id: e.id, label: e.label, url: e.url ?? "/" })),
@@ -375,21 +370,20 @@ function MobileMenuDrawer({
   ];
 
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-background">
-      <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+    <div className="flex h-full flex-col bg-background">
+      <SheetTitle className="sr-only">Menu</SheetTitle>
 
       {/* ── Header ── */}
-      <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">
+      <div className="relative flex shrink-0 items-center justify-center border-b border-border py-3.5 px-12">
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close menu"
-          className="flex h-8 w-8 items-center justify-center rounded-full text-foreground hover:bg-muted"
+          aria-label="Close"
+          className="absolute left-4 flex h-8 w-8 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted"
         >
-          <X className="h-5 w-5" />
+          <X className="h-4 w-4" />
         </button>
-        <img src={logo} alt="MLS" className="h-9 w-auto" />
-        <div className="w-8" />
+        <img src={logo} alt="MLS" className="h-8 w-auto" />
       </div>
 
       {/* ── Tabs ── */}
@@ -400,10 +394,10 @@ function MobileMenuDrawer({
               key={entry.id}
               type="button"
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleTabSwitch(i); }}
-              className={`flex-1 py-3 text-[11px] font-bold uppercase tracking-wider transition-all ${
+              className={`flex-1 px-1 py-2.5 text-[10px] font-bold uppercase leading-tight tracking-wider transition-all ${
                 i === activeTabIdx
                   ? "bg-crimson text-white"
-                  : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+                  : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
               }`}
             >
               {entry.label}
@@ -415,100 +409,102 @@ function MobileMenuDrawer({
       {/* ── Scrollable body ── */}
       <div className="flex-1 overflow-y-auto">
 
-        {isAccordion ? (
-          /* ── Accordion mode: column = header with image, sub-links expand below ── */
-          activeColumns.map((col, colIdx) => {
-            const isOpen = openCols.has(colIdx);
-            const ColIcon = pickIcon(col.title, col.url ?? "");
-            return (
-              <div key={col.title + colIdx}>
-                {/* Accordion header row */}
-                <button
-                  type="button"
-                  onClick={() => toggleCol(colIdx)}
-                  className="flex w-full items-center gap-3 border-b border-border/50 px-4 py-3 transition-colors hover:bg-muted/50"
+        {/* Accordion mode */}
+        {isAccordion
+          ? activeColumns.map((col, colIdx) => {
+              const isOpen = openCols.has(colIdx);
+              const initial = (col.title?.[0] ?? "•").toUpperCase();
+              return (
+                <div key={col.title + colIdx}>
+                  <button
+                    type="button"
+                    onClick={() => toggleCol(colIdx)}
+                    className="flex w-full items-center gap-3 border-b border-border/60 px-4 py-2.5 text-left transition-colors hover:bg-muted/40"
+                  >
+                    {/* Thumbnail */}
+                    <div className="h-11 w-12 shrink-0 overflow-hidden rounded-md">
+                      {col.imageUrl ? (
+                        <img
+                          src={`${col.imageUrl}&width=100`}
+                          alt={col.title}
+                          className="h-full w-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-crimson/15 to-crimson/5">
+                          <span className="text-sm font-black text-crimson">{initial}</span>
+                        </div>
+                      )}
+                    </div>
+                    <span className="flex-1 text-[13px] font-semibold text-foreground">
+                      {col.title}
+                    </span>
+                    <span className="w-5 text-center text-base font-light text-muted-foreground leading-none">
+                      {isOpen ? "−" : "+"}
+                    </span>
+                  </button>
+
+                  {/* Sub-links */}
+                  {isOpen && (
+                    <div className="border-b border-border/40 bg-muted/20">
+                      {col.links.map((link) => (
+                        <Link
+                          key={link.url + link.label}
+                          to={link.url}
+                          onClick={onClose}
+                          prefetch="intent"
+                          className="flex items-center gap-2 border-b border-border/20 py-2 pl-[60px] pr-4 text-[12px] text-foreground/70 last:border-0 transition-colors hover:text-crimson"
+                        >
+                          <ChevronRight className="h-2.5 w-2.5 shrink-0 text-crimson/50" />
+                          <span>{link.label}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          : /* Flat list mode */
+            flatLinks.map((link) => {
+              const initial = (link.label?.[0] ?? "•").toUpperCase();
+              return (
+                <Link
+                  key={link.url + link.label}
+                  to={link.url}
+                  onClick={onClose}
+                  prefetch="intent"
+                  className="flex items-center gap-3 border-b border-border/60 px-4 py-2.5 transition-colors hover:bg-muted/40"
                 >
-                  <div className="h-12 w-14 shrink-0 overflow-hidden rounded-lg bg-muted">
-                    {col.imageUrl ? (
+                  <div className="h-11 w-12 shrink-0 overflow-hidden rounded-md">
+                    {link.imageUrl ? (
                       <img
-                        src={`${col.imageUrl}&width=120`}
-                        alt={col.title}
+                        src={`${link.imageUrl}&width=100`}
+                        alt={link.label}
                         className="h-full w-full object-cover"
                         loading="lazy"
                       />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-crimson/10 to-bone">
-                        <ColIcon className="h-5 w-5 text-crimson/40" />
+                      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-crimson/15 to-crimson/5">
+                        <span className="text-sm font-black text-crimson">{initial}</span>
                       </div>
                     )}
                   </div>
-                  <span className="flex-1 text-left text-sm font-semibold text-foreground">
-                    {col.title}
+                  <span className="flex-1 text-[13px] font-semibold text-foreground">
+                    {link.label}
                   </span>
-                  <span className="text-xl font-light leading-none text-muted-foreground">
-                    {isOpen ? "−" : "+"}
+                  <span className="w-5 text-center text-base font-light text-muted-foreground leading-none">
+                    +
                   </span>
-                </button>
-
-                {/* Accordion sub-links */}
-                {isOpen && (
-                  <div className="bg-muted/30">
-                    {col.links.map((link) => (
-                      <Link
-                        key={link.url + link.label}
-                        to={link.url}
-                        onClick={onClose}
-                        prefetch="intent"
-                        className="flex items-center gap-2 border-b border-border/30 py-2.5 pl-[76px] pr-4 text-sm text-foreground/75 transition-colors hover:bg-muted/60 hover:text-crimson"
-                      >
-                        <ChevronRight className="h-3 w-3 shrink-0 text-crimson/50" />
-                        <span>{link.label}</span>
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })
-        ) : (
-          /* ── Flat list mode: single column, all links shown directly ── */
-          flatLinks.map((link) => {
-            const Icon = pickIcon(link.label, link.url);
-            return (
-              <Link
-                key={link.url + link.label}
-                to={link.url}
-                onClick={onClose}
-                prefetch="intent"
-                className="flex items-center gap-3 border-b border-border/50 px-4 py-3 transition-colors hover:bg-muted/60"
-              >
-                <div className="h-12 w-14 shrink-0 overflow-hidden rounded-lg bg-muted">
-                  {link.imageUrl ? (
-                    <img
-                      src={`${link.imageUrl}&width=120`}
-                      alt={link.label}
-                      className="h-full w-full object-cover"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-crimson/10 to-bone">
-                      <Icon className="h-5 w-5 text-crimson/40" />
-                    </div>
-                  )}
-                </div>
-                <span className="flex-1 text-sm font-semibold text-foreground">{link.label}</span>
-                <span className="text-xl font-light leading-none text-muted-foreground">+</span>
-              </Link>
-            );
-          })
-        )}
+                </Link>
+              );
+            })}
 
         {/* ── Divider ── */}
         {secondaryLinks.length > 0 && (
-          <div className="mx-4 my-3 border-t border-border" />
+          <div className="my-1 border-t-2 border-border/60" />
         )}
 
-        {/* ── Secondary / info links ── */}
+        {/* ── Secondary links ── */}
         {secondaryLinks.map(({ id, label, url }) => {
           const Icon = pickIcon(label, url);
           return (
@@ -517,29 +513,31 @@ function MobileMenuDrawer({
               to={url}
               onClick={onClose}
               prefetch="intent"
-              className="flex items-center gap-3.5 border-b border-border/40 px-4 py-3.5 transition-colors hover:bg-muted/60"
+              className="flex items-center gap-3 border-b border-border/40 px-4 py-2.5 transition-colors hover:bg-muted/40"
             >
-              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-crimson/10 text-crimson">
-                <Icon className="h-4 w-4" />
+              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-crimson/10 text-crimson">
+                <Icon className="h-3.5 w-3.5" />
               </div>
-              <span className="flex-1 text-sm font-semibold">{label}</span>
-              <span className="text-xl font-light leading-none text-muted-foreground">+</span>
+              <span className="flex-1 text-[13px] font-semibold">{label}</span>
+              <span className="w-5 text-center text-base font-light text-muted-foreground leading-none">
+                +
+              </span>
             </Link>
           );
         })}
       </div>
 
-      {/* ── Bottom: Login + Sign Up ── */}
-      <div className="flex shrink-0 gap-2.5 border-t border-border p-4">
+      {/* ── Bottom buttons ── */}
+      <div className="flex shrink-0 gap-2 border-t border-border p-3">
         <a
           href="https://mlsuae.ae/customer_authentication/redirect?locale=en&region_country=AE"
-          className="flex flex-1 items-center justify-center rounded-lg border-2 border-crimson py-3 text-sm font-bold uppercase tracking-wider text-crimson transition-colors hover:bg-crimson hover:text-white"
+          className="flex flex-1 items-center justify-center rounded-lg border-2 border-crimson py-2.5 text-[11px] font-black uppercase tracking-widest text-crimson transition-colors hover:bg-crimson hover:text-white"
         >
           Login
         </a>
         <a
           href="https://mlsuae.ae/customer_authentication/redirect?locale=en&region_country=AE&flow=register"
-          className="flex flex-1 items-center justify-center rounded-lg bg-charcoal py-3 text-sm font-bold uppercase tracking-wider text-white transition-colors hover:bg-charcoal/80"
+          className="flex flex-1 items-center justify-center rounded-lg bg-charcoal py-2.5 text-[11px] font-black uppercase tracking-widest text-white transition-colors hover:bg-charcoal/80"
         >
           Sign Up
         </a>
