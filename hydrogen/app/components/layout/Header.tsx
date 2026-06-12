@@ -54,9 +54,10 @@ function pickIcon(title: string, url: string): LucideIcon {
 interface HeaderProps {
   mainMenu?: NavEntry[];
   secondaryMenu?: NavEntry[];
+  navItemImages?: Record<string, string>;
 }
 
-export function Header({ mainMenu = [], secondaryMenu = [] }: HeaderProps) {
+export function Header({ mainMenu = [], secondaryMenu = [], navItemImages = {} }: HeaderProps) {
   const totalItems = useCartStore((s) =>
     s.items.reduce((n, i) => n + i.quantity, 0)
   );
@@ -84,6 +85,7 @@ export function Header({ mainMenu = [], secondaryMenu = [] }: HeaderProps) {
             <MobileMenuDrawer
               mainMenu={mainMenu}
               secondaryMenu={secondaryMenu}
+              navItemImages={navItemImages}
               onClose={closeMobile}
             />
           </SheetContent>
@@ -331,23 +333,35 @@ function SecondaryNavLink({
 
 // ── Mobile drawer ──────────────────────────────────────────────────────────────
 
+/** Append Shopify CDN width param safely regardless of whether ?v= already present */
+function cdnImg(url: string, w = 120) {
+  if (!url) return url;
+  return url.includes("?") ? `${url}&width=${w}` : `${url}?width=${w}`;
+}
+
 function MobileMenuDrawer({
   mainMenu,
   secondaryMenu,
+  navItemImages,
   onClose,
 }: {
   mainMenu: NavEntry[];
   secondaryMenu: NavEntry[];
+  navItemImages: Record<string, string>;
   onClose: () => void;
 }) {
   const [activeTabIdx, setActiveTabIdx] = useState(0);
   const [openCols, setOpenCols] = useState<Set<number>>(new Set());
+  const [openSecondary, setOpenSecondary] = useState<Set<string>>(new Set());
 
+  // Entries with sub-links → tabs
   const tabbedEntries = mainMenu.filter((e) => e.columns.length > 0);
+  // Top-level flat links (no sub-items) — Dutch Veal, Whole Carcass, etc.
   const flatMainEntries = mainMenu.filter((e) => e.columns.length === 0);
   const activeEntry = tabbedEntries[activeTabIdx];
   const activeColumns = activeEntry?.columns ?? [];
 
+  // Whether the active tab uses accordion or flat-list rendering
   const isAccordion =
     activeColumns.length > 1 || (activeColumns.length === 1 && !!activeColumns[0].title);
   const flatLinks = !isAccordion ? (activeColumns[0]?.links ?? []) : [];
@@ -356,7 +370,6 @@ function MobileMenuDrawer({
     setActiveTabIdx(i);
     setOpenCols(new Set());
   };
-
   const toggleCol = (i: number) =>
     setOpenCols((prev) => {
       const next = new Set(prev);
@@ -364,17 +377,12 @@ function MobileMenuDrawer({
       return next;
     });
 
-  const secondaryLinks = [
-    ...flatMainEntries.map((e) => ({ id: e.id, label: e.label, url: e.url ?? "/" })),
-    ...secondaryMenu.map((e) => ({ id: e.id, label: e.label, url: e.url ?? "/" })),
-  ];
-
   return (
     <div className="flex h-full flex-col bg-background">
       <SheetTitle className="sr-only">Menu</SheetTitle>
 
       {/* ── Header ── */}
-      <div className="relative flex shrink-0 items-center justify-center border-b border-border py-3.5 px-12">
+      <div className="relative flex shrink-0 items-center justify-center border-b border-border py-3 px-12">
         <button
           type="button"
           onClick={onClose}
@@ -386,15 +394,15 @@ function MobileMenuDrawer({
         <img src={logo} alt="MLS" className="h-8 w-auto" />
       </div>
 
-      {/* ── Tabs ── */}
+      {/* ── Scrollable tab bar — single-line, no wrap ── */}
       {tabbedEntries.length > 0 && (
-        <div className="flex shrink-0 border-b border-border">
+        <div className="flex shrink-0 overflow-x-auto border-b border-border [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
           {tabbedEntries.map((entry, i) => (
             <button
               key={entry.id}
               type="button"
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleTabSwitch(i); }}
-              className={`flex-1 px-1 py-2.5 text-[10px] font-bold uppercase leading-tight tracking-wider transition-all ${
+              className={`shrink-0 whitespace-nowrap px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider transition-all ${
                 i === activeTabIdx
                   ? "bg-crimson text-white"
                   : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
@@ -409,11 +417,43 @@ function MobileMenuDrawer({
       {/* ── Scrollable body ── */}
       <div className="flex-1 overflow-y-auto">
 
-        {/* Accordion mode */}
+        {/* ── ACCORDION mode: each column is either expandable (has sub-links) or a direct link ── */}
         {isAccordion
           ? activeColumns.map((col, colIdx) => {
+              const hasSubLinks = col.links.length > 0;
               const isOpen = openCols.has(colIdx);
               const initial = (col.title?.[0] ?? "•").toUpperCase();
+
+              // No sub-links → render as a plain navigable row (no expand button)
+              if (!hasSubLinks) {
+                return (
+                  <Link
+                    key={col.title + colIdx}
+                    to={col.url ?? "/"}
+                    onClick={onClose}
+                    prefetch="intent"
+                    className="flex items-center gap-3 border-b border-border/60 px-4 py-2.5 transition-colors hover:bg-muted/40"
+                  >
+                    {col.imageUrl ? (
+                      <div className="h-11 w-12 shrink-0 overflow-hidden rounded-md">
+                        <img
+                          src={cdnImg(col.imageUrl)}
+                          alt={col.title}
+                          className="h-full w-full object-cover"
+                          loading="lazy"
+                        />
+                      </div>
+                    ) : (
+                      <div className="h-11 w-12 shrink-0 overflow-hidden rounded-md bg-gradient-to-br from-crimson/15 to-crimson/5 flex items-center justify-center">
+                        <span className="text-sm font-black text-crimson">{initial}</span>
+                      </div>
+                    )}
+                    <span className="flex-1 text-[13px] font-semibold text-foreground">{col.title}</span>
+                  </Link>
+                );
+              }
+
+              // Has sub-links → accordion row
               return (
                 <div key={col.title + colIdx}>
                   <button
@@ -421,30 +461,25 @@ function MobileMenuDrawer({
                     onClick={() => toggleCol(colIdx)}
                     className="flex w-full items-center gap-3 border-b border-border/60 px-4 py-2.5 text-left transition-colors hover:bg-muted/40"
                   >
-                    {/* Thumbnail */}
-                    <div className="h-11 w-12 shrink-0 overflow-hidden rounded-md">
-                      {col.imageUrl ? (
+                    {col.imageUrl ? (
+                      <div className="h-11 w-12 shrink-0 overflow-hidden rounded-md">
                         <img
-                          src={`${col.imageUrl}&width=100`}
+                          src={cdnImg(col.imageUrl)}
                           alt={col.title}
                           className="h-full w-full object-cover"
                           loading="lazy"
                         />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-crimson/15 to-crimson/5">
-                          <span className="text-sm font-black text-crimson">{initial}</span>
-                        </div>
-                      )}
-                    </div>
-                    <span className="flex-1 text-[13px] font-semibold text-foreground">
-                      {col.title}
-                    </span>
-                    <span className="w-5 text-center text-base font-light text-muted-foreground leading-none">
+                      </div>
+                    ) : (
+                      <div className="h-11 w-12 shrink-0 flex items-center justify-center overflow-hidden rounded-md bg-gradient-to-br from-crimson/15 to-crimson/5">
+                        <span className="text-sm font-black text-crimson">{initial}</span>
+                      </div>
+                    )}
+                    <span className="flex-1 text-[13px] font-semibold text-foreground">{col.title}</span>
+                    <span className="w-5 text-center text-base font-light leading-none text-muted-foreground">
                       {isOpen ? "−" : "+"}
                     </span>
                   </button>
-
-                  {/* Sub-links */}
                   {isOpen && (
                     <div className="border-b border-border/40 bg-muted/20">
                       {col.links.map((link) => (
@@ -453,10 +488,9 @@ function MobileMenuDrawer({
                           to={link.url}
                           onClick={onClose}
                           prefetch="intent"
-                          className="flex items-center gap-2 border-b border-border/20 py-2 pl-[60px] pr-4 text-[12px] text-foreground/70 last:border-0 transition-colors hover:text-crimson"
+                          className="block border-b border-border/20 py-2 pl-5 pr-4 text-[12px] font-medium text-foreground/65 last:border-0 transition-colors hover:text-crimson"
                         >
-                          <ChevronRight className="h-2.5 w-2.5 shrink-0 text-crimson/50" />
-                          <span>{link.label}</span>
+                          {link.label}
                         </Link>
                       ))}
                     </div>
@@ -464,7 +498,7 @@ function MobileMenuDrawer({
                 </div>
               );
             })
-          : /* Flat list mode */
+          : /* ── FLAT list mode: single untitled column ── */
             flatLinks.map((link) => {
               const initial = (link.label?.[0] ?? "•").toUpperCase();
               return (
@@ -475,42 +509,122 @@ function MobileMenuDrawer({
                   prefetch="intent"
                   className="flex items-center gap-3 border-b border-border/60 px-4 py-2.5 transition-colors hover:bg-muted/40"
                 >
-                  <div className="h-11 w-12 shrink-0 overflow-hidden rounded-md">
-                    {link.imageUrl ? (
+                  {link.imageUrl ? (
+                    <div className="h-11 w-12 shrink-0 overflow-hidden rounded-md">
                       <img
-                        src={`${link.imageUrl}&width=100`}
+                        src={cdnImg(link.imageUrl)}
                         alt={link.label}
                         className="h-full w-full object-cover"
                         loading="lazy"
                       />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-crimson/15 to-crimson/5">
-                        <span className="text-sm font-black text-crimson">{initial}</span>
-                      </div>
-                    )}
-                  </div>
-                  <span className="flex-1 text-[13px] font-semibold text-foreground">
-                    {link.label}
-                  </span>
-                  <span className="w-5 text-center text-base font-light text-muted-foreground leading-none">
-                    +
-                  </span>
+                    </div>
+                  ) : (
+                    <div className="h-11 w-12 shrink-0 flex items-center justify-center overflow-hidden rounded-md bg-gradient-to-br from-crimson/15 to-crimson/5">
+                      <span className="text-sm font-black text-crimson">{initial}</span>
+                    </div>
+                  )}
+                  <span className="flex-1 text-[13px] font-semibold text-foreground">{link.label}</span>
                 </Link>
               );
             })}
 
-        {/* ── Divider ── */}
-        {secondaryLinks.length > 0 && (
-          <div className="my-1 border-t-2 border-border/60" />
+        {/* ── Flat top-level links with no sub-items (Dutch Veal, etc.) — NO icon ── */}
+        {flatMainEntries.length > 0 && (
+          <div className="my-0.5 border-t border-border/60" />
         )}
-
-        {/* ── Secondary links ── */}
-        {secondaryLinks.map(({ id, label, url }) => {
-          const Icon = pickIcon(label, url);
+        {flatMainEntries.map((entry) => {
+          const initial = (entry.label?.[0] ?? "•").toUpperCase();
+          // metaobject image takes priority, then Shopify resource image
+          const imgUrl = navItemImages[entry.label] ?? entry.imageUrl ?? null;
           return (
             <Link
-              key={id + url}
-              to={url}
+              key={entry.id}
+              to={entry.url ?? "/"}
+              onClick={onClose}
+              prefetch="intent"
+              className="flex items-center gap-3 border-b border-border/40 px-4 py-2.5 transition-colors hover:bg-muted/40"
+            >
+              <div className="h-11 w-12 shrink-0 overflow-hidden rounded-md">
+                {imgUrl ? (
+                  <img
+                    src={cdnImg(imgUrl)}
+                    alt={entry.label}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-crimson/15 to-crimson/5">
+                    <span className="text-sm font-black text-crimson">{initial}</span>
+                  </div>
+                )}
+              </div>
+              <span className="flex-1 text-[13px] font-semibold text-foreground">{entry.label}</span>
+            </Link>
+          );
+        })}
+
+        {/* ── Secondary menu (Customer Reviews, About MLS, etc.) ── */}
+        {secondaryMenu.length > 0 && (
+          <div className="my-0.5 border-t border-border/60" />
+        )}
+        {secondaryMenu.map((entry) => {
+          const Icon = pickIcon(entry.label, entry.url ?? "");
+          const hasChildren = entry.columns.length > 0;
+          // Flatten all links across columns for secondary accordion
+          const allLinks: { label: string; url: string }[] = entry.columns.flatMap((col) =>
+            col.links.length > 0
+              ? col.links.map((l) => ({ label: l.label, url: l.url }))
+              : col.url
+              ? [{ label: col.title, url: col.url }]
+              : []
+          );
+          const isSecOpen = openSecondary.has(entry.id);
+
+          if (hasChildren) {
+            return (
+              <div key={entry.id}>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setOpenSecondary((prev) => {
+                      const next = new Set(prev);
+                      next.has(entry.id) ? next.delete(entry.id) : next.add(entry.id);
+                      return next;
+                    })
+                  }
+                  className="flex w-full items-center gap-3 border-b border-border/40 px-4 py-2.5 text-left transition-colors hover:bg-muted/40"
+                >
+                  <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-crimson/10 text-crimson">
+                    <Icon className="h-3.5 w-3.5" />
+                  </div>
+                  <span className="flex-1 text-[13px] font-semibold">{entry.label}</span>
+                  <span className="w-5 text-center text-base font-light leading-none text-muted-foreground">
+                    {isSecOpen ? "−" : "+"}
+                  </span>
+                </button>
+                {isSecOpen && (
+                  <div className="border-b border-border/40 bg-muted/20">
+                    {allLinks.map((link) => (
+                      <Link
+                        key={link.url + link.label}
+                        to={link.url}
+                        onClick={onClose}
+                        prefetch="intent"
+                        className="block border-b border-border/20 py-2 pl-5 pr-4 text-[12px] font-medium text-foreground/65 last:border-0 transition-colors hover:text-crimson"
+                      >
+                        {link.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          }
+
+          return (
+            <Link
+              key={entry.id}
+              to={entry.url ?? "/"}
               onClick={onClose}
               prefetch="intent"
               className="flex items-center gap-3 border-b border-border/40 px-4 py-2.5 transition-colors hover:bg-muted/40"
@@ -518,28 +632,19 @@ function MobileMenuDrawer({
               <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-crimson/10 text-crimson">
                 <Icon className="h-3.5 w-3.5" />
               </div>
-              <span className="flex-1 text-[13px] font-semibold">{label}</span>
-              <span className="w-5 text-center text-base font-light text-muted-foreground leading-none">
-                +
-              </span>
+              <span className="flex-1 text-[13px] font-semibold">{entry.label}</span>
             </Link>
           );
         })}
       </div>
 
-      {/* ── Bottom buttons ── */}
-      <div className="flex shrink-0 gap-2 border-t border-border p-3">
+      {/* ── Bottom button ── */}
+      <div className="shrink-0 border-t border-border p-3">
         <a
           href="https://mlsuae.ae/customer_authentication/redirect?locale=en&region_country=AE"
-          className="flex flex-1 items-center justify-center rounded-lg border-2 border-crimson py-2.5 text-[11px] font-black uppercase tracking-widest text-crimson transition-colors hover:bg-crimson hover:text-white"
+          className="flex w-full items-center justify-center rounded-lg bg-crimson py-2.5 text-[11px] font-black uppercase tracking-widest text-white transition-colors hover:bg-crimson/90"
         >
-          Login
-        </a>
-        <a
-          href="https://mlsuae.ae/customer_authentication/redirect?locale=en&region_country=AE&flow=register"
-          className="flex flex-1 items-center justify-center rounded-lg bg-charcoal py-2.5 text-[11px] font-black uppercase tracking-widest text-white transition-colors hover:bg-charcoal/80"
-        >
-          Sign Up
+          Login / Sign Up
         </a>
       </div>
     </div>

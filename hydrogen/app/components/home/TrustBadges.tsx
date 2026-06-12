@@ -49,9 +49,18 @@ export function TrustBadges({ badges: rawBadges = [] }: TrustBadgesProps) {
   return (
     <section className="border-b border-border bg-background py-6 md:py-8">
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-2 gap-x-6 gap-y-5 md:grid-cols-4 md:gap-x-8">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-5 md:grid-cols-3 md:gap-x-8">
           {parsed.map((badge, i) => (
-            <BadgeItem key={badge.id} badge={badge} index={i} total={parsed.length} />
+            <div
+              key={badge.id}
+              className={
+                parsed.length % 2 !== 0 && i === parsed.length - 1
+                  ? "col-span-2 flex justify-center md:col-span-1 md:justify-start"
+                  : ""
+              }
+            >
+              <BadgeItem badge={badge} index={i} total={parsed.length} />
+            </div>
           ))}
         </div>
       </div>

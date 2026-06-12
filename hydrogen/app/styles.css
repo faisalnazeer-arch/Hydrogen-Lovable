@@ -469,9 +469,17 @@ button.jdgm-submit-rev:hover, .jdgm-form__submit:hover { background-color: oklch
   color: oklch(0.52 0.21 28) !important;
 }
 
+/* Global container max-width — keeps content from stretching on ultrawide screens */
+.container {
+  max-width: min(1360px, 100%);
+}
+
 @layer base {
   * {
     border-color: var(--color-border);
+    /* Prevent blue ring/outline flash before theme CSS variables resolve */
+    --tw-ring-color: transparent;
+    outline-color: transparent;
   }
 
   html {

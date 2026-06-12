@@ -6,6 +6,7 @@ import { TrustBadges } from "../components/home/TrustBadges";
 import { FeaturedCollections } from "../components/home/FeaturedCollections";
 import type { FeaturedCollectionCard } from "../components/home/FeaturedCollections";
 import { PriceRangeShop, parsePriceRangeSection, parsePriceTiles } from "../components/home/PriceRangeShop";
+import { FirstOrderGift, parseFirstOrderGift } from "../components/home/FirstOrderGift";
 import { PromoSideBySide, parsePromoSideBySide } from "../components/home/PromoSideBySide";
 import { CategorySection } from "../components/home/CategorySection";
 import { ShopByCategory, type CategorySectionData } from "../components/home/ShopByCategory";
@@ -28,9 +29,10 @@ const Q_VALUE      = `{ nodes: metaobjects(type: "mls_value_banner", first: 1) {
 const Q_COL_CFG    = `{ nodes: metaobjects(type: "mls_collection_section", first: 1) { nodes { id fields { key value } } } }`;
 const Q_ORIGIN     = `{ nodes: metaobjects(type: "mls_origin_section", first: 1) { nodes { id fields { key value references(first: 20) { nodes { ... on Metaobject { id handle fields { ${imgFields} } } } } } } } }`;
 const Q_CATEGORY   = `{ nodes: metaobjects(type: "mls_category_section", first: 1) { nodes { id fields { key value references(first: 20) { nodes { ... on Metaobject { id fields { ${imgFields} } } } } } } } }`;
-const Q_CUTS       = `{ nodes: metaobjects(type: "mls_cuts_section", first: 1) { nodes { id fields { key value references(first: 12) { nodes { ... on Metaobject { id fields { key value } } } } } } } }`;
+const Q_CUTS       = `{ nodes: metaobjects(type: "mls_cuts_section", first: 1) { nodes { id fields { key value references(first: 12) { nodes { ... on Metaobject { id fields { key value reference { ... on MediaImage { image { url altText } } } } } } } } } } }`;
 const Q_FEATURED   = `{ nodes: metaobjects(type: "featured_collection", first: 10) { nodes { id fields { key value reference { ... on Collection { handle title } } references(first: 10) { nodes { ... on Metaobject { id fields { key value reference { ... on Collection { handle title } } } } } } } } } }`;
 const Q_COL_LIST   = `{ nodes: metaobjects(type: "featured_collection_list", first: 20) { nodes { id fields { ${imgFields} } } } }`;
+const Q_GIFT       = `{ nodes: metaobjects(type: "mls_first_order_gift", first: 1) { nodes { id fields { key value } } } }`;
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -249,6 +251,7 @@ export interface CutItem {
   label: string;
   emoji: string;
   url: string;
+  imageUrl: string | null;
 }
 
 export interface CutsSectionData {
@@ -268,6 +271,7 @@ function parseCutsSection(nodes: any[]): CutsSectionData | null {
       label: (f.label?.value ?? "") as string,
       emoji: (f.emoji?.value ?? "🥩") as string,
       url: (f.url?.value ?? "/") as string,
+      imageUrl: (f.image?.reference?.image?.url ?? null) as string | null,
     };
   }).filter((c: CutItem) => c.label);
   if (items.length === 0) return null;
@@ -323,13 +327,13 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
   const [
     heroRes, badgesRes, priceSecRes, priceTileRes, reelSecRes,
     promoRes, valueRes, colCfgRes, originRes, categoryRes,
-    cutsRes, featuredRes, colListRes, reelTagged, reelItemsRes,
+    cutsRes, featuredRes, colListRes, reelTagged, reelItemsRes, giftRes,
   ] = await Promise.all([
     af(Q_HERO), af(Q_BADGES), af(Q_PRICE_SEC), af(Q_PRICE_TILE), af(Q_REELS_SEC),
     af(Q_PROMO), af(Q_VALUE), af(Q_COL_CFG), af(Q_ORIGIN), af(Q_CATEGORY),
     af(Q_CUTS), af(Q_FEATURED), af(Q_COL_LIST),
     context.storefront.query(REELS_QUERY, { variables: { first: 20, query: "tag:reel" } }),
-    af(Q_REEL_ITEMS),
+    af(Q_REEL_ITEMS), af(Q_GIFT),
   ]);
 
   const data = {
@@ -347,6 +351,7 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
     featuredCollections:  featuredRes,
     featuredCollectionList: colListRes,
     reelItems:            reelItemsRes,
+    firstOrderGift:       giftRes,
   };
 
   const parsed = parseFeaturedCollections(data?.featuredCollections?.nodes ?? []);
@@ -377,6 +382,7 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
     ? { ...rawSection, title: collectionSectionConfig.heading, subTitle: collectionSectionConfig.subHeading || undefined }
     : rawSection;
   const collectionCards = parseFeaturedCollectionList(data?.featuredCollectionList?.nodes ?? []);
+  const firstOrderGift = parseFirstOrderGift(data?.firstOrderGift?.nodes ?? []);
   const priceSection = parsePriceRangeSection(data?.priceRangeSection?.nodes ?? []);
   const priceTiles = parsePriceTiles(data?.priceTiles?.nodes ?? []);
   const promo = parsePromoSideBySide(data?.promoSideBySide?.nodes ?? []);
@@ -414,11 +420,12 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
     originSection,
     valueBanner,
     cutsSection,
+    firstOrderGift,
   };
 }
 
 export default function Home() {
-  const { heroSlides, trustBadges, featuredSection, collectionCards, priceSection, priceTiles, promo, reelsLabel, reelsHeading, reels, categorySection, originSection, valueBanner, cutsSection } = useLoaderData<typeof loader>();
+  const { heroSlides, trustBadges, featuredSection, collectionCards, priceSection, priceTiles, promo, reelsLabel, reelsHeading, reels, categorySection, originSection, valueBanner, cutsSection, firstOrderGift } = useLoaderData<typeof loader>();
   const t = useT();
   return (
     <>
@@ -429,6 +436,7 @@ export default function Home() {
         title={t("home.featured")}
         subtitle={t("home.featured_sub")}
       />
+      <FirstOrderGift data={firstOrderGift} />
       <PriceRangeShop section={priceSection} tiles={priceTiles} />
       <PromoSideBySide promo={promo} />
       {featuredSection && (

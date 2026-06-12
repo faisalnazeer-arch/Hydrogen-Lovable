@@ -77,7 +77,7 @@ export function ShopByOrigin({ section }: Props) {
       : section.items;
 
   return (
-    <section className="bg-bone py-10 md:py-16">
+    <section className="bg-bone py-8 md:py-12">
       <div className="container mx-auto px-4">
         {/* Header */}
         <div className="mb-6 text-center md:mb-10">
@@ -88,7 +88,7 @@ export function ShopByOrigin({ section }: Props) {
             </span>
             <span className="h-px w-5 rounded-full bg-crimson" />
           </div>
-          <h2 className="font-display text-xl font-extrabold tracking-tight md:text-4xl">
+          <h2 className="font-display text-2xl font-extrabold tracking-tight md:text-4xl">
             {section.heading}
           </h2>
         </div>

@@ -33,7 +33,7 @@ export function CategorySection({
   const viewAllHandle = activeTab ? activeTab.handle : handle;
 
   return (
-    <section className="container mx-auto px-4 py-10 md:py-14">
+    <section className="container mx-auto px-4 py-8 md:py-12">
       {/* Header */}
       <div className="mb-5 text-center md:mb-8">
         {subtitle && (
@@ -50,9 +50,8 @@ export function CategorySection({
 
       {/* Pill tabs */}
       {hasTabs && (
-        <div className="relative mb-5 md:mb-6">
-          <div className="pointer-events-none absolute right-0 top-0 h-full w-10 z-10 bg-gradient-to-l from-background to-transparent" />
-          <div className="flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [scrollbar-width:none] justify-start md:justify-center">
+        <div className="mb-5 md:mb-6">
+          <div className="flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [scrollbar-width:none] justify-center">
             {tabs.map((tab, idx) => (
               <button
                 key={tab.handle}

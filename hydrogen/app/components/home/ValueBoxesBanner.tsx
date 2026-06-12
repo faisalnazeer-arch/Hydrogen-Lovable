@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { Button } from "@/components/ui/button";
+import { ArrowRight, Truck, ShieldCheck, Package, Star } from "lucide-react";
 
 export interface ValueBannerData {
   eyebrow: string;
@@ -17,46 +17,111 @@ interface Props {
   banner?: ValueBannerData | null;
 }
 
+const VALUE_PROPS = [
+  { icon: ShieldCheck, label: "100% Halal Certified" },
+  { icon: Truck,       label: "Same-Day Delivery" },
+  { icon: Star,        label: "Premium Quality Cuts" },
+  { icon: Package,     label: "Value Boxes from AED 50" },
+];
+
 export function ValueBoxesBanner({ banner }: Props) {
   if (!banner || !banner.heading) return null;
 
   return (
-    <section className="container mx-auto px-4 py-6 md:py-12">
-      <div className="relative overflow-hidden rounded-xl bg-charcoal text-charcoal-foreground">
+    <section className="container mx-auto px-4 py-8 md:py-12">
+      <div className="relative overflow-hidden rounded-2xl bg-charcoal">
+
+        {/* Background image */}
         {banner.imageUrl && (
           <img
             src={banner.imageUrl}
             alt={banner.imageAlt || banner.heading}
-            className="absolute inset-0 h-full w-full object-cover opacity-40"
+            className="absolute inset-0 h-full w-full object-cover opacity-15"
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-r from-crimson/90 via-crimson/60 to-transparent" />
-        <div className="relative grid min-h-[280px] items-center px-8 py-12 md:grid-cols-2 md:px-12">
-          <div>
+
+        {/* Gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-crimson via-crimson/80 to-charcoal" />
+
+        {/* Subtle circles */}
+        <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-white/[0.03]" />
+        <div className="pointer-events-none absolute -bottom-16 right-32 h-52 w-52 rounded-full bg-white/[0.03]" />
+
+        {/* Two-column layout */}
+        <div className="relative grid items-center gap-8 px-8 py-10 md:grid-cols-2 md:px-12 md:py-12 lg:px-16">
+
+          {/* Left — text */}
+          <div className="flex flex-col gap-5">
             {banner.eyebrow && (
-              <span className="inline-block rounded-full bg-gold/20 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-gold">
-                {banner.eyebrow}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="h-px w-5 rounded-full bg-gold/70" />
+                <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-gold/90">
+                  {banner.eyebrow}
+                </span>
+              </div>
             )}
-            <h3 className="mt-3 font-display text-3xl font-extrabold leading-tight tracking-tight md:text-4xl">{banner.heading}</h3>
-            {banner.body && <p className="mt-3 max-w-md text-off-white/85">{banner.body}</p>}
-            <div className="mt-6 flex flex-wrap gap-3">
+
+            <h2 className="font-display text-3xl font-extrabold leading-[1.15] tracking-tight text-off-white md:text-4xl">
+              {banner.heading}
+            </h2>
+
+            {banner.body && (
+              <p className="text-[14px] leading-relaxed text-off-white/70 md:text-[15px]">
+                {banner.body}
+              </p>
+            )}
+
+            <div className="flex flex-wrap items-center gap-3 pt-1">
               {banner.btn1Label && banner.btn1Link && (
-                <Link to={banner.btn1Link}>
-                  <Button size="lg" className="bg-off-white text-charcoal hover:bg-gold hover:text-gold-foreground">
-                    {banner.btn1Label}
-                  </Button>
+                <Link
+                  to={banner.btn1Link}
+                  className="group inline-flex items-center gap-2 rounded-full bg-off-white px-6 py-2.5 text-[13px] font-bold uppercase tracking-wider text-charcoal transition-all duration-200 hover:bg-gold hover:shadow-[0_4px_20px_rgba(0,0,0,0.3)]"
+                >
+                  {banner.btn1Label}
+                  <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
                 </Link>
               )}
               {banner.btn2Label && banner.btn2Link && (
-                <Link to={banner.btn2Link}>
-                  <Button size="lg" variant="outline" className="border-off-white bg-transparent text-off-white hover:bg-off-white hover:text-charcoal">
-                    {banner.btn2Label}
-                  </Button>
+                <Link
+                  to={banner.btn2Link}
+                  className="inline-flex items-center gap-2 rounded-full border border-off-white/30 px-6 py-2.5 text-[13px] font-bold uppercase tracking-wider text-off-white/80 transition-all duration-200 hover:border-off-white/60 hover:text-off-white"
+                >
+                  {banner.btn2Label}
                 </Link>
               )}
             </div>
           </div>
+
+          {/* Right — image or value props */}
+          {banner.imageUrl ? (
+            <div className="hidden md:flex md:justify-end">
+              <div className="relative h-56 w-72 overflow-hidden rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.4)]">
+                <img
+                  src={banner.imageUrl}
+                  alt={banner.imageAlt || banner.heading}
+                  className="h-full w-full object-cover"
+                />
+                <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/10" />
+              </div>
+            </div>
+          ) : (
+            <div className="hidden md:grid md:grid-cols-2 md:gap-3">
+              {VALUE_PROPS.map(({ icon: Icon, label }) => (
+                <div
+                  key={label}
+                  className="flex items-center gap-3 rounded-xl bg-white/[0.07] px-4 py-3.5 backdrop-blur-sm"
+                >
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-crimson/40">
+                    <Icon className="h-4 w-4 text-off-white" />
+                  </div>
+                  <span className="text-[12px] font-semibold leading-tight text-off-white/85">
+                    {label}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
         </div>
       </div>
     </section>

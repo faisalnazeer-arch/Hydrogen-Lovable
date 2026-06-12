@@ -54,7 +54,7 @@ export function HScroller({ children, className }: HScrollerProps) {
     <div className={cn("group/scroller relative", className)}>
       <div
         ref={ref}
-        className="flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-smooth pb-2 sm:gap-4 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]"
+        className="flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-smooth py-4 sm:gap-4 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]"
       >
         {children}
       </div>
@@ -69,7 +69,7 @@ export function HScroller({ children, className }: HScrollerProps) {
           "absolute start-1 top-1/2 z-10 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full border border-border bg-background/95 text-foreground shadow-sm backdrop-blur transition-all sm:h-9 sm:w-9",
           "hover:bg-crimson hover:text-crimson-foreground",
           canPrev
-            ? "sm:opacity-0 sm:group-hover/scroller:opacity-100"
+            ? "opacity-100"
             : "pointer-events-none opacity-0"
         )}
       >
@@ -85,7 +85,7 @@ export function HScroller({ children, className }: HScrollerProps) {
           "absolute end-1 top-1/2 z-10 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full border border-border bg-background/95 text-foreground shadow-sm backdrop-blur transition-all sm:h-9 sm:w-9",
           "hover:bg-crimson hover:text-crimson-foreground",
           canNext
-            ? "sm:opacity-0 sm:group-hover/scroller:opacity-100"
+            ? "opacity-100"
             : "pointer-events-none opacity-0"
         )}
       >

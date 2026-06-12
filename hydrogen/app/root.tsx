@@ -46,6 +46,7 @@ export interface NavEntry {
   id: string;
   label: string;
   url: string | null;
+  imageUrl?: string | null;
   menu: string;
   position: number;
   columns: NavColumn[];
@@ -73,6 +74,14 @@ export interface FooterSettings {
 const LAYOUT_QUERY = `#graphql
   fragment MenuFields on MenuItem {
     id title url type
+    resource {
+      ... on Collection {
+        image { url altText }
+      }
+      ... on Product {
+        featuredImage { url altText }
+      }
+    }
     items {
       id title url type
       resource {
@@ -113,6 +122,20 @@ const LAYOUT_QUERY = `#graphql
 
     footerHelp: menu(handle: "footer-help") {
       id title items { id title url }
+    }
+
+    navItemImages: metaobjects(type: "mls_nav_item_image", first: 50) {
+      nodes {
+        fields {
+          key
+          value
+          reference {
+            ... on MediaImage {
+              image { url altText }
+            }
+          }
+        }
+      }
     }
 
   }
@@ -165,7 +188,8 @@ function parseShopifyMenu(menu: any, menuName = "main"): NavEntry[] {
         imageUrl: lk.resource?.image?.url ?? lk.resource?.featuredImage?.url ?? null,
       })) }];
     }
-    return { id: item.id, label: item.title, url: toPath(item.url), menu: menuName, position: idx, columns };
+    const imageUrl = item.resource?.image?.url ?? item.resource?.featuredImage?.url ?? null;
+    return { id: item.id, label: item.title, url: toPath(item.url), imageUrl, menu: menuName, position: idx, columns };
   });
 }
 
@@ -212,6 +236,17 @@ function parseAnnouncementMessages(nodes: any[]): string[] {
   ].filter((m): m is string => typeof m === "string" && m.trim().length > 0);
 }
 
+function parseNavItemImages(nodes: any[]): Record<string, string> {
+  const map: Record<string, string> = {};
+  for (const node of nodes ?? []) {
+    const fields = Object.fromEntries((node.fields ?? []).map((f: any) => [f.key, f]));
+    const label: string = fields.nav_label?.value?.trim();
+    const imageUrl: string | undefined = fields.image?.reference?.image?.url;
+    if (label && imageUrl) map[label] = imageUrl;
+  }
+  return map;
+}
+
 // Skip re-fetching root layout data on every client navigation.
 // Menus, footer, and announcement bar rarely change — initial data is reused for the session.
 export function shouldRevalidate({ currentUrl, nextUrl }: ShouldRevalidateFunctionArgs) {
@@ -253,7 +288,9 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
       menuToCol(data?.footerHelp),
     ].filter((c): c is { heading: string; links: FooterLink[] } => c !== null);
 
-    return { mainMenu, secondaryMenu, footerSettings, footerMenuCols, announcementMessages, cartDrawerConfig };
+    const navItemImages = parseNavItemImages(data?.navItemImages?.nodes ?? []);
+
+    return { mainMenu, secondaryMenu, footerSettings, footerMenuCols, announcementMessages, cartDrawerConfig, navItemImages };
   } catch {
     return {
       mainMenu: [] as NavEntry[],
@@ -262,6 +299,7 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
       footerMenuCols: [] as { heading: string; links: FooterLink[] }[],
       announcementMessages: [] as string[],
       cartDrawerConfig: { freeShippingThreshold: 350, deliveryItems: [], freeGiftSubVariantId: "", freeGiftCarVariantId: "" },
+      navItemImages: {} as Record<string, string>,
     };
   }
 }
@@ -400,7 +438,7 @@ function LocaleSync() {
 }
 
 export default function App() {
-  const { mainMenu, secondaryMenu, footerSettings, footerMenuCols, announcementMessages } = useLoaderData<typeof loader>();
+  const { mainMenu, secondaryMenu, footerSettings, footerMenuCols, announcementMessages, navItemImages } = useLoaderData<typeof loader>();
   return (
     <QueryClientProvider client={queryClient}>
       <PageLoader />
@@ -408,7 +446,7 @@ export default function App() {
       <CartSyncWrapper />
       <div className="flex min-h-screen flex-col">
         <AnnouncementBar messages={announcementMessages} />
-        <Header mainMenu={mainMenu} secondaryMenu={secondaryMenu} />
+        <Header mainMenu={mainMenu} secondaryMenu={secondaryMenu} navItemImages={navItemImages} />
         <main className="flex-1">
           <Outlet />
         </main>

@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { HScroller } from "./HScroller";
 
 export interface CategoryItem {
   id: string;
@@ -18,61 +19,116 @@ interface Props {
   section?: CategorySectionData | null;
 }
 
+const EMOJI_MAP: Record<string, string> = {
+  beef: "🐄", lamb: "🐑", mutton: "🐏", wagyu: "🥩",
+  veal: "🐄", ostrich: "🦤", poultry: "🍗", chicken: "🍗",
+  sausages: "🌭", venison: "🦌", "value boxes": "📦",
+  boxes: "📦", "whole carcass": "🥩",
+};
+
+function getEmoji(h: string) {
+  return EMOJI_MAP[h.toLowerCase()] ?? "🥩";
+}
+
 export function ShopByCategory({ section }: Props) {
   if (!section || section.items.length === 0) return null;
 
   return (
-    <section className="bg-bone py-10 md:py-16">
+    <section className="py-8 md:py-12">
       <div className="container mx-auto px-4">
-        <div className="mb-7 text-center md:mb-10">
-          <div className="mb-1.5 flex items-center justify-center gap-2">
-            <span className="h-px w-5 rounded-full bg-crimson" />
+
+        <div className="mb-8 text-center md:mb-10">
+          <div className="mb-2 flex items-center justify-center gap-3">
+            <span className="h-px w-6 rounded-full bg-crimson" />
             <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-crimson">
               {section.eyebrow}
             </span>
-            <span className="h-px w-5 rounded-full bg-crimson" />
+            <span className="h-px w-6 rounded-full bg-crimson" />
           </div>
-          <h2 className="font-display text-xl font-extrabold tracking-tight md:text-4xl">
+          <h2 className="font-display text-2xl font-extrabold tracking-tight text-foreground md:text-4xl">
             {section.heading}
           </h2>
         </div>
 
-        <div className="grid grid-cols-4 gap-2.5 md:grid-cols-8 md:gap-3">
+        {/* Mobile: scroll */}
+        <div className="md:hidden">
+          <HScroller>
+            {section.items.map((item) => (
+              <CategoryCard key={item.id} item={item} mobile />
+            ))}
+          </HScroller>
+        </div>
+
+        {/* Desktop: 5-col grid */}
+        <div className="hidden md:grid md:grid-cols-5 md:gap-3 lg:gap-4">
           {section.items.map((item) => (
-            <Link
-              key={item.id}
-              to={item.link}
-              className="group relative overflow-hidden rounded-xl bg-charcoal"
-              style={{ aspectRatio: "3/4" }}
-            >
-              {item.imageUrl ? (
-                <img
-                  src={item.imageUrl}
-                  alt={item.imageAlt || item.heading}
-                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                />
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-crimson/20 to-charcoal">
-                  <span className="text-4xl">🥩</span>
-                </div>
-              )}
-
-              {/* Gradient overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
-
-              {/* Hover highlight ring */}
-              <div className="absolute inset-0 rounded-xl ring-2 ring-inset ring-transparent transition-all duration-300 group-hover:ring-crimson/70" />
-
-              {/* Label */}
-              <div className="absolute inset-x-0 bottom-0 p-2 text-center md:p-3">
-                <span className="block text-[10px] font-bold uppercase leading-tight tracking-wide text-white md:text-[11px]">
-                  {item.heading}
-                </span>
-              </div>
-            </Link>
+            <CategoryCard key={item.id} item={item} />
           ))}
         </div>
+
       </div>
     </section>
+  );
+}
+
+function CategoryCard({ item, mobile }: { item: CategoryItem; mobile?: boolean }) {
+  const emoji = getEmoji(item.heading);
+
+  if (mobile) {
+    return (
+      <Link
+        to={item.link}
+        prefetch="intent"
+        className="group flex w-[72px] shrink-0 snap-start flex-col items-center gap-2.5"
+      >
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-foreground/[0.05] transition-all duration-200 group-hover:bg-crimson/10 group-hover:shadow-[0_4px_12px_rgba(185,28,28,0.15)]">
+          {item.imageUrl ? (
+            <img
+              src={item.imageUrl}
+              alt={item.imageAlt || item.heading}
+              className="h-9 w-9 object-contain transition-transform duration-200 group-hover:scale-110"
+              loading="lazy"
+            />
+          ) : (
+            <span className="text-2xl transition-transform duration-200 group-hover:scale-110 select-none">
+              {emoji}
+            </span>
+          )}
+        </div>
+        <span className="text-center text-[10px] font-semibold leading-tight text-foreground/60 transition-colors group-hover:text-crimson">
+          {item.heading}
+        </span>
+      </Link>
+    );
+  }
+
+  return (
+    <Link
+      to={item.link}
+      prefetch="intent"
+      className="group relative flex flex-col items-center gap-3 rounded-2xl border border-border/50 bg-background px-3 py-5 text-center shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-crimson/35 hover:shadow-[0_8px_24px_rgba(185,28,28,0.10)]"
+    >
+      {/* Inner icon box */}
+      <div className="relative flex h-[60px] w-[60px] items-center justify-center rounded-xl bg-foreground/[0.05] transition-all duration-200 group-hover:bg-crimson/8">
+        {item.imageUrl ? (
+          <img
+            src={item.imageUrl}
+            alt={item.imageAlt || item.heading}
+            className="h-[68%] w-[68%] object-contain transition-transform duration-300 group-hover:scale-110"
+            loading="lazy"
+          />
+        ) : (
+          <span className="select-none text-2xl transition-transform duration-300 group-hover:scale-110">
+            {emoji}
+          </span>
+        )}
+      </div>
+
+      <span className="relative text-[11px] font-semibold leading-tight text-foreground/60 transition-colors duration-200 group-hover:text-crimson">
+        {item.heading}
+      </span>
+
+      <span className="absolute bottom-0 left-1/2 h-[2px] w-0 -translate-x-1/2 rounded-full bg-crimson transition-all duration-300 group-hover:w-7" />
+    </Link>
   );
 }

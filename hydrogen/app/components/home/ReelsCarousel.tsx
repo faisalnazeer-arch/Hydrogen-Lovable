@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Link } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, X, Volume2, VolumeX, ChevronUp, ChevronDown, ShoppingBag } from "lucide-react";
@@ -15,19 +15,30 @@ import { cn } from "@/lib/utils";
 export function ReelsCarousel({ reels, label = "Watch & Shop", heading = "MLS Reels" }: { reels: ReelProduct[]; label?: string; heading?: string }) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
-  if (reels.length === 0) return null;
+  const shuffled = useMemo(() => {
+    const arr = [...reels];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }, []);
+
+  if (shuffled.length === 0) return null;
 
   return (
-    <section className="container mx-auto px-4 py-6 md:py-12">
-      <div className="mb-3 text-center md:mb-6">
-        <p className="mb-0.5 text-[10px] font-bold uppercase tracking-[0.2em] text-crimson md:mb-1 md:text-[11px]">
-          {label}
-        </p>
-        <h2 className="font-display text-lg font-extrabold md:text-3xl">{heading}</h2>
+    <section className="container mx-auto px-4 py-8 md:py-12">
+      <div className="mb-6 text-center md:mb-8">
+        <div className="mb-2 flex items-center justify-center gap-3">
+          <span className="h-px w-6 rounded-full bg-crimson" />
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-crimson">{label}</p>
+          <span className="h-px w-6 rounded-full bg-crimson" />
+        </div>
+        <h2 className="font-display text-2xl font-extrabold tracking-tight md:text-4xl">{heading}</h2>
       </div>
 
       <HScroller>
-        {reels.map((r, i) => (
+        {shuffled.map((r, i) => (
           <ReelCard key={r.id} reel={r} onOpen={() => setActiveIndex(i)} />
         ))}
       </HScroller>
@@ -35,7 +46,7 @@ export function ReelsCarousel({ reels, label = "Watch & Shop", heading = "MLS Re
       <AnimatePresence>
         {activeIndex !== null && (
           <ReelsPlayer
-            reels={reels}
+            reels={shuffled}
             startIndex={activeIndex}
             onClose={() => setActiveIndex(null)}
           />
