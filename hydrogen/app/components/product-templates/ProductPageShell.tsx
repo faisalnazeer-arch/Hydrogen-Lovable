@@ -845,20 +845,18 @@ export function ProductPageShell({
             </div>
           </div>
 
-          {/* Thumbnail row — below main image, native scroll + overlay arrows */}
+          {/* Thumbnail row — below main image, all screen sizes */}
           {allMedia.length > 1 && (
-            /* h-[80px]+overflow-hidden clips the native scrollbar pushed into pb-4 zone */
-            <div className="relative h-[80px] w-full overflow-hidden">
-              {/* Left arrow — only visible when scrolled right */}
+            <div className="relative w-full">
+              {/* Left arrow */}
               <button type="button" aria-label="Previous images"
                 onClick={() => thumbTrackRef.current?.scrollBy({ left: -THUMB_SCROLL, behavior: 'smooth' })}
                 className={`absolute left-0 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background shadow-md transition-all duration-200 hover:bg-muted hover:shadow-lg ${thumbCanLeft ? 'opacity-100' : 'pointer-events-none opacity-0'}`}>
                 <ChevronLeft className="h-4 w-4" />
               </button>
 
-              {/* Scrollable track — pb-4 pushes scrollbar into clipped zone, always fills full width */}
-              <div ref={thumbTrackRef}
-                className="flex h-[96px] w-full gap-2 overflow-x-auto pb-4">
+              {/* Scrollable track — no-scrollbar hides scrollbar on all browsers */}
+              <div ref={thumbTrackRef} className="no-scrollbar flex w-full gap-2 overflow-x-auto">
                 {allMedia.map((media, i) => {
                   const thumb = media.type === "image" ? shopifyImageUrl(media.url, 200) : media.type === "video" ? (media.poster ?? "") : (media as any).poster ?? "";
                   const isActive = i === activeMediaIdx;
@@ -881,7 +879,7 @@ export function ProductPageShell({
                 })}
               </div>
 
-              {/* Right arrow — only visible when more content to the right */}
+              {/* Right arrow */}
               <button type="button" aria-label="Next images"
                 onClick={() => thumbTrackRef.current?.scrollBy({ left: THUMB_SCROLL, behavior: 'smooth' })}
                 className={`absolute right-0 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background shadow-md transition-all duration-200 hover:bg-muted hover:shadow-lg ${thumbCanRight ? 'opacity-100' : 'pointer-events-none opacity-0'}`}>
