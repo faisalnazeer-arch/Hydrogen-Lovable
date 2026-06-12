@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, type ReactNode, useRef } from "react";
 import {
   Minus, Plus, Truck, ShieldCheck, RefreshCw, Loader2, ChevronDown, ChevronUp,
-  Check, Play, MapPin, Phone, Clock, X, Store,
+  ChevronLeft, ChevronRight, Check, Play, MapPin, Phone, Clock, X, Store,
   FlameKindling, Leaf, PackageOpen,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "~/components/ui/sheet";
@@ -636,6 +636,10 @@ export function ProductPageShell({
   const [stickyVisible, setStickyVisible] = useState(false);
   const [stickyExpanded, setStickyExpanded] = useState(false);
   const [pickupDrawerOpen, setPickupDrawerOpen] = useState(false);
+  const [thumbStart, setThumbStart] = useState(0);
+  const THUMB_VISIBLE = 5;
+  const VERT_STEP  = 86; // 80px thumb + 6px gap (gap-1.5)
+  const HORIZ_STEP = 88; // 80px thumb + 8px gap (gap-2)
   const atcSentinelRef = useRef<HTMLDivElement>(null);
 
   // Track this product as recently viewed
@@ -697,6 +701,15 @@ export function ProductPageShell({
     const idx = images.findIndex((img: any) => img.url === variant.image!.url);
     if (idx !== -1) setActiveMediaIdx(idx);
   }, [selectedVariantId]); // eslint-disable-line
+
+  // Keep active thumb visible inside the slider window
+  useEffect(() => {
+    setThumbStart((s) => {
+      if (activeMediaIdx < s) return activeMediaIdx;
+      if (activeMediaIdx >= s + THUMB_VISIBLE) return activeMediaIdx - THUMB_VISIBLE + 1;
+      return s;
+    });
+  }, [activeMediaIdx, THUMB_VISIBLE]);
 
   const hasOptions =
     product.options.length > 1 ||
@@ -788,43 +801,182 @@ export function ProductPageShell({
       })()}
 
       <div className="container mx-auto grid gap-6 px-4 pb-4 md:grid-cols-2 md:items-start md:gap-10">
-        {/* ── Media gallery — sticky on desktop so it stays visible while user reads long right col ── */}
+        {/* ── Media gallery ── */}
         <div className="flex min-w-0 flex-col gap-3 md:sticky md:top-36 md:self-start">
-          <div className="relative aspect-square overflow-hidden rounded-xl bg-muted">
-            {activeMedia?.type === "video" && activeMedia.mp4Url ? (
-              <video src={activeMedia.mp4Url} poster={activeMedia.poster ?? undefined}
-                controls autoPlay muted loop playsInline className="h-full w-full object-cover" />
-            ) : activeMedia?.type === "external_video" ? (
-              <iframe src={activeMedia.embedUrl} className="h-full w-full"
-                allow="autoplay; encrypted-media" allowFullScreen title="Product video" />
-            ) : activeMedia?.type === "image" ? (
-              <img src={shopifyImageUrl(activeMedia.url, 800)} alt={activeMedia.altText ?? product.title}
-                className="h-full w-full object-cover transition-opacity duration-300" key={activeMediaIdx} />
-            ) : null}
-            <img src={mlsLogo} alt="" aria-hidden className="absolute right-4 top-4 h-10 w-auto opacity-60" />
-            <div className="absolute left-4 top-4 flex flex-col gap-1.5">
-              <OriginBadge origin={origin} />
-              {variant?.compareAtPrice && (
-                <span className="inline-flex rounded-sm bg-crimson px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-crimson-foreground">Sale</span>
-              )}
+
+          {/* Desktop: CSS grid [vertical-thumbs | main-image]; Mobile: just main image */}
+          <div className={allMedia.length > 1 ? "md:grid md:grid-cols-[88px_1fr] md:gap-3" : ""}>
+
+            {/* ── Vertical thumbnails — desktop only, left column ── */}
+            {allMedia.length > 1 && (
+              <div className="hidden md:flex md:flex-col md:gap-1.5">
+                {/* Up arrow */}
+                <button
+                  type="button"
+                  aria-label="Previous images"
+                  onClick={() => setThumbStart((s) => Math.max(0, s - 1))}
+                  className={`flex w-full items-center justify-center rounded-lg border border-border bg-background py-1.5 shadow-sm transition-all duration-200 hover:bg-muted hover:shadow-md ${thumbStart > 0 ? "opacity-100" : "pointer-events-none opacity-0"}`}
+                >
+                  <ChevronUp className="h-4 w-4" />
+                </button>
+
+                {/* Scrollable clip — grows to fill remaining height between arrows */}
+                <div className="flex-1 overflow-hidden">
+                  <div
+                    className="flex flex-col gap-1.5 transition-transform duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)]"
+                    style={{ transform: `translateY(-${thumbStart * VERT_STEP}px)` }}
+                  >
+                    {allMedia.map((media, i) => {
+                      const thumb = media.type === "image" ? shopifyImageUrl(media.url, 200) : media.type === "video" ? (media.poster ?? "") : (media as any).poster ?? "";
+                      const isActive = i === activeMediaIdx;
+                      return (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => setActiveMediaIdx(i)}
+                          className={`relative h-[80px] w-full flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all duration-200 ${
+                            isActive
+                              ? "scale-[1.04] border-crimson shadow-[0_0_0_2px_rgba(180,0,0,0.12)]"
+                              : "border-transparent opacity-55 hover:scale-[1.02] hover:border-border hover:opacity-90"
+                          }`}
+                        >
+                          {thumb && <img src={thumb} alt="" className="h-full w-full object-cover" />}
+                          {(media.type === "video" || media.type === "external_video") && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                              <Play className="h-4 w-4 fill-white text-white" />
+                            </div>
+                          )}
+                          {/* Active indicator — crimson bar on the left edge */}
+                          {isActive && (
+                            <span className="absolute left-0.5 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-full bg-crimson" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Down arrow */}
+                <button
+                  type="button"
+                  aria-label="Next images"
+                  onClick={() => setThumbStart((s) => Math.min(allMedia.length - THUMB_VISIBLE, s + 1))}
+                  className={`flex w-full items-center justify-center rounded-lg border border-border bg-background py-1.5 shadow-sm transition-all duration-200 hover:bg-muted hover:shadow-md ${thumbStart + THUMB_VISIBLE < allMedia.length ? "opacity-100" : "pointer-events-none opacity-0"}`}
+                >
+                  <ChevronDown className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+
+            {/* ── Main image ── */}
+            <div className={`relative aspect-square overflow-hidden rounded-xl bg-muted ${allMedia.length > 1 ? "md:col-start-2 md:row-start-1" : ""}`}>
+              {activeMedia?.type === "video" && activeMedia.mp4Url ? (
+                <video src={activeMedia.mp4Url} poster={activeMedia.poster ?? undefined}
+                  controls autoPlay muted loop playsInline className="h-full w-full object-cover" />
+              ) : activeMedia?.type === "external_video" ? (
+                <iframe src={activeMedia.embedUrl} className="h-full w-full"
+                  allow="autoplay; encrypted-media" allowFullScreen title="Product video" />
+              ) : activeMedia?.type === "image" ? (
+                <img src={shopifyImageUrl(activeMedia.url, 800)} alt={activeMedia.altText ?? product.title}
+                  className="h-full w-full object-cover transition-opacity duration-300" key={activeMediaIdx} />
+              ) : null}
+              <img src={mlsLogo} alt="" aria-hidden className="absolute right-4 top-4 h-10 w-auto opacity-60" />
+              <div className="absolute left-4 top-4 flex flex-col gap-1.5">
+                <OriginBadge origin={origin} />
+                {variant?.compareAtPrice && (
+                  <span className="inline-flex rounded-sm bg-crimson px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-crimson-foreground">Sale</span>
+                )}
+              </div>
             </div>
           </div>
+
+          {/* ── Horizontal thumbnails — mobile only ── */}
           {allMedia.length > 1 && (
-            <div className="flex gap-2 overflow-x-auto pb-1">
-              {allMedia.map((media, i) => {
-                const thumb = media.type === "image" ? shopifyImageUrl(media.url, 160) : media.type === "video" ? (media.poster ?? "") : (media as any).poster ?? "";
-                return (
-                  <button key={i} type="button" onClick={() => setActiveMediaIdx(i)}
-                    className={`relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-colors sm:h-20 sm:w-20 ${i === activeMediaIdx ? "border-crimson" : "border-transparent hover:border-muted-foreground"}`}>
-                    {thumb && <img src={thumb} alt="" className="h-full w-full object-cover" />}
-                    {(media.type === "video" || media.type === "external_video") && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                        <Play className="h-5 w-5 fill-white text-white" />
-                      </div>
-                    )}
+            <div className="md:hidden">
+              {allMedia.length <= THUMB_VISIBLE ? (
+                /* Thumbs fit — plain row, no arrows */
+                <div className="flex justify-center gap-2">
+                  {allMedia.map((media, i) => {
+                    const thumb = media.type === "image" ? shopifyImageUrl(media.url, 200) : media.type === "video" ? (media.poster ?? "") : (media as any).poster ?? "";
+                    const isActive = i === activeMediaIdx;
+                    return (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setActiveMediaIdx(i)}
+                        className={`relative h-[80px] w-[80px] flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all duration-200 ${
+                          isActive
+                            ? "scale-105 border-crimson shadow-[0_0_0_2px_rgba(180,0,0,0.12)]"
+                            : "border-transparent opacity-60 hover:opacity-100 hover:border-border hover:scale-[1.02]"
+                        }`}
+                      >
+                        {thumb && <img src={thumb} alt="" className="h-full w-full object-cover" />}
+                        {(media.type === "video" || media.type === "external_video") && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                            <Play className="h-5 w-5 fill-white text-white" />
+                          </div>
+                        )}
+                        {isActive && (
+                          <span className="absolute bottom-0.5 left-1/2 h-[3px] w-5 -translate-x-1/2 rounded-full bg-crimson" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                /* More thumbs than fit — arrow slider */
+                <div className="relative flex items-center">
+                  <button
+                    type="button"
+                    aria-label="Previous images"
+                    onClick={() => setThumbStart((s) => Math.max(0, s - 1))}
+                    className={`absolute left-0 z-10 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-border bg-background shadow-md transition-all duration-200 hover:bg-muted hover:shadow-lg ${thumbStart > 0 ? "opacity-100" : "pointer-events-none opacity-0"}`}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
                   </button>
-                );
-              })}
+                  <div className="mx-10 overflow-hidden">
+                    <div
+                      className="flex gap-2 transition-transform duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)]"
+                      style={{ transform: `translateX(-${thumbStart * HORIZ_STEP}px)` }}
+                    >
+                      {allMedia.map((media, i) => {
+                        const thumb = media.type === "image" ? shopifyImageUrl(media.url, 200) : media.type === "video" ? (media.poster ?? "") : (media as any).poster ?? "";
+                        const isActive = i === activeMediaIdx;
+                        return (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => setActiveMediaIdx(i)}
+                            className={`relative h-[80px] w-[80px] flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all duration-200 ${
+                              isActive
+                                ? "scale-105 border-crimson shadow-[0_0_0_2px_rgba(180,0,0,0.12)]"
+                                : "border-transparent opacity-60 hover:opacity-100 hover:border-border hover:scale-[1.02]"
+                            }`}
+                          >
+                            {thumb && <img src={thumb} alt="" className="h-full w-full object-cover" />}
+                            {(media.type === "video" || media.type === "external_video") && (
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                                <Play className="h-5 w-5 fill-white text-white" />
+                              </div>
+                            )}
+                            {isActive && (
+                              <span className="absolute bottom-0.5 left-1/2 h-[3px] w-5 -translate-x-1/2 rounded-full bg-crimson" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    aria-label="Next images"
+                    onClick={() => setThumbStart((s) => Math.min(allMedia.length - THUMB_VISIBLE, s + 1))}
+                    className={`absolute right-0 z-10 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-border bg-background shadow-md transition-all duration-200 hover:bg-muted hover:shadow-lg ${thumbStart + THUMB_VISIBLE < allMedia.length ? "opacity-100" : "pointer-events-none opacity-0"}`}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
