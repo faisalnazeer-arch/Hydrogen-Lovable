@@ -231,10 +231,9 @@ export function shouldRevalidate({ currentUrl, nextUrl }: ShouldRevalidateFuncti
   return currentUrl.pathname !== nextUrl.pathname;
 }
 
+// Reviews are fetched in the critical (awaited) path — never affected by the lazy timeout.
+// EMPTY_LAZY only covers the genuinely slow data: recommendations, settings, Globo.
 const EMPTY_LAZY = {
-  reviews: [] as any[],
-  reviewsTotalCount: 0,
-  rating: { average: 0, count: 0 },
   recommendations: [] as any[],
   globoOptionSets: [] as any[],
   templateSettings: {} as Record<string, { sectionTitle: string | null; highlightText: string | null; accordions: Array<{heading: string; content: string}> }>,
@@ -351,37 +350,37 @@ export async function loader({ params, context, request }: LoaderFunctionArgs) {
     }
   }
 
-  // Fire all slow external fetches — NOT awaited, stream in after the page renders.
-  // Hard 3 500 ms deadline: if any upstream is slow the page still loads with defaults.
+  // ── Reviews — awaited in the critical path (fast ~200ms, must not be deferred) ──────────
+  // Previously inside lazyData, but any slow co-fetch (recommendations, admin, Globo)
+  // could hit the 3 500 ms race timeout and wipe out reviews. Fetching them here
+  // guarantees they are always present in the initial response.
+  const [reviewsFetchResult, ratingFetchResult] = await Promise.all([
+    fetchJudgemeReviews(handle, shopDomain, judgemeToken, 1, 10, externalId)
+      .catch(() => ({ reviews: [] as any[], total_count: 0, current_page: 1, per_page: 10 })),
+    fetchJudgemeRating(data.product.id, shopDomain, judgemeToken)
+      .catch(() => ({ average: 0, count: 0, histogram: [0, 0, 0, 0, 0] as [number,number,number,number,number] })),
+  ]);
+  const reviewsSummary = buildRatingSummary(reviewsFetchResult as any);
+  const initialRating = (ratingFetchResult as any).average > 0 ? ratingFetchResult : reviewsSummary;
+
+  // ── Slow data — deferred, streams in after initial render ────────────────────────────────
   const lazyData = Promise.race([
     Promise.all([
-      fetchJudgemeReviews(handle, shopDomain, judgemeToken, 1, 10, externalId).catch(() => ({ reviews: [], total_count: 0 })),
-      fetchJudgemeRating(data.product.id, shopDomain, judgemeToken).catch(() => ({ average: 0, count: 0 })),
       context.storefront.query(RECOMMENDATIONS_QUERY, {
         variables: { productId: data.product.id, language, country: "AE" as const },
       }).catch(() => null),
       context.adminFetch(PAGE_SETTINGS_QUERY).catch(() => null),
       context.adminFetch(TEMPLATE_SETTINGS_QUERY).catch(() => null),
       globoPromise,
-    ]).then(([reviewsData, judgemeRating, recsData, settingsData, templateSettingsData, globoOptionSets]) => {
-    const reviewsSummary = buildRatingSummary(reviewsData);
-    const rating = judgemeRating.average > 0 ? judgemeRating : reviewsSummary;
+    ]).then(([recsData, settingsData, templateSettingsData, globoOptionSets]) => {
     const recommendations: ShopifyProduct[] = (recsData?.productRecommendations ?? [])
       .slice(0, 8)
       .map((node: any) => ({ node }));
 
-    // Page-level settings (delivery info, support)
     const pageFields: Array<{ key: string; value: string }> =
       (settingsData as any)?.metaobjects?.nodes?.[0]?.fields ?? [];
     const getPageMeta = (key: string) => pageFields.find((f: any) => f.key === key)?.value ?? null;
 
-    // Per-template settings — keyed by templateSuffix.
-    // Metaobject type: "product_template_settings" in Shopify Admin › Content › Metaobjects.
-    // Fields per instance:
-    //   template_suffix  (single_line_text) — e.g. "whole-cuts"
-    //   section_title    (single_line_text) — accordion heading override
-    //   highlight_text   (multi_line_text)  — callout note shown above accordions
-    //   accordions       (multi_line_text)  — JSON array: [{heading, content (HTML)}]
     type TemplateAccordion = { heading: string; content: string };
     type TemplateSetting = {
       sectionTitle: string | null;
@@ -398,7 +397,7 @@ export async function loader({ params, context, request }: LoaderFunctionArgs) {
       try {
         const raw = getField("accordions");
         if (raw) accordions = JSON.parse(raw);
-      } catch { /* malformed JSON — treat as empty */ }
+      } catch { /* malformed JSON */ }
       templateSettings[suffix] = {
         sectionTitle: getField("section_title"),
         highlightText: getField("highlight_text"),
@@ -407,9 +406,6 @@ export async function loader({ params, context, request }: LoaderFunctionArgs) {
     }
 
     return {
-      reviews: reviewsData.reviews,
-      reviewsTotalCount: reviewsData.total_count ?? 0,
-      rating,
       recommendations,
       globoOptionSets,
       templateSettings,
@@ -425,19 +421,20 @@ export async function loader({ params, context, request }: LoaderFunctionArgs) {
       },
     };
     }),
-    // Timeout fallback — resolves with empty defaults so the page never hangs
     new Promise<typeof EMPTY_LAZY>((resolve) =>
-      setTimeout(() => resolve({ ...EMPTY_LAZY }), 3500)
+      setTimeout(() => resolve({ ...EMPTY_LAZY }), 4000)
     ),
   ]);
 
-  // Return critical data immediately; lazyData streams in while the page is already visible
   return {
     product: data.product,
     templateSuffix,
     sellingPlanGroupsRaw: data.product.sellingPlanGroups?.nodes ?? [],
     discountMap,
     externalId: externalId ?? null,
+    reviews: (reviewsFetchResult as any).reviews ?? [],
+    reviewsTotalCount: (reviewsFetchResult as any).total_count ?? 0,
+    rating: initialRating,
     lazyData,
   };
 }
@@ -475,12 +472,12 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => {
 };
 
 export default function Product() {
-  const { templateSuffix, lazyData, ...criticalProps } = useLoaderData<typeof loader>();
+  const { templateSuffix, lazyData, reviews, reviewsTotalCount, rating, ...criticalProps } = useLoaderData<typeof loader>();
 
   return (
-    <Suspense fallback={renderTemplate(templateSuffix, { ...criticalProps, ...EMPTY_LAZY })}>
+    <Suspense fallback={renderTemplate(templateSuffix, { ...criticalProps, reviews, reviewsTotalCount, rating, ...EMPTY_LAZY })}>
       <Await resolve={lazyData}>
-        {(lazy) => renderTemplate(templateSuffix, { ...criticalProps, ...lazy })}
+        {(lazy) => renderTemplate(templateSuffix, { ...criticalProps, reviews, reviewsTotalCount, rating, ...lazy })}
       </Await>
     </Suspense>
   );
