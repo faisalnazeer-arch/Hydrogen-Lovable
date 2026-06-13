@@ -56,9 +56,10 @@ interface HeaderProps {
   secondaryMenu?: NavEntry[];
   navItemImages?: Record<string, string>;
   mobileBanners?: MobileBanner[];
+  mobileMenu?: import("~/root").MobileMenuTab[];
 }
 
-export function Header({ mainMenu = [], secondaryMenu = [], navItemImages = {}, mobileBanners = [] }: HeaderProps) {
+export function Header({ mainMenu = [], secondaryMenu = [], navItemImages = {}, mobileBanners = [], mobileMenu = [] }: HeaderProps) {
   const rawTotal = useCartStore((s) => s.items.reduce((n, i) => n + i.quantity, 0));
   const setCartOpen = useCartStore((s) => s.setOpen);
   // Defer cart count display until after client hydration so SSR (always 0)
@@ -91,6 +92,7 @@ export function Header({ mainMenu = [], secondaryMenu = [], navItemImages = {}, 
               secondaryMenu={secondaryMenu}
               navItemImages={navItemImages}
               mobileBanners={mobileBanners}
+              mobileMenu={mobileMenu}
               onClose={closeMobile}
             />
           </SheetContent>
@@ -345,50 +347,27 @@ function cdnImg(url: string, w = 120) {
 }
 
 function MobileMenuDrawer({
-  mainMenu,
   secondaryMenu,
-  navItemImages,
   mobileBanners,
+  mobileMenu,
   onClose,
 }: {
   mainMenu: NavEntry[];
   secondaryMenu: NavEntry[];
   navItemImages: Record<string, string>;
   mobileBanners: MobileBanner[];
+  mobileMenu: import("~/root").MobileMenuTab[];
   onClose: () => void;
 }) {
   const [activeTabIdx, setActiveTabIdx] = useState(0);
-  const [openCols, setOpenCols] = useState<Set<number>>(new Set());
-  const [openSecondary, setOpenSecondary] = useState<Set<string>>(new Set());
-
-  // Entries with sub-links → tabs
-  const tabbedEntries = mainMenu.filter((e) => e.columns.length > 0);
-  // Top-level flat links (no sub-items) — Dutch Veal, Whole Carcass, etc.
-  const flatMainEntries = mainMenu.filter((e) => e.columns.length === 0);
-  const activeEntry = tabbedEntries[activeTabIdx];
-  const activeColumns = activeEntry?.columns ?? [];
-
-  // Whether the active tab uses accordion or flat-list rendering
-  const isAccordion =
-    activeColumns.length > 1 || (activeColumns.length === 1 && !!activeColumns[0].title);
-  const flatLinks = !isAccordion ? (activeColumns[0]?.links ?? []) : [];
-
-  const handleTabSwitch = (i: number) => {
-    setActiveTabIdx(i);
-    setOpenCols(new Set());
-  };
-  const toggleCol = (i: number) =>
-    setOpenCols((prev) => {
-      const next = new Set(prev);
-      next.has(i) ? next.delete(i) : next.add(i);
-      return next;
-    });
+  const tabs = mobileMenu.length > 0 ? mobileMenu : [];
+  const activeItems = tabs[activeTabIdx]?.items ?? [];
 
   return (
     <div className="flex h-full flex-col bg-background">
       <SheetTitle className="sr-only">Menu</SheetTitle>
 
-      {/* ── Header ── */}
+      {/* Header */}
       <div className="relative flex shrink-0 items-center justify-center border-b border-border py-3 px-12">
         <button
           type="button"
@@ -401,255 +380,72 @@ function MobileMenuDrawer({
         <img src={logo} alt="MLS" className="h-8 w-auto" />
       </div>
 
-      {/* ── Promo banners ── */}
+      {/* Promo banners */}
       {mobileBanners.length > 0 && (
         <div className="flex shrink-0 gap-2 border-b border-border bg-background px-3 py-2.5">
           {mobileBanners.map((banner) => (
-            <Link
-              key={banner.id}
-              to={banner.url}
-              onClick={onClose}
-              prefetch="intent"
-              className="relative flex-1 overflow-hidden rounded-xl"
-            >
-              <img
-                src={cdnImg(banner.imageUrl, 300)}
-                alt={banner.altText}
-                className="h-20 w-full object-cover"
-                loading="eager"
-              />
+            <Link key={banner.id} to={banner.url} onClick={onClose} prefetch="intent" className="relative flex-1 overflow-hidden rounded-xl">
+              <img src={cdnImg(banner.imageUrl, 300)} alt={banner.altText} className="h-20 w-full object-cover" loading="eager" />
             </Link>
           ))}
         </div>
       )}
 
-      {/* ── Tab bar ── */}
-      {tabbedEntries.length > 0 && (
-        <div className="flex shrink-0 gap-2 border-b border-border bg-background px-3 py-2.5 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
-          {tabbedEntries.map((entry, i) => (
+      {/* Tab bar */}
+      {tabs.length > 0 && (
+        <div className="flex shrink-0 border-b border-border bg-background">
+          {tabs.map((tab, i) => (
             <button
-              key={entry.id}
+              key={tab.label}
               type="button"
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleTabSwitch(i); }}
-              className={`flex-1 shrink-0 whitespace-nowrap rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-wider transition-all ${
+              onClick={() => setActiveTabIdx(i)}
+              className={`flex-1 py-2.5 text-[11px] font-bold uppercase tracking-wider transition-colors ${
                 i === activeTabIdx
-                  ? "bg-crimson text-white shadow-sm"
-                  : "border border-border bg-card text-foreground/65 hover:border-crimson/40 hover:text-crimson"
+                  ? "border-b-2 border-crimson text-crimson"
+                  : "text-foreground/50 hover:text-foreground"
               }`}
             >
-              {entry.label}
+              {tab.label}
             </button>
           ))}
         </div>
       )}
 
-      {/* ── Scrollable body ── */}
+      {/* Scrollable body */}
       <div className="flex-1 overflow-y-auto">
 
-        {/* ── ACCORDION mode: each column is either expandable (has sub-links) or a direct link ── */}
-        {isAccordion
-          ? activeColumns.map((col, colIdx) => {
-              const hasSubLinks = col.links.length > 0;
-              const isOpen = openCols.has(colIdx);
-              const initial = (col.title?.[0] ?? "•").toUpperCase();
-
-              // No sub-links → render as a plain navigable row (no expand button)
-              if (!hasSubLinks) {
-                return (
-                  <Link
-                    key={col.title + colIdx}
-                    to={col.url ?? "/"}
-                    onClick={onClose}
-                    prefetch="intent"
-                    className="flex items-center gap-3 border-b border-border/60 px-4 py-2.5 transition-colors hover:bg-muted/40"
-                  >
-                    {col.imageUrl ? (
-                      <div className="h-11 w-12 shrink-0 overflow-hidden rounded-md">
-                        <img
-                          src={cdnImg(col.imageUrl)}
-                          alt={col.title}
-                          className="h-full w-full object-cover"
-                          loading="lazy"
-                        />
-                      </div>
-                    ) : (
-                      <div className="h-11 w-12 shrink-0 overflow-hidden rounded-md bg-gradient-to-br from-crimson/15 to-crimson/5 flex items-center justify-center">
-                        <span className="text-sm font-black text-crimson">{initial}</span>
-                      </div>
-                    )}
-                    <span className="flex-1 text-[13px] font-semibold text-foreground">{col.title}</span>
-                  </Link>
-                );
-              }
-
-              // Has sub-links → accordion row
-              return (
-                <div key={col.title + colIdx}>
-                  <button
-                    type="button"
-                    onClick={() => toggleCol(colIdx)}
-                    className="flex w-full items-center gap-3 border-b border-border/60 px-4 py-2.5 text-left transition-colors hover:bg-muted/40"
-                  >
-                    {col.imageUrl ? (
-                      <div className="h-11 w-12 shrink-0 overflow-hidden rounded-md">
-                        <img
-                          src={cdnImg(col.imageUrl)}
-                          alt={col.title}
-                          className="h-full w-full object-cover"
-                          loading="lazy"
-                        />
-                      </div>
-                    ) : (
-                      <div className="h-11 w-12 shrink-0 flex items-center justify-center overflow-hidden rounded-md bg-gradient-to-br from-crimson/15 to-crimson/5">
-                        <span className="text-sm font-black text-crimson">{initial}</span>
-                      </div>
-                    )}
-                    <span className="flex-1 text-[13px] font-semibold text-foreground">{col.title}</span>
-                    <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-border text-[14px] font-light leading-none text-muted-foreground">
-                      {isOpen ? "−" : "+"}
-                    </span>
-                  </button>
-                  {isOpen && (
-                    <div className="border-b border-border/40 bg-muted/20">
-                      {col.links.map((link) => (
-                        <Link
-                          key={link.url + link.label}
-                          to={link.url}
-                          onClick={onClose}
-                          prefetch="intent"
-                          className="block border-b border-border/20 py-2 pl-5 pr-4 text-[12px] font-medium text-foreground/65 last:border-0 transition-colors hover:text-crimson"
-                        >
-                          {link.label}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })
-          : /* ── FLAT list mode: single untitled column ── */
-            flatLinks.map((link) => {
-              const initial = (link.label?.[0] ?? "•").toUpperCase();
-              return (
-                <Link
-                  key={link.url + link.label}
-                  to={link.url}
-                  onClick={onClose}
-                  prefetch="intent"
-                  className="flex items-center gap-3 border-b border-border/60 px-4 py-2.5 transition-colors hover:bg-muted/40"
-                >
-                  {link.imageUrl ? (
-                    <div className="h-11 w-12 shrink-0 overflow-hidden rounded-md">
-                      <img
-                        src={cdnImg(link.imageUrl)}
-                        alt={link.label}
-                        className="h-full w-full object-cover"
-                        loading="lazy"
-                      />
-                    </div>
-                  ) : (
-                    <div className="h-11 w-12 shrink-0 flex items-center justify-center overflow-hidden rounded-md bg-gradient-to-br from-crimson/15 to-crimson/5">
-                      <span className="text-sm font-black text-crimson">{initial}</span>
-                    </div>
-                  )}
-                  <span className="flex-1 text-[13px] font-semibold text-foreground">{link.label}</span>
-                </Link>
-              );
-            })}
-
-        {/* ── Flat top-level links with no sub-items (Dutch Veal, etc.) — NO icon ── */}
-        {flatMainEntries.length > 0 && (
-          <div className="my-0.5 border-t border-border/60" />
-        )}
-        {flatMainEntries.map((entry) => {
-          const initial = (entry.label?.[0] ?? "•").toUpperCase();
-          // metaobject image takes priority, then Shopify resource image
-          const imgUrl = navItemImages[entry.label] ?? entry.imageUrl ?? null;
+        {/* Category / collection image rows */}
+        {activeItems.map((item) => {
+          const initial = (item.title[0] ?? "•").toUpperCase();
           return (
             <Link
-              key={entry.id}
-              to={entry.url ?? "/"}
+              key={item.id}
+              to={item.url}
               onClick={onClose}
               prefetch="intent"
-              className="flex items-center gap-3 border-b border-border/40 px-4 py-2.5 transition-colors hover:bg-muted/40"
+              className="flex items-center gap-3 border-b border-border/50 px-4 py-2.5 transition-colors hover:bg-muted/40"
             >
-              <div className="h-11 w-12 shrink-0 overflow-hidden rounded-md">
-                {imgUrl ? (
-                  <img
-                    src={cdnImg(imgUrl)}
-                    alt={entry.label}
-                    className="h-full w-full object-cover"
-                    loading="lazy"
-                  />
+              <div className="h-12 w-[3.25rem] shrink-0 overflow-hidden rounded-lg">
+                {item.imageUrl ? (
+                  <img src={cdnImg(item.imageUrl, 120)} alt={item.title} className="h-full w-full object-cover" loading="lazy" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-crimson/15 to-crimson/5">
                     <span className="text-sm font-black text-crimson">{initial}</span>
                   </div>
                 )}
               </div>
-              <span className="flex-1 text-[13px] font-semibold text-foreground">{entry.label}</span>
+              <span className="flex-1 text-[13px] font-semibold text-foreground">{item.title}</span>
+              <span className="text-lg font-light text-muted-foreground">+</span>
             </Link>
           );
         })}
 
-        {/* ── Secondary menu (Customer Reviews, About MLS, etc.) ── */}
-        {secondaryMenu.length > 0 && (
-          <div className="my-0.5 border-t border-border/60" />
-        )}
+        {/* Divider before secondary links */}
+        <div className="my-1 border-t border-border/60" />
+
+        {/* Secondary menu — Customer Reviews, Store Locations, etc. */}
         {secondaryMenu.map((entry) => {
           const Icon = pickIcon(entry.label, entry.url ?? "");
-          const hasChildren = entry.columns.length > 0;
-          // Flatten all links across columns for secondary accordion
-          const allLinks: { label: string; url: string }[] = entry.columns.flatMap((col) =>
-            col.links.length > 0
-              ? col.links.map((l) => ({ label: l.label, url: l.url }))
-              : col.url
-              ? [{ label: col.title, url: col.url }]
-              : []
-          );
-          const isSecOpen = openSecondary.has(entry.id);
-
-          if (hasChildren) {
-            return (
-              <div key={entry.id}>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setOpenSecondary((prev) => {
-                      const next = new Set(prev);
-                      next.has(entry.id) ? next.delete(entry.id) : next.add(entry.id);
-                      return next;
-                    })
-                  }
-                  className="flex w-full items-center gap-3 border-b border-border/40 px-4 py-2.5 text-left transition-colors hover:bg-muted/40"
-                >
-                  <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-crimson/10 text-crimson">
-                    <Icon className="h-3.5 w-3.5" />
-                  </div>
-                  <span className="flex-1 text-[13px] font-semibold">{entry.label}</span>
-                  <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-border text-[14px] font-light leading-none text-muted-foreground">
-                    {isSecOpen ? "−" : "+"}
-                  </span>
-                </button>
-                {isSecOpen && (
-                  <div className="border-b border-border/40 bg-muted/20">
-                    {allLinks.map((link) => (
-                      <Link
-                        key={link.url + link.label}
-                        to={link.url}
-                        onClick={onClose}
-                        prefetch="intent"
-                        className="block border-b border-border/20 py-2 pl-5 pr-4 text-[12px] font-medium text-foreground/65 last:border-0 transition-colors hover:text-crimson"
-                      >
-                        {link.label}
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          }
-
           return (
             <Link
               key={entry.id}
@@ -662,12 +458,13 @@ function MobileMenuDrawer({
                 <Icon className="h-3.5 w-3.5" />
               </div>
               <span className="flex-1 text-[13px] font-semibold">{entry.label}</span>
+              <span className="text-lg font-light text-muted-foreground">+</span>
             </Link>
           );
         })}
       </div>
 
-      {/* ── Bottom button ── */}
+      {/* Login button */}
       <div className="shrink-0 border-t border-border p-3">
         <a
           href="https://mlsuae.ae/customer_authentication/redirect?locale=en&region_country=AE"

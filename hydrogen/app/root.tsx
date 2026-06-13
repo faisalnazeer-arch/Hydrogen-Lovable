@@ -118,6 +118,10 @@ const LAYOUT_QUERY = `#graphql
       items { ...MenuFields }
     }
 
+    mobileMenu: menu(handle: "mls-mobile-menu") {
+      items { ...MenuFields }
+    }
+
     footerShop: menu(handle: "footer-shop") {
       id title items { id title url }
     }
@@ -253,6 +257,31 @@ function parseAnnouncementMessages(nodes: any[]): string[] {
   ].filter((m): m is string => typeof m === "string" && m.trim().length > 0);
 }
 
+export interface MobileMenuItem {
+  id: string;
+  title: string;
+  url: string;
+  imageUrl: string | null;
+}
+
+export interface MobileMenuTab {
+  label: string;
+  items: MobileMenuItem[];
+}
+
+function parseMobileMenu(menuData: any): MobileMenuTab[] {
+  if (!menuData?.items?.length) return [];
+  return menuData.items.map((tab: any) => ({
+    label: tab.title as string,
+    items: (tab.items ?? []).map((item: any) => ({
+      id: item.id as string,
+      title: item.title as string,
+      url: toPath(item.url),
+      imageUrl: (item.resource?.image?.url ?? null) as string | null,
+    })),
+  }));
+}
+
 export interface MobileBanner {
   id: string;
   imageUrl: string;
@@ -330,8 +359,9 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
 
     const navItemImages = parseNavItemImages(data?.navItemImages?.nodes ?? []);
     const mobileBanners = parseMobileBanners(data?.mobileBanners?.nodes ?? []);
+    const mobileMenu = parseMobileMenu(data?.mobileMenu);
 
-    return { mainMenu, secondaryMenu, footerSettings, footerMenuCols, announcementMessages, cartDrawerConfig, navItemImages, mobileBanners };
+    return { mainMenu, secondaryMenu, mobileMenu, footerSettings, footerMenuCols, announcementMessages, cartDrawerConfig, navItemImages, mobileBanners };
   } catch {
     return {
       mainMenu: [] as NavEntry[],
@@ -342,6 +372,7 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
       cartDrawerConfig: { freeShippingThreshold: 350, deliveryItems: [], freeGiftSubVariantId: "", freeGiftCarVariantId: "" },
       navItemImages: {} as Record<string, string>,
       mobileBanners: [] as MobileBanner[],
+      mobileMenu: [] as MobileMenuTab[],
     };
   }
 }
@@ -498,7 +529,7 @@ function LocaleSync() {
 }
 
 export default function App() {
-  const { mainMenu, secondaryMenu, footerSettings, footerMenuCols, announcementMessages, navItemImages, mobileBanners } = useLoaderData<typeof loader>();
+  const { mainMenu, secondaryMenu, mobileMenu, footerSettings, footerMenuCols, announcementMessages, navItemImages, mobileBanners } = useLoaderData<typeof loader>();
   return (
     <QueryClientProvider client={queryClient}>
       <PageLoader />
@@ -506,7 +537,7 @@ export default function App() {
       <CartSyncWrapper />
       <div className="flex min-h-screen flex-col">
         <AnnouncementBar messages={announcementMessages} />
-        <Header mainMenu={mainMenu} secondaryMenu={secondaryMenu} navItemImages={navItemImages} mobileBanners={mobileBanners} />
+        <Header mainMenu={mainMenu} secondaryMenu={secondaryMenu} navItemImages={navItemImages} mobileBanners={mobileBanners} mobileMenu={mobileMenu} />
         <main className="flex-1">
           <Outlet />
         </main>
