@@ -32,7 +32,7 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/s
 import { useLocaleStore, dirFor } from "@/stores/localeStore";
 import { useT } from "@/i18n/strings";
 import logo from "@/assets/mls-logo.png";
-import type { NavEntry } from "~/root";
+import type { NavEntry, MobileBanner } from "~/root";
 
 function pickIcon(title: string, url: string): LucideIcon {
   const s = `${title} ${url}`.toLowerCase();
@@ -55,9 +55,10 @@ interface HeaderProps {
   mainMenu?: NavEntry[];
   secondaryMenu?: NavEntry[];
   navItemImages?: Record<string, string>;
+  mobileBanners?: MobileBanner[];
 }
 
-export function Header({ mainMenu = [], secondaryMenu = [], navItemImages = {} }: HeaderProps) {
+export function Header({ mainMenu = [], secondaryMenu = [], navItemImages = {}, mobileBanners = [] }: HeaderProps) {
   const totalItems = useCartStore((s) =>
     s.items.reduce((n, i) => n + i.quantity, 0)
   );
@@ -86,6 +87,7 @@ export function Header({ mainMenu = [], secondaryMenu = [], navItemImages = {} }
               mainMenu={mainMenu}
               secondaryMenu={secondaryMenu}
               navItemImages={navItemImages}
+              mobileBanners={mobileBanners}
               onClose={closeMobile}
             />
           </SheetContent>
@@ -343,11 +345,13 @@ function MobileMenuDrawer({
   mainMenu,
   secondaryMenu,
   navItemImages,
+  mobileBanners,
   onClose,
 }: {
   mainMenu: NavEntry[];
   secondaryMenu: NavEntry[];
   navItemImages: Record<string, string>;
+  mobileBanners: MobileBanner[];
   onClose: () => void;
 }) {
   const [activeTabIdx, setActiveTabIdx] = useState(0);
@@ -394,18 +398,40 @@ function MobileMenuDrawer({
         <img src={logo} alt="MLS" className="h-8 w-auto" />
       </div>
 
-      {/* ── Scrollable tab bar — single-line, no wrap ── */}
+      {/* ── Promo banners ── */}
+      {mobileBanners.length > 0 && (
+        <div className="flex shrink-0 gap-2 border-b border-border bg-background px-3 py-2.5">
+          {mobileBanners.map((banner) => (
+            <Link
+              key={banner.id}
+              to={banner.url}
+              onClick={onClose}
+              prefetch="intent"
+              className="relative flex-1 overflow-hidden rounded-xl"
+            >
+              <img
+                src={cdnImg(banner.imageUrl, 300)}
+                alt={banner.altText}
+                className="h-20 w-full object-cover"
+                loading="eager"
+              />
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {/* ── Tab bar ── */}
       {tabbedEntries.length > 0 && (
-        <div className="flex shrink-0 overflow-x-auto border-b border-border [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+        <div className="flex shrink-0 gap-2 border-b border-border bg-background px-3 py-2.5 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
           {tabbedEntries.map((entry, i) => (
             <button
               key={entry.id}
               type="button"
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleTabSwitch(i); }}
-              className={`shrink-0 whitespace-nowrap px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider transition-all ${
+              className={`flex-1 shrink-0 whitespace-nowrap rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-wider transition-all ${
                 i === activeTabIdx
-                  ? "bg-crimson text-white"
-                  : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                  ? "bg-crimson text-white shadow-sm"
+                  : "border border-border bg-card text-foreground/65 hover:border-crimson/40 hover:text-crimson"
               }`}
             >
               {entry.label}
@@ -476,7 +502,7 @@ function MobileMenuDrawer({
                       </div>
                     )}
                     <span className="flex-1 text-[13px] font-semibold text-foreground">{col.title}</span>
-                    <span className="w-5 text-center text-base font-light leading-none text-muted-foreground">
+                    <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-border text-[14px] font-light leading-none text-muted-foreground">
                       {isOpen ? "−" : "+"}
                     </span>
                   </button>
@@ -598,7 +624,7 @@ function MobileMenuDrawer({
                     <Icon className="h-3.5 w-3.5" />
                   </div>
                   <span className="flex-1 text-[13px] font-semibold">{entry.label}</span>
-                  <span className="w-5 text-center text-base font-light leading-none text-muted-foreground">
+                  <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-border text-[14px] font-light leading-none text-muted-foreground">
                     {isSecOpen ? "−" : "+"}
                   </span>
                 </button>

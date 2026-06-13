@@ -19,12 +19,12 @@ function OriginFlag({
 
   if (src) {
     return (
-      <div className="relative h-16 w-16 transition-transform group-hover:scale-105">
+      <div className="relative h-16 w-16 transition-transform duration-300 group-hover:scale-105">
         <div className="absolute inset-0 rounded-full bg-gradient-to-br from-crimson/20 to-crimson/5 ring-2 ring-crimson/30 shadow-md" />
         <img
           src={src}
           alt={imageAlt}
-          className="h-full w-full rounded-full object-cover relative z-10"
+          className="relative z-10 h-full w-full rounded-full object-cover"
           loading="lazy"
         />
       </div>
@@ -32,7 +32,7 @@ function OriginFlag({
   }
 
   return (
-    <div className="h-16 w-16 rounded-full ring-2 ring-crimson/30 bg-gradient-to-br from-crimson/10 to-bone flex items-center justify-center shadow-md transition-transform group-hover:scale-105">
+    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-crimson/10 to-bone shadow-md ring-2 ring-crimson/30 transition-transform duration-300 group-hover:scale-105">
       <svg viewBox="0 0 64 64" className="h-8 w-8 text-crimson/60" fill="none" stroke="currentColor" strokeWidth="1.5">
         <circle cx="32" cy="32" r="18" />
         <path d="M32 14 C20 20 20 44 32 50 C44 44 44 20 32 14Z" />
@@ -79,44 +79,43 @@ export function ShopByOrigin({ section }: Props) {
   return (
     <section className="bg-bone py-8 md:py-12">
       <div className="container mx-auto px-4">
+
         {/* Header */}
-        <div className="mb-6 text-center md:mb-10">
-          <div className="mb-1.5 flex items-center justify-center gap-2">
-            <span className="h-px w-5 rounded-full bg-crimson" />
+        <div className="mb-6 text-center md:mb-8">
+          <div className="mb-1.5 flex items-center justify-center gap-3">
+            <span className="h-px w-6 rounded-full bg-crimson" />
             <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-crimson">
               {section.eyebrow}
             </span>
-            <span className="h-px w-5 rounded-full bg-crimson" />
+            <span className="h-px w-6 rounded-full bg-crimson" />
           </div>
           <h2 className="font-display text-2xl font-extrabold tracking-tight md:text-4xl">
             {section.heading}
           </h2>
         </div>
 
-        {/* Category tabs — scrollable, same style as Our Collections */}
+        {/* Tabs */}
         {categories.length > 1 && (
-          <div className="relative mb-8">
-            <div className="pointer-events-none absolute right-0 top-0 h-full w-12 z-10 bg-gradient-to-l from-bone to-transparent" />
-            <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
-              <div className="flex min-w-max border-b border-border mx-auto w-fit">
-                {categories.map((tab) => (
+          <div className="mb-8 flex justify-center">
+            <div className="flex gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {categories.map((tab) => {
+                const isActive = activeTab === tab;
+                return (
                   <button
                     key={tab}
                     type="button"
                     onClick={() => setActiveTab(tab)}
-                    className={`relative whitespace-nowrap px-5 py-2.5 text-sm font-semibold capitalize transition-colors ${
-                      activeTab === tab
-                        ? "text-crimson"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
+                    className={[
+                      "shrink-0 whitespace-nowrap capitalize rounded-full px-5 py-2 text-[12px] font-semibold transition-all duration-200 md:px-8 md:py-2.5 md:text-sm",
+                      isActive
+                        ? "bg-crimson text-white shadow-[0_4px_14px_rgba(185,28,28,0.28)]"
+                        : "bg-foreground/[0.06] text-foreground/60 hover:bg-foreground/[0.11] hover:text-foreground",
+                    ].join(" ")}
                   >
                     {tab}
-                    {activeTab === tab && (
-                      <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-crimson" />
-                    )}
                   </button>
-                ))}
-              </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -140,6 +139,7 @@ export function ShopByOrigin({ section }: Props) {
             </Link>
           ))}
         </HScroller>
+
       </div>
     </section>
   );

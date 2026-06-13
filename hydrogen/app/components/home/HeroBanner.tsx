@@ -175,17 +175,15 @@ function SlideItem({ slide, active }: { slide: HeroSlide; active: boolean }) {
   const hasContent = slide.content || slide.buttonText;
 
   return (
-    <div
-      className="relative w-full min-h-[360px] sm:min-h-[400px] md:min-h-[460px] lg:min-h-[520px]"
-      style={{ flexShrink: 0 }}
-    >
+    <div className="relative w-full" style={{ flexShrink: 0 }}>
+      {/* Images are natural-size (no cropping) — the image height drives the slide height */}
       {slide.mobileImage && (
         <img
           src={slide.mobileImage.url}
           alt={slide.mobileImage.altText ?? ""}
           draggable={false}
           className={cn(
-            "pointer-events-none block w-full select-none h-full object-cover object-top absolute inset-0",
+            "pointer-events-none block w-full select-none",
             slide.desktopImage ? "md:hidden" : "",
           )}
         />
@@ -196,12 +194,13 @@ function SlideItem({ slide, active }: { slide: HeroSlide; active: boolean }) {
           alt={slide.desktopImage.altText ?? ""}
           draggable={false}
           className={cn(
-            "pointer-events-none w-full select-none h-full object-cover object-center absolute inset-0",
+            "pointer-events-none w-full select-none",
             slide.mobileImage ? "hidden md:block" : "block",
           )}
         />
       )}
-      {/* Overlay and content sit on top via absolute */}
+
+      {/* Overlay */}
       <div
         className={cn(
           "pointer-events-none absolute inset-0 transition-opacity duration-500",
@@ -210,6 +209,8 @@ function SlideItem({ slide, active }: { slide: HeroSlide; active: boolean }) {
             : "bg-black/10",
         )}
       />
+
+      {/* Content */}
       <div className="pointer-events-none absolute inset-0">
         {hasContent ? <DynamicContent slide={slide} active={active} /> : null}
       </div>

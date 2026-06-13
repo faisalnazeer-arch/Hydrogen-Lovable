@@ -17,15 +17,15 @@ export interface PriceRangeSectionData {
   allBoxesUrl?: string | null;
 }
 
-// ── Raw metaobject parsers ─────────────────────────────────────────────────
+// ── Parsers ────────────────────────────────────────────────────────────────
 
 export function parsePriceRangeSection(nodes: any[]): PriceRangeSectionData {
   const node = nodes[0];
   if (!node) return { heading: "Shop by Price", subHeading: "Every Budget · Premier Quality" };
   const f = Object.fromEntries(node.fields.map((x: any) => [x.key, x]));
   return {
-    heading: f["heading"]?.value ?? "Shop by Price",
-    subHeading: f["sub_heading"]?.value ?? "Every Budget · Premier Quality",
+    heading:     f["heading"]?.value     ?? "Shop by Price",
+    subHeading:  f["sub_heading"]?.value ?? "Every Budget · Premier Quality",
     allBoxesUrl: f["all_boxes_url"]?.value ?? null,
   };
 }
@@ -43,10 +43,10 @@ export function parsePriceTiles(nodes: any[]): PriceTile[] {
       if (!url) return null;
 
       return {
-        id: node.id as string,
-        priceAmount: amount as string,
-        priceLabel: (f["price_label"]?.value ?? "") as string,
-        linkUrl: url as string,
+        id:                 node.id as string,
+        priceAmount:        amount as string,
+        priceLabel:         (f["price_label"]?.value ?? "") as string,
+        linkUrl:            url as string,
         backgroundImageUrl: f["background_image"]?.reference?.image?.url ?? null,
         backgroundImageAlt: f["background_image"]?.reference?.image?.altText ?? null,
       };
@@ -64,40 +64,43 @@ interface PriceRangeShopProps {
 export function PriceRangeShop({ section, tiles = [] }: PriceRangeShopProps) {
   if (tiles.length === 0) return null;
 
-  const heading = section?.heading ?? "Shop by Price";
+  const heading    = section?.heading    ?? "Shop by Price";
   const subHeading = section?.subHeading ?? "Every Budget · Premier Quality";
 
-  // Feature the middle card
-  const featuredIdx = Math.floor(tiles.length / 2) - (tiles.length % 2 === 0 ? 1 : 0);
-
   return (
-    <section className="bg-bone py-8 md:py-12">
+    <section className="border-t border-border/50 bg-bone py-8 md:py-12">
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-6xl">
 
-        {/* ── Header row ── */}
-        <div className="mb-8">
-          <div className="mb-2 flex items-center gap-2">
-            <span className="h-px w-5 rounded-full bg-crimson" />
-            <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-crimson">
-              {subHeading}
-            </span>
+          {/* ── Centered header — consistent with other sections ── */}
+          <div className="mb-8 text-center md:mb-10">
+            <div className="mb-2 flex items-center justify-center gap-3">
+              <span className="h-px w-6 rounded-full bg-crimson" />
+              <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-crimson">
+                {subHeading}
+              </span>
+              <span className="h-px w-6 rounded-full bg-crimson" />
+            </div>
+            <h2 className="font-display text-2xl font-extrabold tracking-tight text-foreground md:text-4xl">
+              {heading}
+            </h2>
           </div>
-          <h2 className="font-display text-2xl font-extrabold tracking-tight text-foreground md:text-4xl">
-            {heading}
-          </h2>
-        </div>
 
-        {/* ── Price cards ── */}
-        {/* Outer div handles x-scroll on mobile; inner div is overflow-visible so hover translate isn't clipped */}
-        <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none] md:overflow-visible">
-          <div className="flex gap-2.5 pt-2 pb-6 sm:gap-3 md:grid md:grid-cols-6">
-            {tiles.map((tile, i) => (
-              <PriceTileCard key={tile.id} tile={tile} featured={i === featuredIdx} />
+          {/* ── Mobile: horizontal slider ── */}
+          <div className="flex snap-x snap-mandatory gap-2.5 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:hidden">
+            {tiles.map((tile) => (
+              <div key={tile.id} className="w-[38vw] shrink-0 snap-start">
+                <PriceTileCard tile={tile} />
+              </div>
             ))}
           </div>
-        </div>
 
+          {/* ── Desktop: single row grid ── */}
+          <div className="hidden md:grid md:grid-cols-6 md:gap-3">
+            {tiles.map((tile) => (
+              <PriceTileCard key={tile.id} tile={tile} />
+            ))}
+          </div>
 
         </div>
       </div>
@@ -105,55 +108,47 @@ export function PriceRangeShop({ section, tiles = [] }: PriceRangeShopProps) {
   );
 }
 
-// ── Single price card ──────────────────────────────────────────────────────
+// ── Tile card ──────────────────────────────────────────────────────────────
 
-function PriceTileCard({ tile, featured }: { tile: PriceTile; featured?: boolean }) {
+function PriceTileCard({ tile }: { tile: PriceTile }) {
   return (
     <Link
       to={tile.linkUrl}
       prefetch="intent"
-      className={[
-        "group relative flex w-[38vw] shrink-0 flex-col rounded-2xl bg-card p-3.5 transition-all duration-300",
-        "hover:-translate-y-1.5 hover:shadow-[0_8px_32px_rgba(0,0,0,0.10)]",
-        "md:w-auto md:p-4",
-        featured
-          ? "border-2 border-crimson shadow-[0_4px_20px_rgba(185,28,28,0.12)]"
-          : "border border-border hover:border-crimson/60",
-      ].join(" ")}
+      className="group relative flex flex-col overflow-hidden rounded-xl border border-border bg-card p-3 transition-all duration-300 hover:-translate-y-1.5 hover:border-crimson/50 hover:shadow-[0_12px_32px_rgba(185,28,28,0.12)] md:rounded-2xl md:p-5"
     >
-      {/* Tier label */}
-      {tile.priceLabel ? (
-        <span className="mb-2.5 block text-[9px] font-bold uppercase tracking-[0.18em] text-foreground/40 md:text-[10px]">
-          {tile.priceLabel}
-        </span>
-      ) : (
-        <span className="mb-2.5 block h-3.5" />
-      )}
+      {/* Crimson fill that rises from the bottom on hover */}
+      <div className="absolute inset-x-0 bottom-0 h-0 bg-crimson transition-all duration-300 group-hover:h-full" />
 
-      {/* Price number + currency */}
-      <div className="flex items-start gap-0.5">
-        <span className="text-2xl font-black leading-none tracking-tight text-foreground transition-colors duration-300 group-hover:text-crimson md:text-[2rem]">
-          {tile.priceAmount}
+      {/* All content sits above the fill */}
+      <div className="relative z-10 flex flex-col">
+
+        {/* Tier label */}
+        {tile.priceLabel && (
+          <span className="mb-1.5 block text-[8px] font-bold uppercase tracking-[0.18em] text-muted-foreground/60 transition-colors duration-300 group-hover:text-white/70 md:mb-2 md:text-[9px]">
+            {tile.priceLabel}
+          </span>
+        )}
+
+        {/* Price number */}
+        <div className="flex items-baseline gap-0.5">
+          <span className="text-xl font-black leading-none tracking-tight text-foreground transition-colors duration-300 group-hover:text-white md:text-3xl">
+            {tile.priceAmount}
+          </span>
+          <span className="ml-0.5 text-[8px] font-semibold uppercase tracking-wide text-muted-foreground/50 transition-colors duration-300 group-hover:text-white/60 md:text-[9px]">
+            AED
+          </span>
+        </div>
+
+        {/* & under */}
+        <span className="mt-0.5 text-[9px] font-medium text-muted-foreground/50 transition-colors duration-300 group-hover:text-white/60 md:text-[11px]">
+          &amp; under
         </span>
-        <span className="ml-0.5 mt-0.5 text-[8px] font-semibold uppercase tracking-wider text-foreground/40 md:text-[9px]">
-          AED
-        </span>
+
+        {/* Accent dash */}
+        <div className="mt-3 h-[2px] w-4 rounded-full bg-crimson/25 transition-all duration-300 group-hover:w-7 group-hover:bg-white/60 md:mt-4" />
+
       </div>
-
-      {/* Subtitle */}
-      <span className="mt-1 text-[11px] font-medium text-foreground/45 md:text-[11px]">
-        &amp; under
-      </span>
-
-      {/* Accent line — grows on hover */}
-      <div
-        className={[
-          "mt-3.5 h-[2px] rounded-full transition-all duration-300",
-          featured
-            ? "w-7 bg-crimson group-hover:w-10"
-            : "w-4 bg-crimson/30 group-hover:w-7 group-hover:bg-crimson",
-        ].join(" ")}
-      />
     </Link>
   );
 }

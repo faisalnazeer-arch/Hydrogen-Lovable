@@ -35,37 +35,41 @@ export function CategorySection({
   return (
     <section className="container mx-auto px-4 py-8 md:py-12">
       {/* Header */}
-      <div className="mb-5 text-center md:mb-8">
+      <div className="mb-6 text-center md:mb-8">
         {subtitle && (
-          <div className="mb-1.5 flex items-center justify-center gap-2">
-            <span className="h-px w-5 rounded-full bg-crimson" />
+          <div className="mb-1.5 flex items-center justify-center gap-3">
+            <span className="h-px w-6 rounded-full bg-crimson" />
             <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-crimson">
               {subtitle}
             </span>
-            <span className="h-px w-5 rounded-full bg-crimson" />
+            <span className="h-px w-6 rounded-full bg-crimson" />
           </div>
         )}
-        <h2 className="font-display text-xl font-extrabold tracking-tight md:text-4xl">{title}</h2>
+        <h2 className="font-display text-2xl font-extrabold tracking-tight md:text-4xl">{title}</h2>
       </div>
 
-      {/* Pill tabs */}
+      {/* Tabs */}
       {hasTabs && (
-        <div className="mb-5 md:mb-6">
-          <div className="flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [scrollbar-width:none] justify-center">
-            {tabs.map((tab, idx) => (
-              <button
-                key={tab.handle}
-                type="button"
-                onClick={() => setActiveIdx(idx)}
-                className={`whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-semibold transition-all duration-200 ${
-                  idx === activeIdx
-                    ? "bg-crimson text-white shadow-sm"
-                    : "border border-border bg-card text-muted-foreground hover:border-crimson/50 hover:text-foreground"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+        <div className="mb-6 flex justify-center md:mb-8">
+          <div className="flex gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {tabs.map((tab, idx) => {
+              const isActive = idx === activeIdx;
+              return (
+                <button
+                  key={tab.handle}
+                  type="button"
+                  onClick={() => setActiveIdx(idx)}
+                  className={[
+                    "shrink-0 whitespace-nowrap rounded-full px-5 py-2 text-[12px] font-semibold transition-all duration-200 md:px-8 md:py-2.5 md:text-sm",
+                    isActive
+                      ? "bg-crimson text-white shadow-[0_4px_14px_rgba(185,28,28,0.28)]"
+                      : "bg-foreground/[0.06] text-foreground/60 hover:bg-foreground/[0.11] hover:text-foreground",
+                  ].join(" ")}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}

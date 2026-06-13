@@ -260,24 +260,42 @@ export interface CutsSectionData {
   items: CutItem[];
 }
 
+const FALLBACK_CUTS: CutItem[] = [
+  { id: "cut-steaks",   label: "Steaks",                 emoji: "🥩", url: "/collections/steaks",                 imageUrl: null },
+  { id: "cut-mince",    label: "Mince",                  emoji: "🍖", url: "/collections/mince",                  imageUrl: null },
+  { id: "cut-bicubes",  label: "Bone in Cubes",          emoji: "🦴", url: "/collections/bone-in-cubes",          imageUrl: null },
+  { id: "cut-mishkak",  label: "Mishkak Barbecue Cubes", emoji: "🔥", url: "/collections/mishkak-barbecue-cubes", imageUrl: null },
+  { id: "cut-blcubes",  label: "Boneless Cubes",         emoji: "🥩", url: "/collections/boneless-cubes",         imageUrl: null },
+  { id: "cut-chops",    label: "Lamb Chops",             emoji: "🍖", url: "/collections/lamb-chops",             imageUrl: null },
+  { id: "cut-ribs",     label: "Ribs",                   emoji: "🦴", url: "/collections/ribs",                   imageUrl: null },
+  { id: "cut-burgers",  label: "Burgers",                emoji: "🍔", url: "/collections/burgers",                imageUrl: null },
+  { id: "cut-roast",    label: "Beef Roast",             emoji: "🥩", url: "/collections/beef-roast",             imageUrl: null },
+  { id: "cut-shanks",   label: "Shanks",                 emoji: "🦴", url: "/collections/shanks",                 imageUrl: null },
+  { id: "cut-carcass",  label: "Whole Carcass",          emoji: "🐄", url: "/collections/whole-carcass",          imageUrl: null },
+];
+
 function parseCutsSection(nodes: any[]): CutsSectionData | null {
   const node = nodes[0];
-  if (!node) return null;
-  const fm = Object.fromEntries(node.fields.map((f: any) => [f.key, f]));
-  const items: CutItem[] = (fm.items?.references?.nodes ?? []).map((item: any) => {
-    const f = Object.fromEntries(item.fields.map((x: any) => [x.key, x]));
-    return {
-      id: item.id as string,
-      label: (f.label?.value ?? "") as string,
-      emoji: (f.emoji?.value ?? "🥩") as string,
-      url: (f.url?.value ?? "/") as string,
-      imageUrl: (f.image?.reference?.image?.url ?? null) as string | null,
-    };
-  }).filter((c: CutItem) => c.label);
-  if (items.length === 0) return null;
+  const fm = node ? Object.fromEntries(node.fields.map((f: any) => [f.key, f])) : null;
+
+  const metaItems: CutItem[] = fm
+    ? (fm.items?.references?.nodes ?? []).map((item: any) => {
+        const f = Object.fromEntries(item.fields.map((x: any) => [x.key, x]));
+        return {
+          id: item.id as string,
+          label: (f.label?.value ?? "") as string,
+          emoji: (f.emoji?.value ?? "🥩") as string,
+          url: (f.url?.value ?? "/") as string,
+          imageUrl: (f.image?.reference?.image?.url ?? null) as string | null,
+        };
+      }).filter((c: CutItem) => c.label)
+    : [];
+
+  const items = metaItems.length > 0 ? metaItems : FALLBACK_CUTS;
+
   return {
-    eyebrow: (fm.eyebrow?.value ?? "Butcher's picks") as string,
-    heading: (fm.heading?.value ?? "Shop by Cuts") as string,
+    eyebrow: (fm?.eyebrow?.value ?? "Butcher's Picks") as string,
+    heading: (fm?.heading?.value ?? "Shop by Cuts") as string,
     items,
   };
 }
