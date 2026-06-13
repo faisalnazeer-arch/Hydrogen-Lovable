@@ -23,7 +23,8 @@ import { useCartSync } from "./hooks/useCartSync";
 import { useLocaleStore, dirFor, type Locale } from "./stores/localeStore";
 
 export const links: LinksFunction = () => [
-  { rel: "stylesheet", href: styles },
+  // Stylesheet is injected directly in Layout with suppressHydrationWarning
+  // to prevent Vite dev-mode ?t= timestamp causing a hydration cascade
   { rel: "icon", type: "image/png", href: mlsLogo },
   { rel: "apple-touch-icon", href: mlsLogo },
 ];
@@ -356,14 +357,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" dir="ltr" suppressHydrationWarning>
       <head>
-        {/* Critical CSS — inlined so variables & resets apply before external stylesheet loads,
-            preventing the flash of blue links and unstyled layout on first paint */}
+        {/* Critical CSS — inlined before external stylesheet so variables apply on first paint */}
         <style dangerouslySetInnerHTML={{ __html: `
           :root{--radius:.5rem;--crimson:oklch(0.36 0.18 27);--rich-red:oklch(0.52 0.21 28);--off-white:oklch(0.985 0.005 80);--bone:oklch(0.96 0.008 80);--charcoal:oklch(0.18 0.005 240);--charcoal-foreground:oklch(0.985 0.005 60);--gold:oklch(0.74 0.11 80);--background:var(--off-white);--foreground:var(--charcoal);--card:oklch(1 0 0);--card-foreground:var(--charcoal);--border:oklch(0.9 0.008 80);--muted:oklch(0.94 0.006 80);--muted-foreground:oklch(0.45 0.01 60);}
           *,::before,::after{box-sizing:border-box}
           body{margin:0;background-color:var(--background);color:var(--foreground);font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
           a{color:inherit;text-decoration:none}
         ` }} />
+        {/* Stylesheet via direct <link> with suppressHydrationWarning — prevents Vite dev-mode
+            from adding a ?t= timestamp that mismatches the SSR-rendered href and triggers a
+            full hydration failure + client re-render cascade */}
+        <link rel="stylesheet" href={styles} suppressHydrationWarning />
         {/* Inline script — sets lang/dir from cookie before React paints, eliminating Arabic flash */}
         <script dangerouslySetInnerHTML={{ __html: `(function(){try{var m=document.cookie.match(/(?:^|;\\s*)lang=([a-z]{2})/);if(m&&m[1]==='ar'){document.documentElement.lang='ar';document.documentElement.dir='rtl';}}catch(e){}})();` }} />
         <meta charSet="utf-8" />
