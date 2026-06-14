@@ -454,65 +454,174 @@ function CartSyncWrapper() {
 function PageLoader() {
   const navigation = useNavigation();
   const loading = navigation.state !== "idle";
+
   return (
     <>
       <style>{`
-        @keyframes logo-breathe {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.55; transform: scale(0.93); }
+        @keyframes mls-spin     { to { transform: rotate(360deg); } }
+        @keyframes mls-spin-rev { to { transform: rotate(-360deg); } }
+        @keyframes mls-logo-pulse {
+          0%,100% { transform: scale(1); filter: drop-shadow(0 0 0px rgba(220,38,38,0)); }
+          50%      { transform: scale(1.06); filter: drop-shadow(0 0 18px rgba(220,38,38,0.7)) drop-shadow(0 0 6px rgba(212,160,23,0.4)); }
         }
-        @keyframes ripple-out {
-          0%   { transform: scale(0.6); opacity: 0.6; }
-          100% { transform: scale(2.4); opacity: 0; }
+        @keyframes mls-orbit-a {
+          from { transform: rotate(0deg)   translateY(-94px); }
+          to   { transform: rotate(360deg) translateY(-94px); }
         }
-        @keyframes dot-pulse {
-          0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
-          40%            { transform: scale(1);   opacity: 1; }
+        @keyframes mls-orbit-b {
+          from { transform: rotate(120deg) translateY(-94px); }
+          to   { transform: rotate(480deg) translateY(-94px); }
+        }
+        @keyframes mls-orbit-c {
+          from { transform: rotate(240deg) translateY(-94px); }
+          to   { transform: rotate(600deg) translateY(-94px); }
+        }
+        @keyframes mls-shimmer {
+          from { background-position: 200% center; }
+          to   { background-position: -200% center; }
+        }
+        @keyframes mls-ambient {
+          0%,100% { opacity: 0.5; transform: scale(1); }
+          50%      { opacity: 1;   transform: scale(1.2); }
+        }
+        @keyframes mls-dot {
+          0%,100% { transform: scaleY(0.4); opacity: 0.3; }
+          50%      { transform: scaleY(1);   opacity: 1; }
+        }
+        @keyframes mls-fade-in {
+          from { opacity: 0; transform: translateY(6px); }
+          to   { opacity: 1; transform: translateY(0); }
         }
       `}</style>
+
       <div
         aria-hidden
         className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center transition-opacity ${
           loading ? "opacity-100 duration-150" : "opacity-0 duration-200 pointer-events-none"
         }`}
-        style={{ background: "rgba(255,255,255,0.78)", backdropFilter: "blur(14px)" }}
+        style={{ background: "rgba(10,10,10,0.94)", backdropFilter: "blur(22px)", WebkitBackdropFilter: "blur(22px)" }}
       >
-        {/* Logo with ripple rings */}
-        <div className="relative flex items-center justify-center" style={{ width: 200, height: 200 }}>
-          <span
-            className="absolute rounded-full"
-            style={{
-              inset: 0,
-              background: "radial-gradient(circle, rgba(185,28,28,0.18) 0%, transparent 70%)",
-              animation: "ripple-out 2s ease-out infinite",
-            }}
-          />
-          <span
-            className="absolute rounded-full"
-            style={{
-              inset: 0,
-              background: "radial-gradient(circle, rgba(185,28,28,0.12) 0%, transparent 70%)",
-              animation: "ripple-out 2s ease-out 0.9s infinite",
-            }}
-          />
-          <img
-            src={mlsLogo}
-            alt=""
-            className="relative z-10 drop-shadow-2xl"
-            style={{ height: 110, width: "auto", animation: "logo-breathe 2.4s ease-in-out infinite" }}
-          />
+        {/* Ambient radial glow blob */}
+        <div style={{
+          position: "absolute", width: 480, height: 480, borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(220,38,38,0.14) 0%, rgba(212,160,23,0.04) 45%, transparent 70%)",
+          animation: "mls-ambient 3.5s ease-in-out infinite",
+          pointerEvents: "none",
+        }} />
+
+        {/* Spinner stage */}
+        <div style={{ position: "relative", width: 210, height: 210 }}>
+
+          {/* Outermost slow counter-spin dashed ring */}
+          <div style={{
+            position: "absolute", inset: -28, borderRadius: "50%",
+            border: "1px dashed rgba(212,160,23,0.18)",
+            animation: "mls-spin-rev 18s linear infinite",
+          }} />
+
+          {/* Mid counter-spin ring */}
+          <div style={{
+            position: "absolute", inset: -14, borderRadius: "50%",
+            border: "1.5px dashed rgba(220,38,38,0.22)",
+            animation: "mls-spin-rev 10s linear infinite",
+          }} />
+
+          {/* Primary conic gradient ring — crimson → gold → crimson sweep */}
+          <div style={{
+            position: "absolute", inset: -4, borderRadius: "50%",
+            background: "conic-gradient(from 0deg, transparent 0%, #dc2626 20%, #ef4444 35%, #d4a017 50%, #ef4444 65%, #dc2626 80%, transparent 100%)",
+            animation: "mls-spin 1.7s linear infinite",
+            WebkitMask: "radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px))",
+            mask: "radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px))",
+          }} />
+
+          {/* Inner thin accent ring */}
+          <div style={{
+            position: "absolute", inset: 8, borderRadius: "50%",
+            border: "1px solid rgba(220,38,38,0.12)",
+            animation: "mls-spin 4s linear infinite",
+          }} />
+
+          {/* Orbiting particle A — crimson */}
+          <div style={{
+            position: "absolute", top: "50%", left: "50%",
+            width: 10, height: 10, marginTop: -5, marginLeft: -5,
+            borderRadius: "50%",
+            background: "radial-gradient(circle, #ff6b6b, #dc2626)",
+            boxShadow: "0 0 12px rgba(220,38,38,1), 0 0 28px rgba(220,38,38,0.5)",
+            animation: "mls-orbit-a 3s linear infinite",
+          }} />
+
+          {/* Orbiting particle B — gold */}
+          <div style={{
+            position: "absolute", top: "50%", left: "50%",
+            width: 7, height: 7, marginTop: -3.5, marginLeft: -3.5,
+            borderRadius: "50%",
+            background: "radial-gradient(circle, #ffe066, #d4a017)",
+            boxShadow: "0 0 10px rgba(212,160,23,1), 0 0 22px rgba(212,160,23,0.5)",
+            animation: "mls-orbit-b 3s linear infinite",
+          }} />
+
+          {/* Orbiting particle C — small crimson */}
+          <div style={{
+            position: "absolute", top: "50%", left: "50%",
+            width: 5, height: 5, marginTop: -2.5, marginLeft: -2.5,
+            borderRadius: "50%",
+            background: "#ef4444",
+            boxShadow: "0 0 8px rgba(239,68,68,0.9)",
+            animation: "mls-orbit-c 3s linear infinite",
+          }} />
+
+          {/* Logo — white backing disc + logo image */}
+          <div style={{
+            position: "absolute", inset: 0,
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            <div style={{
+              width: 130, height: 130, borderRadius: "50%",
+              background: "radial-gradient(circle at 40% 35%, #ffffff 60%, #f3f0e8 100%)",
+              boxShadow: "0 0 0 1px rgba(255,255,255,0.15), 0 8px 40px rgba(0,0,0,0.6)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <img
+                src={mlsLogo}
+                alt=""
+                style={{ height: 82, width: "auto", animation: "mls-logo-pulse 2.6s ease-in-out infinite" }}
+              />
+            </div>
+          </div>
         </div>
 
-        {/* Staggered dots */}
-        <div className="mt-6 flex items-center gap-2.5">
-          {[0, 1, 2].map((i) => (
+        {/* Shimmer tagline */}
+        <div
+          style={{
+            marginTop: 44,
+            fontSize: 10,
+            fontWeight: 800,
+            letterSpacing: "0.45em",
+            textTransform: "uppercase",
+            background: "linear-gradient(90deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.85) 30%, #ef4444 48%, #d4a017 52%, rgba(255,255,255,0.85) 70%, rgba(255,255,255,0.15) 100%)",
+            backgroundSize: "250% auto",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+            animation: "mls-shimmer 2.2s linear infinite, mls-fade-in 0.6s ease-out 0.1s both",
+          }}
+        >
+          Premium Cuts
+        </div>
+
+        {/* Audio-bar style pulse indicator */}
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 4, marginTop: 18, height: 20, animation: "mls-fade-in 0.4s ease-out 0.25s both", opacity: 0 }}>
+          {[12, 18, 10, 20, 8, 16, 12].map((h, i) => (
             <span
               key={i}
-              className="block rounded-full bg-crimson"
               style={{
-                width: 8,
-                height: 8,
-                animation: `dot-pulse 1.4s ease-in-out ${i * 0.22}s infinite`,
+                display: "block", width: 3, borderRadius: 2,
+                height: h,
+                background: i === 3 ? "linear-gradient(to top, #dc2626, #d4a017)" : "rgba(220,38,38,0.7)",
+                animation: `mls-dot 0.9s ease-in-out ${i * 0.1}s infinite`,
+                transformOrigin: "bottom",
               }}
             />
           ))}
