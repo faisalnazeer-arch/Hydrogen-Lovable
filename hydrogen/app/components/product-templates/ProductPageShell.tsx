@@ -1255,8 +1255,8 @@ export function ProductPageShell({
 
       {/* Recommended products */}
       {recommendations.length > 0 && (
-        <div className="container mx-auto px-4 pb-16">
-          <div className="mb-3 md:mb-6">
+        <div className="container mx-auto px-4 pt-8 pb-4">
+          <div className="mb-3 md:mb-5">
             <p className="mb-0.5 text-[10px] font-bold uppercase tracking-[0.2em] text-crimson md:mb-1 md:text-[11px]">You might also like</p>
             <h2 className="font-display text-base font-bold leading-snug tracking-tight md:text-xl">Recommended for You</h2>
           </div>
@@ -1271,7 +1271,7 @@ export function ProductPageShell({
       )}
 
       {/* Reviews — Judge.me CDN widget (shows all reviews including historical ones) */}
-      <div id="reviews" className="container mx-auto px-4 pb-8">
+      <div id="reviews" className="container mx-auto px-4 pb-6">
         {externalId ? (
           <JudgemeWidgetEmbed
             externalId={externalId}

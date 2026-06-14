@@ -223,7 +223,7 @@ export function JudgemeWidgetEmbed({ externalId, shopDomain }: Props) {
   }, [loaded]);
 
   return (
-    <section className="border-t border-border pt-6" aria-busy={!loaded}>
+    <section className="border-t border-border pt-5" aria-busy={!loaded}>
       {!loaded && <ReviewSkeleton />}
       {/* opacity:0 keeps the div in full layout flow so Judge.me's
           IntersectionObserver and dimension calculations work correctly */}
