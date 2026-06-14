@@ -544,8 +544,18 @@ function MobileMenuDrawer({
           : (tabs[tab1Idx]?.items ?? []).map((item) => {
               const thumbUrl    = navItemImages[item.title] ?? item.imageUrl ?? null;
               const initial     = (item.title[0] ?? "•").toUpperCase();
-              const hasChildren = item.subItems.length > 0;
               const isOpen      = openItems.has(item.id);
+
+              // If mls-mobile-menu has no Level-3 sub-items for this entry, fall back
+              // to the matching mainMenu entry's column links so the accordion still works.
+              const mainEntry   = mainMenu.find((e) => e.url === item.url);
+              const fallbackSubs = mainEntry
+                ? mainEntry.columns.flatMap((col) =>
+                    col.links.map((lnk) => ({ id: lnk.url, title: lnk.label, url: lnk.url }))
+                  )
+                : [];
+              const subItems    = item.subItems.length > 0 ? item.subItems : fallbackSubs;
+              const hasChildren = subItems.length > 0;
 
               const thumb = thumbUrl
                 ? <img src={cdnImg(thumbUrl, 120)} alt={item.title} className="h-12 w-20 shrink-0 rounded-lg object-cover" loading="lazy" />
@@ -572,10 +582,10 @@ function MobileMenuDrawer({
                     </Link>
                   )}
                   {isOpen && (
-                    <div className="border-b border-border/60">
-                      {item.subItems.map((sub) => (
+                    <div className="border-b border-border/60 ml-4 border-l-2 border-l-crimson/30">
+                      {subItems.map((sub) => (
                         <Link key={sub.id} to={sub.url} onClick={onClose} prefetch="intent"
-                          className="block py-2.5 pl-[4.5rem] pr-4 text-[13px] text-foreground/80 transition-colors hover:text-crimson"
+                          className="block border-b border-border/25 py-2.5 pl-4 pr-4 text-[12px] font-medium text-foreground/70 last:border-0 transition-colors hover:text-crimson"
                         >
                           {sub.title}
                         </Link>
