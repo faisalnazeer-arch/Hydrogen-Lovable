@@ -75,7 +75,8 @@ export function ValueBoxesBanner({ banner }: Props) {
               {banner.btn1Label && banner.btn1Link && (
                 <Link
                   to={banner.btn1Link}
-                  className="group inline-flex items-center gap-2 rounded-full bg-off-white px-6 py-2.5 text-[13px] font-bold uppercase tracking-wider text-charcoal transition-all duration-200 hover:bg-gold hover:shadow-[0_4px_20px_rgba(0,0,0,0.3)]"
+                  className="group inline-flex items-center gap-2 rounded-full bg-off-white px-6 py-2.5 text-[13px] font-bold uppercase tracking-wider transition-all duration-200 hover:bg-gold hover:shadow-[0_4px_20px_rgba(0,0,0,0.3)]"
+                  style={{ color: 'oklch(0.18 0.005 240)' }}
                 >
                   {banner.btn1Label}
                   <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
@@ -84,7 +85,8 @@ export function ValueBoxesBanner({ banner }: Props) {
               {banner.btn2Label && banner.btn2Link && (
                 <Link
                   to={banner.btn2Link}
-                  className="inline-flex items-center gap-2 rounded-full border border-off-white/30 px-6 py-2.5 text-[13px] font-bold uppercase tracking-wider text-off-white/80 transition-all duration-200 hover:border-off-white/60 hover:text-off-white"
+                  className="inline-flex items-center gap-2 rounded-full border border-off-white/30 px-6 py-2.5 text-[13px] font-bold uppercase tracking-wider transition-all duration-200 hover:border-off-white/60"
+                  style={{ color: 'rgba(250,249,246,0.8)' }}
                 >
                   {banner.btn2Label}
                 </Link>

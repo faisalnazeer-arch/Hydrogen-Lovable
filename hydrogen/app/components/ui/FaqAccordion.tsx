@@ -66,7 +66,8 @@ export function FaqAccordion({
           <p className="mx-auto mt-2 max-w-sm text-sm text-white/80 md:text-base">{ctaSubtitle}</p>
           <Link
             to="/pages/contact-us"
-            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-sm font-bold text-crimson shadow-md transition-all hover:scale-105 hover:shadow-lg"
+            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-sm font-bold shadow-md transition-all hover:scale-105 hover:shadow-lg"
+            style={{ color: 'oklch(0.36 0.18 27)' }}
           >
             <MessageCircle className="h-4 w-4" />
             Contact Us
