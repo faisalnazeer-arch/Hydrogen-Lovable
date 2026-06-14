@@ -6,6 +6,7 @@ import {
   Menu,
   ChevronDown,
   ChevronRight,
+  ChevronLeft,
   Beef,
   Drumstick,
   Star,
@@ -361,52 +362,80 @@ function MobileMenuDrawer({
   mobileMenu: import("~/root").MobileMenuTab[];
   onClose: () => void;
 }) {
-  const [activeTabIdx, setActiveTabIdx] = useState(0);
-  const [openItemId, setOpenItemId] = useState<string | null>(null);
-  const tabs = mobileMenu.length > 0 ? mobileMenu : [];
-  const activeItems = tabs[activeTabIdx]?.items ?? [];
+  // Level 1: which top-level tab is active (Categories / Collections / Boxes)
+  const [tab1Idx, setTab1Idx] = useState(0);
+  // Level 2: which mainMenu entry the user drilled into (null = level 1 visible)
+  const [drillEntry, setDrillEntry] = useState<NavEntry | null>(null);
+  // Level 2: which column tab is active inside the drilled entry
+  const [tab2Idx, setTab2Idx] = useState(0);
 
-  // Close accordion when tab changes
-  const handleTabChange = (i: number) => {
-    setActiveTabIdx(i);
-    setOpenItemId(null);
-  };
+  const tabs = mobileMenu;
+  const isCategories = tabs[tab1Idx]?.label?.toLowerCase() === "categories";
+
+  // Columns that have sub-links → become tabs; columns without → become direct links
+  const drillColumns = drillEntry?.columns ?? [];
+  const tabCols   = drillColumns.filter((c) => c.links.length > 0);
+  const directCols = drillColumns.filter((c) => c.links.length === 0 && c.url);
+  const activeColLinks = tabCols[tab2Idx]?.links ?? [];
+
+  const handleTab1Change = (i: number) => { setTab1Idx(i); setDrillEntry(null); setTab2Idx(0); };
+  const handleDrill = (entry: NavEntry) => { setDrillEntry(entry); setTab2Idx(0); };
+  const handleBack  = () => { setDrillEntry(null); setTab2Idx(0); };
 
   return (
     <div className="flex h-full flex-col bg-background">
       <SheetTitle className="sr-only">Menu</SheetTitle>
 
-      {/* Header */}
-      <div className="relative flex shrink-0 items-center justify-center border-b border-border py-3 px-12">
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close"
-          className="absolute left-4 flex h-8 w-8 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted"
-        >
-          <X className="h-4 w-4" />
-        </button>
-        <img src={logo} alt="MLS" className="h-8 w-auto" />
-      </div>
+      {/* ── Header ── */}
+      {drillEntry ? (
+        /* Level 2 header: back + entry title + View All */
+        <div className="relative flex shrink-0 items-center justify-center border-b border-border py-3 px-12">
+          <button
+            type="button"
+            onClick={handleBack}
+            aria-label="Back"
+            className="absolute left-3 flex h-8 w-8 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <span className="text-[13px] font-bold text-foreground">{drillEntry.label}</span>
+          {drillEntry.url && (
+            <Link
+              to={drillEntry.url}
+              onClick={onClose}
+              prefetch="intent"
+              className="absolute right-4 text-[11px] font-semibold text-crimson"
+            >
+              View All
+            </Link>
+          )}
+        </div>
+      ) : (
+        /* Level 1 header: close + logo */
+        <div className="relative flex shrink-0 items-center justify-center border-b border-border py-3 px-12">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="absolute left-4 flex h-8 w-8 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted"
+          >
+            <X className="h-4 w-4" />
+          </button>
+          <img src={logo} alt="MLS" className="h-8 w-auto" />
+        </div>
+      )}
 
-      {/* Promo banners */}
-      {mobileBanners.length > 0 && (
+      {/* ── Promo banners — level 1 only ── */}
+      {!drillEntry && mobileBanners.length > 0 && (
         <div className="flex shrink-0 gap-2 border-b border-border bg-background px-3 py-2.5">
           {mobileBanners.map((banner) => (
             <Link key={banner.id} to={banner.url} onClick={onClose} prefetch="intent" className="relative flex-1 overflow-hidden rounded-xl">
               <img src={cdnImg(banner.imageUrl, 300)} alt={banner.altText} className="h-24 w-full object-cover" loading="eager" />
-              {/* Text overlay — shown when heading/highlight are set in metaobject */}
               {(banner.heading || banner.highlight) && (
                 <div className="absolute inset-0 flex flex-col justify-center pl-3 pr-1">
-                  {banner.heading && (
-                    <span className="text-[11px] font-black leading-tight text-white drop-shadow">{banner.heading}</span>
-                  )}
-                  {banner.highlight && (
-                    <span className="text-[13px] font-black leading-tight text-crimson drop-shadow">{banner.highlight}</span>
-                  )}
-                  {banner.ctaText && (
-                    <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wider text-white/80 drop-shadow">{banner.ctaText}</span>
-                  )}
+                  {banner.heading && <span className="text-[11px] font-black leading-tight text-white drop-shadow">{banner.heading}</span>}
+                  {banner.highlight && <span className="text-[13px] font-black leading-tight text-crimson drop-shadow">{banner.highlight}</span>}
+                  {banner.ctaText && <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wider text-white/80 drop-shadow">{banner.ctaText}</span>}
                 </div>
               )}
             </Link>
@@ -414,18 +443,16 @@ function MobileMenuDrawer({
         </div>
       )}
 
-      {/* Tab bar */}
-      {tabs.length > 0 && (
+      {/* ── Level 1 tab bar (Categories | Collections | Boxes) ── */}
+      {!drillEntry && tabs.length > 0 && (
         <div className="flex shrink-0 border-b border-border bg-background">
           {tabs.map((tab, i) => (
             <button
               key={tab.label}
               type="button"
-              onClick={() => handleTabChange(i)}
+              onClick={() => handleTab1Change(i)}
               className={`flex-1 py-2.5 text-[11px] font-bold uppercase tracking-wider transition-colors ${
-                i === activeTabIdx
-                  ? "border-b-2 border-crimson text-crimson"
-                  : "text-foreground/50 hover:text-foreground"
+                i === tab1Idx ? "border-b-2 border-crimson text-crimson" : "text-foreground/50 hover:text-foreground"
               }`}
             >
               {tab.label}
@@ -434,176 +461,163 @@ function MobileMenuDrawer({
         </div>
       )}
 
-      {/* Scrollable body */}
+      {/* ── Level 2 column tabs (Shop By Cuts | By Origin | …) ── */}
+      {drillEntry && tabCols.length > 1 && (
+        <div className="flex shrink-0 overflow-x-auto border-b border-border bg-background scrollbar-none">
+          {tabCols.map((col, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setTab2Idx(i)}
+              className={`shrink-0 px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider transition-colors ${
+                i === tab2Idx ? "border-b-2 border-crimson text-crimson" : "text-foreground/50 hover:text-foreground"
+              }`}
+            >
+              {col.title}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* ── Scrollable body ── */}
       <div className="flex-1 overflow-y-auto">
 
-        {/* Categories tab → full desktop mainMenu with columns + links */}
-        {tabs[activeTabIdx]?.label?.toLowerCase() === "categories"
-          ? mainMenu.map((entry) => {
-              const thumbUrl = navItemImages[entry.label] ?? entry.imageUrl ?? null;
-              const initial = (entry.label[0] ?? "•").toUpperCase();
-              const hasColumns = entry.columns.length > 0;
-              const isOpen = openItemId === entry.id;
+        {drillEntry ? (
+          /* ── Level 2 body ── */
+          <>
+            {/* Active column's links */}
+            {(tabCols.length > 0 ? activeColLinks : drillColumns.flatMap((c) => c.links)).map((link) => (
+              <Link
+                key={link.url + link.label}
+                to={link.url}
+                onClick={onClose}
+                prefetch="intent"
+                className="flex items-center gap-3 border-b border-border/40 px-4 py-3 text-[13px] font-medium text-foreground transition-colors hover:bg-muted/40 hover:text-crimson"
+              >
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-crimson/50" />
+                {link.label}
+              </Link>
+            ))}
 
-              return (
-                <div key={entry.id}>
-                  <div className={`flex items-center gap-3 border-b px-4 py-2.5 transition-colors ${isOpen ? "border-border bg-muted/30" : "border-border/50 hover:bg-muted/40"}`}>
-                    <Link to={entry.url ?? "/"} onClick={onClose} prefetch="intent" className="h-12 w-[3.25rem] shrink-0 overflow-hidden rounded-lg">
-                      {thumbUrl ? (
-                        <img src={cdnImg(thumbUrl, 120)} alt={entry.label} className="h-full w-full object-cover" loading="lazy" />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-crimson/15 to-crimson/5">
-                          <span className="text-sm font-black text-crimson">{initial}</span>
-                        </div>
-                      )}
-                    </Link>
-                    <Link to={entry.url ?? "/"} onClick={onClose} prefetch="intent" className="flex-1 text-[13px] font-semibold text-foreground">
-                      {entry.label}
-                    </Link>
-                    {hasColumns ? (
-                      <button
-                        type="button"
-                        onClick={() => setOpenItemId(isOpen ? null : entry.id)}
-                        className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border text-[14px] font-light leading-none transition-colors ${
-                          isOpen ? "border-crimson bg-crimson text-white" : "border-border text-muted-foreground hover:border-crimson hover:text-crimson"
-                        }`}
-                      >
-                        {isOpen ? "−" : "+"}
-                      </button>
-                    ) : (
-                      <span className="text-lg font-light text-muted-foreground/40">+</span>
-                    )}
-                  </div>
-
-                  {hasColumns && isOpen && (
-                    <div className="border-b border-border/40 bg-muted/20">
-                      {entry.columns.map((col, ci) => (
-                        <div key={ci}>
-                          {/* Named column → section label */}
-                          {col.title && (
-                            <div className="border-b border-border/10 px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
-                              {col.url ? (
-                                <Link to={col.url} onClick={onClose} prefetch="intent" className="hover:text-crimson">
-                                  {col.title}
-                                </Link>
-                              ) : col.title}
-                            </div>
-                          )}
-                          {/* Column links */}
-                          {col.links.map((link) => (
-                            <Link
-                              key={link.url + link.label}
-                              to={link.url}
-                              onClick={onClose}
-                              prefetch="intent"
-                              className="flex items-center gap-2 border-b border-border/20 py-2.5 pl-[4.5rem] pr-4 text-[12px] font-medium text-foreground/70 last:border-0 transition-colors hover:text-crimson"
-                            >
-                              <span className="h-1 w-1 shrink-0 rounded-full bg-crimson/50" />
-                              {link.label}
-                            </Link>
-                          ))}
-                          {/* Column has no links but has its own URL → direct link */}
-                          {col.links.length === 0 && col.url && (
-                            <Link
-                              to={col.url}
-                              onClick={onClose}
-                              prefetch="intent"
-                              className="flex items-center gap-2 border-b border-border/20 py-2.5 pl-[4.5rem] pr-4 text-[12px] font-medium text-foreground/70 last:border-0 transition-colors hover:text-crimson"
-                            >
-                              <span className="h-1 w-1 shrink-0 rounded-full bg-crimson/50" />
-                              {col.title}
-                            </Link>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
+            {/* Direct-link columns (no sub-links, just a URL) — shown as plain rows */}
+            {directCols.length > 0 && (
+              <>
+                <div className="border-t border-border/40 px-4 pt-3 pb-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+                  Browse
                 </div>
-              );
-            })
-
-          /* Collections / Boxes tabs → mobileMenu items */
-          : activeItems.map((item) => {
-              const initial = (item.title[0] ?? "•").toUpperCase();
-              const subLinks = item.subItems;
-              const hasSubLinks = subLinks.length > 0;
-              const isOpen = openItemId === item.id;
-              const thumbUrl = navItemImages[item.title] ?? item.imageUrl;
-
-              return (
-                <div key={item.id}>
-                  <div className={`flex items-center gap-3 border-b px-4 py-2.5 transition-colors ${isOpen ? "border-border bg-muted/30" : "border-border/50 hover:bg-muted/40"}`}>
-                    <Link to={item.url} onClick={onClose} prefetch="intent" className="h-12 w-[3.25rem] shrink-0 overflow-hidden rounded-lg">
-                      {thumbUrl ? (
-                        <img src={cdnImg(thumbUrl, 120)} alt={item.title} className="h-full w-full object-cover" loading="lazy" />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-crimson/15 to-crimson/5">
-                          <span className="text-sm font-black text-crimson">{initial}</span>
-                        </div>
-                      )}
-                    </Link>
-                    <Link to={item.url} onClick={onClose} prefetch="intent" className="flex-1 text-[13px] font-semibold text-foreground">
-                      {item.title}
-                    </Link>
-                    {hasSubLinks ? (
-                      <button
-                        type="button"
-                        onClick={() => setOpenItemId(isOpen ? null : item.id)}
-                        className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border text-[14px] font-light leading-none transition-colors ${
-                          isOpen ? "border-crimson bg-crimson text-white" : "border-border text-muted-foreground hover:border-crimson hover:text-crimson"
-                        }`}
-                      >
-                        {isOpen ? "−" : "+"}
-                      </button>
-                    ) : (
-                      <span className="text-lg font-light text-muted-foreground/40">+</span>
-                    )}
-                  </div>
-                  {hasSubLinks && isOpen && (
-                    <div className="border-b border-border/40 bg-muted/20">
-                      {subLinks.map((link) => (
-                        <Link
-                          key={link.id}
-                          to={link.url}
-                          onClick={onClose}
-                          prefetch="intent"
-                          className="flex items-center gap-2 border-b border-border/20 py-2.5 pl-[4.5rem] pr-4 text-[12px] font-medium text-foreground/70 last:border-0 transition-colors hover:text-crimson"
-                        >
-                          <span className="h-1 w-1 shrink-0 rounded-full bg-crimson/50" />
-                          {link.title}
-                        </Link>
-                      ))}
+                {directCols.map((col) => (
+                  <Link
+                    key={col.url}
+                    to={col.url!}
+                    onClick={onClose}
+                    prefetch="intent"
+                    className="flex items-center gap-3 border-b border-border/40 px-4 py-3 text-[13px] font-medium text-foreground transition-colors hover:bg-muted/40 hover:text-crimson"
+                  >
+                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-crimson/30" />
+                    {col.title}
+                    <ChevronRight className="ml-auto h-3.5 w-3.5 text-muted-foreground/50" />
+                  </Link>
+                ))}
+              </>
+            )}
+          </>
+        ) : (
+          /* ── Level 1 body ── */
+          <>
+            {isCategories
+              ? /* Categories → mainMenu entries */
+                mainMenu.map((entry) => {
+                  const thumbUrl = navItemImages[entry.label] ?? entry.imageUrl ?? null;
+                  const initial  = (entry.label[0] ?? "•").toUpperCase();
+                  const hasChildren = entry.columns.length > 0;
+                  const thumb = thumbUrl ? (
+                    <img src={cdnImg(thumbUrl, 120)} alt={entry.label} className="h-12 w-[3.25rem] shrink-0 rounded-lg object-cover" loading="lazy" />
+                  ) : (
+                    <div className="flex h-12 w-[3.25rem] shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-crimson/15 to-crimson/5">
+                      <span className="text-sm font-black text-crimson">{initial}</span>
                     </div>
-                  )}
-                </div>
+                  );
+
+                  // Has children → whole row drills in (no navigation)
+                  if (hasChildren) {
+                    return (
+                      <button
+                        key={entry.id}
+                        type="button"
+                        onClick={() => handleDrill(entry)}
+                        className="flex w-full items-center gap-3 border-b border-border/50 px-4 py-2.5 text-left transition-colors hover:bg-muted/40"
+                      >
+                        {thumb}
+                        <span className="flex-1 text-[13px] font-semibold text-foreground">{entry.label}</span>
+                        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50" />
+                      </button>
+                    );
+                  }
+
+                  // No children → whole row navigates
+                  return (
+                    <Link
+                      key={entry.id}
+                      to={entry.url ?? "/"}
+                      onClick={onClose}
+                      prefetch="intent"
+                      className="flex items-center gap-3 border-b border-border/50 px-4 py-2.5 transition-colors hover:bg-muted/40"
+                    >
+                      {thumb}
+                      <span className="flex-1 text-[13px] font-semibold text-foreground">{entry.label}</span>
+                    </Link>
+                  );
+                })
+              : /* Collections / Boxes → mobileMenu items */
+                (tabs[tab1Idx]?.items ?? []).map((item) => {
+                  const thumbUrl = navItemImages[item.title] ?? item.imageUrl ?? null;
+                  const initial  = (item.title[0] ?? "•").toUpperCase();
+                  const thumb = thumbUrl ? (
+                    <img src={cdnImg(thumbUrl, 120)} alt={item.title} className="h-12 w-[3.25rem] shrink-0 rounded-lg object-cover" loading="lazy" />
+                  ) : (
+                    <div className="flex h-12 w-[3.25rem] shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-crimson/15 to-crimson/5">
+                      <span className="text-sm font-black text-crimson">{initial}</span>
+                    </div>
+                  );
+                  return (
+                    <Link
+                      key={item.id}
+                      to={item.url}
+                      onClick={onClose}
+                      prefetch="intent"
+                      className="flex items-center gap-3 border-b border-border/50 px-4 py-2.5 transition-colors hover:bg-muted/40"
+                    >
+                      {thumb}
+                      <span className="flex-1 text-[13px] font-semibold text-foreground">{item.title}</span>
+                    </Link>
+                  );
+                })
+            }
+
+            {/* Divider + secondary menu */}
+            <div className="my-1 border-t border-border/60" />
+            {secondaryMenu.map((entry) => {
+              const Icon = pickIcon(entry.label, entry.url ?? "");
+              return (
+                <Link
+                  key={entry.id}
+                  to={entry.url ?? "/"}
+                  onClick={onClose}
+                  prefetch="intent"
+                  className="flex items-center gap-3 border-b border-border/40 px-4 py-2.5 transition-colors hover:bg-muted/40"
+                >
+                  <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-crimson/10 text-crimson">
+                    <Icon className="h-3.5 w-3.5" />
+                  </div>
+                  <span className="flex-1 text-[13px] font-semibold">{entry.label}</span>
+                </Link>
               );
-            })
-        }
-
-        {/* Divider before secondary links */}
-        <div className="my-1 border-t border-border/60" />
-
-        {/* Secondary menu — Customer Reviews, Store Locations, etc. */}
-        {secondaryMenu.map((entry) => {
-          const Icon = pickIcon(entry.label, entry.url ?? "");
-          return (
-            <Link
-              key={entry.id}
-              to={entry.url ?? "/"}
-              onClick={onClose}
-              prefetch="intent"
-              className="flex items-center gap-3 border-b border-border/40 px-4 py-2.5 transition-colors hover:bg-muted/40"
-            >
-              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-crimson/10 text-crimson">
-                <Icon className="h-3.5 w-3.5" />
-              </div>
-              <span className="flex-1 text-[13px] font-semibold">{entry.label}</span>
-            </Link>
-          );
-        })}
+            })}
+          </>
+        )}
       </div>
 
-      {/* Login button */}
+      {/* ── Login button ── */}
       <div className="shrink-0 border-t border-border p-3">
         <a
           href="https://mlsuae.ae/customer_authentication/redirect?locale=en&region_country=AE"
