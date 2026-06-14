@@ -473,7 +473,7 @@ export function CartDrawer() {
                   {isLoading || isSyncing ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    {t("cart.checkout")}
+                    t("cart.checkout")
                   )}
                 </Button>
                 <button
