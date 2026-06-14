@@ -61,7 +61,7 @@ export function ValueBoxesBanner({ banner }: Props) {
               </div>
             )}
 
-            <h2 className="font-display text-3xl font-extrabold leading-[1.15] tracking-tight text-off-white md:text-4xl">
+            <h2 className="font-display text-xl font-bold leading-snug tracking-tight text-off-white md:text-3xl">
               {banner.heading}
             </h2>
 

@@ -89,7 +89,7 @@ export function ShopByOrigin({ section }: Props) {
             </span>
             <span className="h-px w-6 rounded-full bg-crimson" />
           </div>
-          <h2 className="font-display text-2xl font-extrabold tracking-tight md:text-4xl">
+          <h2 className="font-display text-xl font-bold leading-snug tracking-tight md:text-3xl">
             {section.heading}
           </h2>
         </div>

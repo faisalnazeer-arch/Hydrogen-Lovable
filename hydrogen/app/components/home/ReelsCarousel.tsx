@@ -34,7 +34,7 @@ export function ReelsCarousel({ reels, label = "Watch & Shop", heading = "MLS Re
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-crimson">{label}</p>
           <span className="h-px w-6 rounded-full bg-crimson" />
         </div>
-        <h2 className="font-display text-2xl font-extrabold tracking-tight md:text-4xl">{heading}</h2>
+        <h2 className="font-display text-xl font-bold leading-snug tracking-tight md:text-3xl">{heading}</h2>
       </div>
 
       <HScroller>

@@ -45,7 +45,7 @@ export function CategorySection({
             <span className="h-px w-6 rounded-full bg-crimson" />
           </div>
         )}
-        <h2 className="font-display text-2xl font-extrabold tracking-tight md:text-4xl">{title}</h2>
+        <h2 className="font-display text-xl font-bold leading-snug tracking-tight md:text-3xl">{title}</h2>
       </div>
 
       {/* Tabs */}

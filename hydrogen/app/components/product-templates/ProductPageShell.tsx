@@ -893,7 +893,7 @@ export function ProductPageShell({
         {/* ── Product info ── */}
         <div className="flex min-w-0 flex-col gap-4 sm:gap-5">
           <div>
-            <h1 className="font-display text-xl font-extrabold leading-tight sm:text-2xl md:text-3xl">{product.title}</h1>
+            <h1 className="font-display text-lg font-bold leading-snug tracking-tight sm:text-xl md:text-2xl">{product.title}</h1>
             {displayRating.average > 0 && (
               <button type="button" onClick={() => document.getElementById("reviews")?.scrollIntoView({ behavior: "smooth" })}
                 className="mt-2 flex items-center gap-2 transition-opacity hover:opacity-80">
@@ -1258,7 +1258,7 @@ export function ProductPageShell({
         <div className="container mx-auto px-4 pb-16">
           <div className="mb-3 md:mb-6">
             <p className="mb-0.5 text-[10px] font-bold uppercase tracking-[0.2em] text-crimson md:mb-1 md:text-[11px]">You might also like</p>
-            <h2 className="font-display text-lg font-extrabold md:text-2xl">Recommended for You</h2>
+            <h2 className="font-display text-base font-bold leading-snug tracking-tight md:text-xl">Recommended for You</h2>
           </div>
           <HScroller>
             {recommendations.map((p) => (

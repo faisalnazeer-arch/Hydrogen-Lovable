@@ -250,7 +250,7 @@ function DynamicContent({ slide, active }: { slide: HeroSlide; active: boolean }
             </span>
           )}
           {headline && (
-            <h1 className="hero-headline font-display text-3xl font-black leading-[1.1] tracking-tight text-off-white drop-shadow-lg md:text-5xl lg:text-6xl">
+            <h1 className="hero-headline font-display text-2xl font-bold leading-[1.15] tracking-tight text-off-white drop-shadow-lg md:text-4xl lg:text-5xl">
               {headline}
             </h1>
           )}
