@@ -28,7 +28,7 @@ export function ValueBoxesBanner({ banner }: Props) {
   if (!banner || !banner.heading) return null;
 
   return (
-    <section className="container mx-auto px-4 py-8 md:py-12">
+    <section className="container mx-auto px-4 py-8 md:py-10">
       <div className="relative overflow-hidden rounded-2xl bg-charcoal">
 
         {/* Background image */}
@@ -48,10 +48,10 @@ export function ValueBoxesBanner({ banner }: Props) {
         <div className="pointer-events-none absolute -bottom-16 right-32 h-52 w-52 rounded-full bg-white/[0.03]" />
 
         {/* Two-column layout */}
-        <div className="relative grid items-center gap-8 px-8 py-10 md:grid-cols-2 md:px-12 md:py-12 lg:px-16">
+        <div className="relative grid items-center gap-6 px-6 py-8 md:grid-cols-2 md:px-10 md:py-10 lg:px-12">
 
           {/* Left — text */}
-          <div className="flex flex-col gap-5">
+          <div className="flex flex-col gap-3">
             {banner.eyebrow && (
               <div className="flex items-center gap-2">
                 <span className="h-px w-5 rounded-full bg-gold/70" />

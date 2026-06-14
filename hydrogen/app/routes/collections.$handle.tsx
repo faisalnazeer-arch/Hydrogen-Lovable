@@ -276,7 +276,7 @@ export default function Collection() {
 
   return (
     <div className="bg-background min-h-screen">
-      <div className="border-b border-border bg-card px-4 py-10 md:py-14">
+      <div className="border-b border-border bg-card px-4 py-8 md:py-10">
         <div className="container mx-auto text-center">
           <h1 className="font-display text-2xl font-bold leading-snug tracking-tight md:text-3xl">{collection.title}</h1>
           {collection.description && <CollectionDescription text={collection.description} />}

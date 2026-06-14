@@ -10,11 +10,11 @@ export function ShopByCuts({ section }: Props) {
   if (!section || section.items.length === 0) return null;
 
   return (
-    <section className="py-10 md:py-14">
+    <section className="py-8 md:py-10">
       <div className="container mx-auto px-4">
 
-        <div className="mb-8 text-center md:mb-10">
-          <div className="mb-2 flex items-center justify-center gap-3">
+        <div className="mb-6 text-center md:mb-7">
+          <div className="mb-1.5 flex items-center justify-center gap-3">
             <span className="h-px w-6 rounded-full bg-crimson" />
             <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-crimson">
               {section.eyebrow}

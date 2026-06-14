@@ -36,10 +36,10 @@ export function PromoSideBySide({ promo }: PromoSideBySideProps) {
   if (!promo) return null;
 
   return (
-    <section className="container mx-auto px-4 py-10 md:py-14">
+    <section className="container mx-auto px-4 py-8 md:py-10">
       <div className="grid overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-card)] md:grid-cols-2">
         {/* Text side */}
-        <div className="flex flex-col justify-center gap-4 p-7 md:gap-5 md:p-14">
+        <div className="flex flex-col justify-center gap-3 p-6 md:gap-4 md:p-10">
           {promo.badgeText && (
             <span className="w-fit rounded-full bg-gold/15 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-gold">
               {promo.badgeText}

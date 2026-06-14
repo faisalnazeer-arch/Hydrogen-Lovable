@@ -27,9 +27,9 @@ export function ReelsCarousel({ reels, label = "Watch & Shop", heading = "MLS Re
   if (shuffled.length === 0) return null;
 
   return (
-    <section className="container mx-auto px-4 py-10 md:py-14">
-      <div className="mb-8 text-center md:mb-10">
-        <div className="mb-2 flex items-center justify-center gap-3">
+    <section className="container mx-auto px-4 py-8 md:py-10">
+      <div className="mb-6 text-center md:mb-7">
+        <div className="mb-1.5 flex items-center justify-center gap-3">
           <span className="h-px w-6 rounded-full bg-crimson" />
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-crimson">{label}</p>
           <span className="h-px w-6 rounded-full bg-crimson" />

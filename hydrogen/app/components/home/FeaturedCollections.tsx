@@ -21,7 +21,7 @@ export function FeaturedCollections({ cards, title, subtitle }: FeaturedCollecti
   if (!cards || cards.length === 0) return null;
 
   return (
-    <section className="container mx-auto px-4 py-10 md:py-14">
+    <section className="container mx-auto px-4 py-8 md:py-10">
       {(title || subtitle) && <SectionHeader title={title ?? ""} subtitle={subtitle} />}
       <HScroller>
         {cards.map((c) => (
@@ -72,10 +72,10 @@ export function SectionHeader({
   actionLabel?: string;
 }) {
   return (
-    <div className="mb-8 flex items-end justify-between gap-4 md:mb-10">
+    <div className="mb-5 flex items-end justify-between gap-4 md:mb-7">
       <div>
         {subtitle && (
-          <div className="mb-2 flex items-center gap-2">
+          <div className="mb-1.5 flex items-center gap-2">
             <span className="h-px w-5 rounded-full bg-crimson" />
             <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-crimson">
               {subtitle}
