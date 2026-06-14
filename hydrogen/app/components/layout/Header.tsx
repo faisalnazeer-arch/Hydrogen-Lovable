@@ -461,20 +461,44 @@ function MobileMenuDrawer({
                       {/* left accent bar shows visual nesting */}
                       <div className="ml-4 border-l-2 border-crimson/30">
                         {entry.columns.map((col, ci) => {
-                          const colKey   = `${entry.id}-${ci}`;
-                          const colOpen  = openCols.has(colKey);
-                          const hasLinks = col.links.length > 0;
+                          const colKey      = `${entry.id}-${ci}`;
+                          const colOpen     = openCols.has(colKey);
+                          const hasLinks    = col.links.length > 0;
+                          const hasTitle    = col.title.trim().length > 0;
 
+                          /* ── Column has no meaningful title: skip the Level 2 row,
+                             render links directly so user sees only 2 levels ── */
+                          if (!hasTitle) {
+                            return (
+                              <div key={colKey}>
+                                {hasLinks && col.links.map((link) => (
+                                  <Link key={link.url + link.label} to={link.url} onClick={onClose} prefetch="intent"
+                                    className="block border-b border-border/25 py-2.5 pl-4 pr-3 text-[12px] font-medium text-foreground/70 last:border-0 transition-colors hover:text-crimson"
+                                  >
+                                    {link.label}
+                                  </Link>
+                                ))}
+                                {!hasLinks && col.url && (
+                                  <Link to={col.url} onClick={onClose} prefetch="intent"
+                                    className="block border-b border-border/25 py-2.5 pl-4 pr-3 text-[12px] font-medium text-foreground/70 transition-colors hover:text-crimson"
+                                  >
+                                    {col.title}
+                                  </Link>
+                                )}
+                              </div>
+                            );
+                          }
+
+                          /* ── Column has a title: show Level 2 accordion row ── */
                           return (
                             <div key={colKey}>
-                              {/* Level 2 row — full row clickable */}
                               {hasLinks ? (
                                 <button type="button" onClick={() => toggleCol(colKey)}
                                   className={`flex w-full items-center gap-2.5 border-b py-2.5 pl-3 pr-3 text-left transition-colors ${colOpen ? "bg-crimson/5 border-crimson/20" : "border-border/25 hover:bg-muted/30"}`}
                                 >
                                   <span className={`grid h-6 w-6 shrink-0 place-items-center rounded text-[10px] font-black transition-colors ${
                                     colOpen ? "bg-crimson text-white" : "bg-crimson/10 text-crimson"
-                                  }`}>{(col.title[0] ?? "•").toUpperCase()}</span>
+                                  }`}>{col.title[0].toUpperCase()}</span>
                                   <span className="flex-1 text-[12px] font-semibold text-foreground/85">{col.title}</span>
                                   <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border text-[12px] font-light leading-none transition-colors ${
                                     colOpen ? "border-crimson bg-crimson text-white" : "border-border/60 text-muted-foreground"
@@ -485,11 +509,11 @@ function MobileMenuDrawer({
                                   ? <Link to={col.url} onClick={onClose} prefetch="intent"
                                       className="flex items-center gap-2.5 border-b border-border/25 py-2.5 pl-3 pr-3 transition-colors hover:bg-muted/30"
                                     >
-                                      <span className="grid h-6 w-6 shrink-0 place-items-center rounded bg-crimson/10 text-[10px] font-black text-crimson">{(col.title[0] ?? "•").toUpperCase()}</span>
+                                      <span className="grid h-6 w-6 shrink-0 place-items-center rounded bg-crimson/10 text-[10px] font-black text-crimson">{col.title[0].toUpperCase()}</span>
                                       <span className="flex-1 text-[12px] font-semibold text-foreground/85">{col.title}</span>
                                     </Link>
                                   : <div className="flex items-center gap-2.5 border-b border-border/25 py-2.5 pl-3 pr-3">
-                                      <span className="grid h-6 w-6 shrink-0 place-items-center rounded bg-crimson/10 text-[10px] font-black text-crimson">{(col.title[0] ?? "•").toUpperCase()}</span>
+                                      <span className="grid h-6 w-6 shrink-0 place-items-center rounded bg-crimson/10 text-[10px] font-black text-crimson">{col.title[0].toUpperCase()}</span>
                                       <span className="flex-1 text-[12px] font-semibold text-foreground/85">{col.title}</span>
                                     </div>
                               )}
