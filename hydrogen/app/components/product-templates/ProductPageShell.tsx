@@ -392,7 +392,7 @@ function DeliveryTab({ pageSettings }: { pageSettings: PageSettings | undefined 
 }
 
 // ── InfoTabs — shown below the product grid ────────────────────────────────
-type TabId = "nutrition" | "template" | "returns" | "delivery";
+type TabId = "nutrition" | "template" | "delivery";
 
 function InfoTabs({
   extraSections,
@@ -408,11 +408,10 @@ function InfoTabs({
   const hasNutrition = !!getMF(variant, "nutrition", "total_energy") || NUTRITION_ROWS.some(r => getMF(variant, r.ns, r.key));
   const hasTemplate  = !!extraSections;
 
-  // Tab order: Understanding Rubs → Nutrition Facts → Free Returns → Delivery Info
+  // Tab order: Understanding Rubs → Nutrition Facts → Delivery Info
   const tabs: Array<{ id: TabId; label: string; Icon: any }> = [
     hasTemplate  && { id: "template"  as TabId, label: extraSectionTitle,              Icon: FlameKindling },
     hasNutrition && { id: "nutrition" as TabId, label: "Nutrition Facts",              Icon: Leaf },
-                    { id: "returns"   as TabId, label: "100% Free Returns",            Icon: RefreshCw },
                     { id: "delivery"  as TabId, label: "Delivery Info",                Icon: PackageOpen },
   ].filter(Boolean) as Array<{ id: TabId; label: string; Icon: any }>;
 
@@ -449,7 +448,7 @@ function InfoTabs({
         <div className="py-4 sm:py-5">
           {active === "nutrition" && <NutritionPanel variant={variant} />}
           {active === "template" && hasTemplate && <div>{extraSections}</div>}
-          {active === "returns" && <ReturnsTab />}
+
           {active === "delivery" && <DeliveryTab pageSettings={pageSettings} />}
         </div>
       </div>
