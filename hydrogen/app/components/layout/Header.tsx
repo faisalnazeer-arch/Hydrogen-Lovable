@@ -6,7 +6,6 @@ import {
   Menu,
   ChevronDown,
   ChevronRight,
-  ChevronLeft,
   Beef,
   Drumstick,
   Star,
@@ -362,80 +361,43 @@ function MobileMenuDrawer({
   mobileMenu: import("~/root").MobileMenuTab[];
   onClose: () => void;
 }) {
-  // Level 1: which top-level tab is active (Categories / Collections / Boxes)
-  const [tab1Idx, setTab1Idx] = useState(0);
-  // Level 2: which mainMenu entry the user drilled into (null = level 1 visible)
-  const [drillEntry, setDrillEntry] = useState<NavEntry | null>(null);
-  // Level 2: which column tab is active inside the drilled entry
-  const [tab2Idx, setTab2Idx] = useState(0);
+  const [tab1Idx, setTab1Idx]           = useState(0);
+  const [openEntries, setOpenEntries]   = useState<Set<string>>(new Set());
+  const [openCols, setOpenCols]         = useState<Set<string>>(new Set());
+  const [openItems, setOpenItems]       = useState<Set<string>>(new Set());
 
-  const tabs = mobileMenu;
+  const tabs         = mobileMenu;
   const isCategories = tabs[tab1Idx]?.label?.toLowerCase() === "categories";
 
-  // Columns that have sub-links → become tabs; columns without → become direct links
-  const drillColumns = drillEntry?.columns ?? [];
-  const tabCols   = drillColumns.filter((c) => c.links.length > 0);
-  const directCols = drillColumns.filter((c) => c.links.length === 0 && c.url);
-  const activeColLinks = tabCols[tab2Idx]?.links ?? [];
-
-  const handleTab1Change = (i: number) => { setTab1Idx(i); setDrillEntry(null); setTab2Idx(0); };
-  const handleDrill = (entry: NavEntry) => { setDrillEntry(entry); setTab2Idx(0); };
-  const handleBack  = () => { setDrillEntry(null); setTab2Idx(0); };
+  const handleTab1  = (i: number) => { setTab1Idx(i); setOpenEntries(new Set()); setOpenCols(new Set()); setOpenItems(new Set()); };
+  const toggleEntry = (id: string)  => setOpenEntries((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleCol   = (key: string) => setOpenCols((p)    => { const n = new Set(p); n.has(key) ? n.delete(key) : n.add(key); return n; });
+  const toggleItem  = (id: string)  => setOpenItems((p)   => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   return (
     <div className="flex h-full flex-col bg-background">
       <SheetTitle className="sr-only">Menu</SheetTitle>
 
-      {/* ── Header ── */}
-      {drillEntry ? (
-        /* Level 2 header: back + entry title + View All */
-        <div className="relative flex shrink-0 items-center justify-center border-b border-border py-3 px-12">
-          <button
-            type="button"
-            onClick={handleBack}
-            aria-label="Back"
-            className="absolute left-3 flex h-8 w-8 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-          <span className="text-[13px] font-bold text-foreground">{drillEntry.label}</span>
-          {drillEntry.url && (
-            <Link
-              to={drillEntry.url}
-              onClick={onClose}
-              prefetch="intent"
-              className="absolute right-4 text-[11px] font-semibold text-crimson"
-            >
-              View All
-            </Link>
-          )}
-        </div>
-      ) : (
-        /* Level 1 header: close + logo */
-        <div className="relative flex shrink-0 items-center justify-center border-b border-border py-3 px-12">
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="absolute left-4 flex h-8 w-8 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted"
-          >
-            <X className="h-4 w-4" />
-          </button>
-          <img src={logo} alt="MLS" className="h-8 w-auto" />
-        </div>
-      )}
+      {/* Header */}
+      <div className="relative flex shrink-0 items-center justify-center border-b border-border py-3 px-12">
+        <button type="button" onClick={onClose} aria-label="Close"
+          className="absolute left-4 flex h-8 w-8 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted">
+          <X className="h-4 w-4" />
+        </button>
+        <img src={logo} alt="MLS" className="h-8 w-auto" />
+      </div>
 
-      {/* ── Promo banners — level 1 only ── */}
-      {!drillEntry && mobileBanners.length > 0 && (
+      {/* Promo banners */}
+      {mobileBanners.length > 0 && (
         <div className="flex shrink-0 gap-2 border-b border-border bg-background px-3 py-2.5">
           {mobileBanners.map((banner) => (
             <Link key={banner.id} to={banner.url} onClick={onClose} prefetch="intent" className="relative flex-1 overflow-hidden rounded-xl">
               <img src={cdnImg(banner.imageUrl, 300)} alt={banner.altText} className="h-24 w-full object-cover" loading="eager" />
               {(banner.heading || banner.highlight) && (
                 <div className="absolute inset-0 flex flex-col justify-center pl-3 pr-1">
-                  {banner.heading && <span className="text-[11px] font-black leading-tight text-white drop-shadow">{banner.heading}</span>}
+                  {banner.heading   && <span className="text-[11px] font-black leading-tight text-white drop-shadow">{banner.heading}</span>}
                   {banner.highlight && <span className="text-[13px] font-black leading-tight text-crimson drop-shadow">{banner.highlight}</span>}
-                  {banner.ctaText && <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wider text-white/80 drop-shadow">{banner.ctaText}</span>}
+                  {banner.ctaText   && <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wider text-white/80 drop-shadow">{banner.ctaText}</span>}
                 </div>
               )}
             </Link>
@@ -443,188 +405,187 @@ function MobileMenuDrawer({
         </div>
       )}
 
-      {/* ── Level 1 tab bar (Categories | Collections | Boxes) ── */}
-      {!drillEntry && tabs.length > 0 && (
+      {/* Top tab bar: Categories | Collections | Boxes */}
+      {tabs.length > 0 && (
         <div className="flex shrink-0 border-b border-border bg-background">
           {tabs.map((tab, i) => (
-            <button
-              key={tab.label}
-              type="button"
-              onClick={() => handleTab1Change(i)}
+            <button key={tab.label} type="button" onClick={() => handleTab1(i)}
               className={`flex-1 py-2.5 text-[11px] font-bold uppercase tracking-wider transition-colors ${
                 i === tab1Idx ? "border-b-2 border-crimson text-crimson" : "text-foreground/50 hover:text-foreground"
               }`}
-            >
-              {tab.label}
-            </button>
+            >{tab.label}</button>
           ))}
         </div>
       )}
 
-      {/* ── Level 2 column tabs (Shop By Cuts | By Origin | …) ── */}
-      {drillEntry && tabCols.length > 1 && (
-        <div className="flex shrink-0 overflow-x-auto border-b border-border bg-background scrollbar-none">
-          {tabCols.map((col, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => setTab2Idx(i)}
-              className={`shrink-0 px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider transition-colors ${
-                i === tab2Idx ? "border-b-2 border-crimson text-crimson" : "text-foreground/50 hover:text-foreground"
-              }`}
-            >
-              {col.title}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* ── Scrollable body ── */}
+      {/* Scrollable body */}
       <div className="flex-1 overflow-y-auto">
 
-        {drillEntry ? (
-          /* ── Level 2 body ── */
-          <>
-            {/* Active column's links */}
-            {(tabCols.length > 0 ? activeColLinks : drillColumns.flatMap((c) => c.links)).map((link) => (
-              <Link
-                key={link.url + link.label}
-                to={link.url}
-                onClick={onClose}
-                prefetch="intent"
-                className="flex items-center gap-3 border-b border-border/40 px-4 py-3 text-[13px] font-medium text-foreground transition-colors hover:bg-muted/40 hover:text-crimson"
-              >
-                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-crimson/50" />
-                {link.label}
-              </Link>
-            ))}
+        {isCategories
+          /* ── Categories: 3-level nested accordion ── */
+          ? mainMenu.map((entry) => {
+              const thumbUrl    = navItemImages[entry.label] ?? entry.imageUrl ?? null;
+              const initial     = (entry.label[0] ?? "•").toUpperCase();
+              const hasChildren = entry.columns.length > 0;
+              const isOpen      = openEntries.has(entry.id);
 
-            {/* Direct-link columns (no sub-links, just a URL) — shown as plain rows */}
-            {directCols.length > 0 && (
-              <>
-                <div className="border-t border-border/40 px-4 pt-3 pb-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
-                  Browse
-                </div>
-                {directCols.map((col) => (
-                  <Link
-                    key={col.url}
-                    to={col.url!}
-                    onClick={onClose}
-                    prefetch="intent"
-                    className="flex items-center gap-3 border-b border-border/40 px-4 py-3 text-[13px] font-medium text-foreground transition-colors hover:bg-muted/40 hover:text-crimson"
-                  >
-                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-crimson/30" />
-                    {col.title}
-                    <ChevronRight className="ml-auto h-3.5 w-3.5 text-muted-foreground/50" />
-                  </Link>
-                ))}
-              </>
-            )}
-          </>
-        ) : (
-          /* ── Level 1 body ── */
-          <>
-            {isCategories
-              ? /* Categories → mainMenu entries */
-                mainMenu.map((entry) => {
-                  const thumbUrl = navItemImages[entry.label] ?? entry.imageUrl ?? null;
-                  const initial  = (entry.label[0] ?? "•").toUpperCase();
-                  const hasChildren = entry.columns.length > 0;
-                  const thumb = thumbUrl ? (
-                    <img src={cdnImg(thumbUrl, 120)} alt={entry.label} className="h-12 w-[3.25rem] shrink-0 rounded-lg object-cover" loading="lazy" />
+              const thumb = thumbUrl
+                ? <img src={cdnImg(thumbUrl, 120)} alt={entry.label} className="h-12 w-20 shrink-0 rounded-lg object-cover" loading="lazy" />
+                : <div className="flex h-12 w-20 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-crimson/15 to-crimson/5"><span className="text-sm font-black text-crimson">{initial}</span></div>;
+
+              return (
+                <div key={entry.id}>
+                  {/* Level 1 row — full row toggles accordion when it has children */}
+                  {hasChildren ? (
+                    <button type="button" onClick={() => toggleEntry(entry.id)}
+                      className={`flex w-full items-center gap-3 border-b px-4 py-2.5 text-left transition-colors ${isOpen ? "border-border bg-muted/20" : "border-border/50 hover:bg-muted/40"}`}
+                    >
+                      <div className="h-12 w-20 shrink-0 overflow-hidden rounded-lg">{thumb}</div>
+                      <span className="flex-1 text-[13px] font-semibold text-foreground">{entry.label}</span>
+                      <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border text-[14px] font-light leading-none transition-colors ${
+                        isOpen ? "border-crimson bg-crimson text-white" : "border-border text-muted-foreground"
+                      }`}>{isOpen ? "−" : "+"}</span>
+                    </button>
                   ) : (
-                    <div className="flex h-12 w-[3.25rem] shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-crimson/15 to-crimson/5">
-                      <span className="text-sm font-black text-crimson">{initial}</span>
-                    </div>
-                  );
-
-                  // Has children → whole row drills in (no navigation)
-                  if (hasChildren) {
-                    return (
-                      <button
-                        key={entry.id}
-                        type="button"
-                        onClick={() => handleDrill(entry)}
-                        className="flex w-full items-center gap-3 border-b border-border/50 px-4 py-2.5 text-left transition-colors hover:bg-muted/40"
-                      >
-                        {thumb}
-                        <span className="flex-1 text-[13px] font-semibold text-foreground">{entry.label}</span>
-                        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50" />
-                      </button>
-                    );
-                  }
-
-                  // No children → whole row navigates
-                  return (
-                    <Link
-                      key={entry.id}
-                      to={entry.url ?? "/"}
-                      onClick={onClose}
-                      prefetch="intent"
+                    <Link to={entry.url ?? "/"} onClick={onClose} prefetch="intent"
                       className="flex items-center gap-3 border-b border-border/50 px-4 py-2.5 transition-colors hover:bg-muted/40"
                     >
-                      {thumb}
+                      <div className="h-12 w-20 shrink-0 overflow-hidden rounded-lg">{thumb}</div>
                       <span className="flex-1 text-[13px] font-semibold text-foreground">{entry.label}</span>
                     </Link>
-                  );
-                })
-              : /* Collections / Boxes → mobileMenu items */
-                (tabs[tab1Idx]?.items ?? []).map((item) => {
-                  const thumbUrl = navItemImages[item.title] ?? item.imageUrl ?? null;
-                  const initial  = (item.title[0] ?? "•").toUpperCase();
-                  const thumb = thumbUrl ? (
-                    <img src={cdnImg(thumbUrl, 120)} alt={item.title} className="h-12 w-[3.25rem] shrink-0 rounded-lg object-cover" loading="lazy" />
-                  ) : (
-                    <div className="flex h-12 w-[3.25rem] shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-crimson/15 to-crimson/5">
-                      <span className="text-sm font-black text-crimson">{initial}</span>
+                  )}
+
+                  {/* Level 2: columns nested under level 1 */}
+                  {isOpen && (
+                    <div className="border-b border-border/60 bg-background">
+                      {/* left accent bar shows visual nesting */}
+                      <div className="ml-4 border-l-2 border-crimson/30">
+                        {entry.columns.map((col, ci) => {
+                          const colKey   = `${entry.id}-${ci}`;
+                          const colOpen  = openCols.has(colKey);
+                          const hasLinks = col.links.length > 0;
+
+                          return (
+                            <div key={colKey}>
+                              {/* Level 2 row — full row clickable */}
+                              {hasLinks ? (
+                                <button type="button" onClick={() => toggleCol(colKey)}
+                                  className={`flex w-full items-center gap-2.5 border-b py-2.5 pl-3 pr-3 text-left transition-colors ${colOpen ? "bg-crimson/5 border-crimson/20" : "border-border/25 hover:bg-muted/30"}`}
+                                >
+                                  <span className={`grid h-6 w-6 shrink-0 place-items-center rounded text-[10px] font-black transition-colors ${
+                                    colOpen ? "bg-crimson text-white" : "bg-crimson/10 text-crimson"
+                                  }`}>{(col.title[0] ?? "•").toUpperCase()}</span>
+                                  <span className="flex-1 text-[12px] font-semibold text-foreground/85">{col.title}</span>
+                                  <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border text-[12px] font-light leading-none transition-colors ${
+                                    colOpen ? "border-crimson bg-crimson text-white" : "border-border/60 text-muted-foreground"
+                                  }`}>{colOpen ? "−" : "+"}</span>
+                                </button>
+                              ) : (
+                                col.url
+                                  ? <Link to={col.url} onClick={onClose} prefetch="intent"
+                                      className="flex items-center gap-2.5 border-b border-border/25 py-2.5 pl-3 pr-3 transition-colors hover:bg-muted/30"
+                                    >
+                                      <span className="grid h-6 w-6 shrink-0 place-items-center rounded bg-crimson/10 text-[10px] font-black text-crimson">{(col.title[0] ?? "•").toUpperCase()}</span>
+                                      <span className="flex-1 text-[12px] font-semibold text-foreground/85">{col.title}</span>
+                                    </Link>
+                                  : <div className="flex items-center gap-2.5 border-b border-border/25 py-2.5 pl-3 pr-3">
+                                      <span className="grid h-6 w-6 shrink-0 place-items-center rounded bg-crimson/10 text-[10px] font-black text-crimson">{(col.title[0] ?? "•").toUpperCase()}</span>
+                                      <span className="flex-1 text-[12px] font-semibold text-foreground/85">{col.title}</span>
+                                    </div>
+                              )}
+
+                              {/* Level 3: links */}
+                              {colOpen && (
+                                <div className="ml-3 border-l border-crimson/15">
+                                  {col.links.map((link) => (
+                                    <Link key={link.url + link.label} to={link.url} onClick={onClose} prefetch="intent"
+                                      className="block border-b border-border/25 py-2 pl-4 pr-3 text-[12px] text-foreground/60 last:border-0 transition-colors hover:text-crimson"
+                                    >
+                                      {link.label}
+                                    </Link>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  );
-                  return (
-                    <Link
-                      key={item.id}
-                      to={item.url}
-                      onClick={onClose}
-                      prefetch="intent"
+                  )}
+                </div>
+              );
+            })
+
+          /* ── Collections / Boxes: mobileMenu items with sub-item accordion ── */
+          : (tabs[tab1Idx]?.items ?? []).map((item) => {
+              const thumbUrl    = navItemImages[item.title] ?? item.imageUrl ?? null;
+              const initial     = (item.title[0] ?? "•").toUpperCase();
+              const hasChildren = item.subItems.length > 0;
+              const isOpen      = openItems.has(item.id);
+
+              const thumb = thumbUrl
+                ? <img src={cdnImg(thumbUrl, 120)} alt={item.title} className="h-12 w-20 shrink-0 rounded-lg object-cover" loading="lazy" />
+                : <div className="flex h-12 w-20 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-crimson/15 to-crimson/5"><span className="text-sm font-black text-crimson">{initial}</span></div>;
+
+              return (
+                <div key={item.id}>
+                  {hasChildren ? (
+                    <button type="button" onClick={() => toggleItem(item.id)}
+                      className={`flex w-full items-center gap-3 border-b px-4 py-2.5 text-left transition-colors ${isOpen ? "border-border bg-muted/20" : "border-border/50 hover:bg-muted/40"}`}
+                    >
+                      <div className="h-12 w-20 shrink-0 overflow-hidden rounded-lg">{thumb}</div>
+                      <span className="flex-1 text-[13px] font-semibold text-foreground">{item.title}</span>
+                      <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border text-[14px] font-light leading-none transition-colors ${
+                        isOpen ? "border-crimson bg-crimson text-white" : "border-border text-muted-foreground"
+                      }`}>{isOpen ? "−" : "+"}</span>
+                    </button>
+                  ) : (
+                    <Link to={item.url} onClick={onClose} prefetch="intent"
                       className="flex items-center gap-3 border-b border-border/50 px-4 py-2.5 transition-colors hover:bg-muted/40"
                     >
-                      {thumb}
+                      <div className="h-12 w-20 shrink-0 overflow-hidden rounded-lg">{thumb}</div>
                       <span className="flex-1 text-[13px] font-semibold text-foreground">{item.title}</span>
                     </Link>
-                  );
-                })
-            }
-
-            {/* Divider + secondary menu */}
-            <div className="my-1 border-t border-border/60" />
-            {secondaryMenu.map((entry) => {
-              const Icon = pickIcon(entry.label, entry.url ?? "");
-              return (
-                <Link
-                  key={entry.id}
-                  to={entry.url ?? "/"}
-                  onClick={onClose}
-                  prefetch="intent"
-                  className="flex items-center gap-3 border-b border-border/40 px-4 py-2.5 transition-colors hover:bg-muted/40"
-                >
-                  <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-crimson/10 text-crimson">
-                    <Icon className="h-3.5 w-3.5" />
-                  </div>
-                  <span className="flex-1 text-[13px] font-semibold">{entry.label}</span>
-                </Link>
+                  )}
+                  {isOpen && (
+                    <div className="border-b border-border/60">
+                      {item.subItems.map((sub) => (
+                        <Link key={sub.id} to={sub.url} onClick={onClose} prefetch="intent"
+                          className="block py-2.5 pl-[4.5rem] pr-4 text-[13px] text-foreground/80 transition-colors hover:text-crimson"
+                        >
+                          {sub.title}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
               );
-            })}
-          </>
-        )}
+            })
+        }
+
+        {/* Secondary menu */}
+        <div className="my-1 border-t border-border/60" />
+        {secondaryMenu.map((entry) => {
+          const Icon = pickIcon(entry.label, entry.url ?? "");
+          return (
+            <Link key={entry.id} to={entry.url ?? "/"} onClick={onClose} prefetch="intent"
+              className="flex items-center gap-3 border-b border-border/40 px-4 py-2.5 transition-colors hover:bg-muted/40"
+            >
+              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-crimson/10 text-crimson">
+                <Icon className="h-3.5 w-3.5" />
+              </div>
+              <span className="flex-1 text-[13px] font-semibold">{entry.label}</span>
+            </Link>
+          );
+        })}
       </div>
 
-      {/* ── Login button ── */}
+      {/* Login button */}
       <div className="shrink-0 border-t border-border p-3">
-        <a
-          href="https://mlsuae.ae/customer_authentication/redirect?locale=en&region_country=AE"
-          className="flex w-full items-center justify-center rounded-lg bg-crimson py-2.5 text-[11px] font-black uppercase tracking-widest text-white transition-colors hover:bg-crimson/90"
-        >
-          Login / Sign Up
-        </a>
+        <a href="https://mlsuae.ae/customer_authentication/redirect?locale=en&region_country=AE"
+          className="flex w-full items-center justify-center rounded-lg bg-crimson py-2.5 text-[11px] font-black uppercase tracking-widest transition-colors hover:bg-crimson/90"
+          style={{color: '#ffffff'}}
+        >Login / Sign Up</a>
       </div>
     </div>
   );
