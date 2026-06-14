@@ -13,7 +13,7 @@ import {
   RefreshCw, Ticket, FileText, CheckCircle, XCircle, X,
   Truck,
 } from "lucide-react";
-import { Link } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { useCartStore, initGiftIds } from "@/stores/cartStore";
 import { formatPrice, shopifyImageUrl } from "@/lib/shopify";
 import { useT } from "@/i18n/strings";
@@ -54,6 +54,20 @@ export function CartDrawer() {
 
   const t = useT();
   const drawerConfig = useCartDrawerConfig();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Open drawer when redirected from /cart via ?cart=open param, then strip it
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("cart") === "open") {
+      setOpen(true);
+      params.delete("cart");
+      const qs = params.toString();
+      navigate(location.pathname + (qs ? `?${qs}` : ""), { replace: true });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]);
 
   const [activePanel, setActivePanel] = useState<Panel>("discount");
   const [noteOpen, setNoteOpen] = useState(false);
