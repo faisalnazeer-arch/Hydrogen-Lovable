@@ -84,7 +84,7 @@ export function ValueBoxesBanner({ banner }: Props) {
               {banner.btn2Label && banner.btn2Link && (
                 <Link
                   to={banner.btn2Link}
-                  className="inline-flex items-center gap-2 rounded-full border border-off-white/30 px-6 py-2.5 text-[13px] font-bold uppercase tracking-wider !text-off-white/80 transition-all duration-200 hover:border-off-white/60 hover:!text-off-white"
+                  className="inline-flex items-center gap-2 rounded-full border border-off-white/30 px-6 py-2.5 text-[13px] font-bold uppercase tracking-wider text-off-white/80 transition-all duration-200 hover:border-off-white/60 hover:text-off-white"
                 >
                   {banner.btn2Label}
                 </Link>
