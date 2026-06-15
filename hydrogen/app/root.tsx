@@ -122,6 +122,10 @@ const LAYOUT_QUERY = `#graphql
       items { ...MenuFields }
     }
 
+    mobileCategoriesMenu: menu(handle: "mls-mobile-categories") {
+      items { ...MenuFields }
+    }
+
     footerShop: menu(handle: "footer-shop") {
       id title items { id title url }
     }
@@ -355,8 +359,9 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
       }),
       context.adminFetch(ADMIN_FOOTER_QUERY),
     ]);
-    const mainMenu       = parseShopifyMenu(data?.mainMenu,      "main");
-    const secondaryMenu  = parseShopifyMenu(data?.secondaryMenu, "secondary");
+    const mainMenu               = parseShopifyMenu(data?.mainMenu,              "main");
+    const secondaryMenu          = parseShopifyMenu(data?.secondaryMenu,         "secondary");
+    const mobileCategoriesMenu   = parseShopifyMenu(data?.mobileCategoriesMenu,  "mobile-cat");
     const footerSettings = parseFooterSettings(adminData?.footerSettings?.nodes ?? []);
     const announcementMessages = parseAnnouncementMessages(adminData?.announcementBar?.nodes ?? []);
     const cartDrawerConfig = parseCartDrawerConfig(adminData?.cartDrawer?.nodes ?? []);
@@ -379,7 +384,7 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
     const mobileBanners = parseMobileBanners(data?.mobileBanners?.nodes ?? []);
     const mobileMenu = parseMobileMenu(data?.mobileMenu);
 
-    return { mainMenu, secondaryMenu, mobileMenu, footerSettings, footerMenuCols, announcementMessages, cartDrawerConfig, navItemImages, mobileBanners };
+    return { mainMenu, secondaryMenu, mobileMenu, mobileCategoriesMenu, footerSettings, footerMenuCols, announcementMessages, cartDrawerConfig, navItemImages, mobileBanners };
   } catch {
     return {
       mainMenu: [] as NavEntry[],
@@ -391,6 +396,7 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
       navItemImages: {} as Record<string, string>,
       mobileBanners: [] as MobileBanner[],
       mobileMenu: [] as MobileMenuTab[],
+      mobileCategoriesMenu: [] as NavEntry[],
     };
   }
 }
@@ -547,7 +553,7 @@ function LocaleSync() {
 }
 
 export default function App() {
-  const { mainMenu, secondaryMenu, mobileMenu, footerSettings, footerMenuCols, announcementMessages, navItemImages, mobileBanners } = useLoaderData<typeof loader>();
+  const { mainMenu, secondaryMenu, mobileMenu, mobileCategoriesMenu, footerSettings, footerMenuCols, announcementMessages, navItemImages, mobileBanners } = useLoaderData<typeof loader>();
   return (
     <QueryClientProvider client={queryClient}>
       <PageLoader />
@@ -555,7 +561,7 @@ export default function App() {
       <CartSyncWrapper />
       <div className="flex min-h-screen flex-col">
         <AnnouncementBar messages={announcementMessages} />
-        <Header mainMenu={mainMenu} secondaryMenu={secondaryMenu} navItemImages={navItemImages} mobileBanners={mobileBanners} mobileMenu={mobileMenu} />
+        <Header mainMenu={mainMenu} secondaryMenu={secondaryMenu} navItemImages={navItemImages} mobileBanners={mobileBanners} mobileMenu={mobileMenu} mobileCategoriesMenu={mobileCategoriesMenu} />
         <main className="flex-1">
           <Outlet />
         </main>

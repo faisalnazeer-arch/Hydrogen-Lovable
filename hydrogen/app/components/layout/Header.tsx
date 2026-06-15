@@ -54,12 +54,13 @@ function pickIcon(title: string, url: string): LucideIcon {
 interface HeaderProps {
   mainMenu?: NavEntry[];
   secondaryMenu?: NavEntry[];
+  mobileCategoriesMenu?: NavEntry[];
   navItemImages?: Record<string, string>;
   mobileBanners?: MobileBanner[];
   mobileMenu?: import("~/root").MobileMenuTab[];
 }
 
-export function Header({ mainMenu = [], secondaryMenu = [], navItemImages = {}, mobileBanners = [], mobileMenu = [] }: HeaderProps) {
+export function Header({ mainMenu = [], secondaryMenu = [], mobileCategoriesMenu = [], navItemImages = {}, mobileBanners = [], mobileMenu = [] }: HeaderProps) {
   const rawTotal = useCartStore((s) => s.items.reduce((n, i) => n + i.quantity, 0));
   const setCartOpen = useCartStore((s) => s.setOpen);
   // Defer cart count display until after client hydration so SSR (always 0)
@@ -89,6 +90,7 @@ export function Header({ mainMenu = [], secondaryMenu = [], navItemImages = {}, 
           <SheetContent side={drawerSide} className="w-[320px] p-0 flex flex-col [&>button:first-child]:hidden">
             <MobileMenuDrawer
               mainMenu={mainMenu}
+              mobileCategoriesMenu={mobileCategoriesMenu}
               secondaryMenu={secondaryMenu}
               navItemImages={navItemImages}
               mobileBanners={mobileBanners}
@@ -348,6 +350,7 @@ function cdnImg(url: string, w = 120) {
 
 function MobileMenuDrawer({
   mainMenu,
+  mobileCategoriesMenu,
   secondaryMenu,
   navItemImages,
   mobileBanners,
@@ -355,6 +358,7 @@ function MobileMenuDrawer({
   onClose,
 }: {
   mainMenu: NavEntry[];
+  mobileCategoriesMenu: NavEntry[];
   secondaryMenu: NavEntry[];
   navItemImages: Record<string, string>;
   mobileBanners: MobileBanner[];
@@ -370,6 +374,8 @@ function MobileMenuDrawer({
 
   const tabs         = mobileMenu;
   const isCategories = tabs[tab1Idx]?.label?.toLowerCase() === "categories";
+  // Use dedicated mobile-categories menu if available, otherwise fall back to mainMenu
+  const mobileCatEntries = mobileCategoriesMenu.length > 0 ? mobileCategoriesMenu : mainMenu;
 
   const handleTab1      = (i: number)    => { setTab1Idx(i); setOpenEntries(new Set()); setOpenCols(new Set()); setOpenItems(new Set()); };
   const toggleEntry     = (id: string)   => setOpenEntries((p)    => { const n = new Set(p); n.has(id)  ? n.delete(id)  : n.add(id);  return n; });
@@ -426,8 +432,8 @@ function MobileMenuDrawer({
       <div className="flex-1 overflow-y-auto">
 
         {isCategories
-          /* ── Categories: 3-level nested accordion ── */
-          ? mainMenu.map((entry) => {
+          /* ── Categories: 3-level nested accordion (uses mls-mobile-categories if set, else main-menu) ── */
+          ? mobileCatEntries.map((entry) => {
               const thumbUrl    = navItemImages[entry.label] ?? entry.imageUrl ?? null;
               const initial     = (entry.label[0] ?? "•").toUpperCase();
               const hasChildren = entry.columns.length > 0;
