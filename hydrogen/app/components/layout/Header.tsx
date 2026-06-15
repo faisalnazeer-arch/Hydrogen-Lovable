@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, type ReactNode } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router";
 import {
   ShoppingBag,
@@ -87,7 +88,7 @@ export function Header({ mainMenu = [], secondaryMenu = [], mobileCategoriesMenu
             </Button>
           </SheetTrigger>
           {/* [&>button:first-child]:hidden hides Sheet's built-in close button — we have our own */}
-          <SheetContent side={drawerSide} className="w-[320px] p-0 flex flex-col [&>button:first-child]:hidden">
+          <SheetContent side={drawerSide} className="w-[320px] p-0 flex flex-col [&>button:first-child]:hidden data-[state=open]:!duration-300 data-[state=closed]:!duration-250">
             <MobileMenuDrawer
               mainMenu={mainMenu}
               mobileCategoriesMenu={mobileCategoriesMenu}
@@ -342,10 +343,38 @@ function SecondaryNavLink({
 
 // ── Mobile drawer ──────────────────────────────────────────────────────────────
 
-/** Append Shopify CDN width param safely regardless of whether ?v= already present */
 function cdnImg(url: string, w = 120) {
   if (!url) return url;
   return url.includes("?") ? `${url}&width=${w}` : `${url}?width=${w}`;
+}
+
+// Animation variants for staggered list entrance
+const listVariants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.045, delayChildren: 0.06 } },
+};
+const rowVariants = {
+  hidden: { opacity: 0, x: -14 },
+  show:   { opacity: 1, x: 0, transition: { duration: 0.22, ease: "easeOut" } },
+};
+
+// Smooth accordion wrapper using framer-motion height animation
+function AccordionBody({ isOpen, children }: { isOpen: boolean; children: ReactNode }) {
+  return (
+    <AnimatePresence initial={false}>
+      {isOpen && (
+        <motion.div
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: "auto", opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+          style={{ overflow: "hidden" }}
+        >
+          {children}
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
 }
 
 function MobileMenuDrawer({
@@ -372,39 +401,40 @@ function MobileMenuDrawer({
   const [openSecEntries, setOpenSecEntries] = useState<Set<string>>(new Set());
   const [openSecCols, setOpenSecCols]       = useState<Set<string>>(new Set());
 
-  const tabs         = mobileMenu;
-  const isCategories = tabs[tab1Idx]?.label?.toLowerCase() === "categories";
-  // Use dedicated mobile-categories menu if available, otherwise fall back to mainMenu
+  const tabs             = mobileMenu;
+  const isCategories     = tabs[tab1Idx]?.label?.toLowerCase() === "categories";
   const mobileCatEntries = mobileCategoriesMenu.length > 0 ? mobileCategoriesMenu : mainMenu;
 
-  const handleTab1      = (i: number)    => { setTab1Idx(i); setOpenEntries(new Set()); setOpenCols(new Set()); setOpenItems(new Set()); };
-  const toggleEntry     = (id: string)   => setOpenEntries((p)    => { const n = new Set(p); n.has(id)  ? n.delete(id)  : n.add(id);  return n; });
-  const toggleCol       = (key: string)  => setOpenCols((p)       => { const n = new Set(p); n.has(key) ? n.delete(key) : n.add(key); return n; });
-  const toggleItem      = (id: string)   => setOpenItems((p)      => { const n = new Set(p); n.has(id)  ? n.delete(id)  : n.add(id);  return n; });
-  const toggleSecEntry  = (id: string)   => setOpenSecEntries((p) => { const n = new Set(p); n.has(id)  ? n.delete(id)  : n.add(id);  return n; });
-  const toggleSecCol    = (key: string)  => setOpenSecCols((p)    => { const n = new Set(p); n.has(key) ? n.delete(key) : n.add(key); return n; });
+  const handleTab1      = (i: number)   => { setTab1Idx(i); setOpenEntries(new Set()); setOpenCols(new Set()); setOpenItems(new Set()); };
+  const toggleEntry     = (id: string)  => setOpenEntries((p)    => { const n = new Set(p); n.has(id)  ? n.delete(id)  : n.add(id);  return n; });
+  const toggleCol       = (key: string) => setOpenCols((p)       => { const n = new Set(p); n.has(key) ? n.delete(key) : n.add(key); return n; });
+  const toggleItem      = (id: string)  => setOpenItems((p)      => { const n = new Set(p); n.has(id)  ? n.delete(id)  : n.add(id);  return n; });
+  const toggleSecEntry  = (id: string)  => setOpenSecEntries((p) => { const n = new Set(p); n.has(id)  ? n.delete(id)  : n.add(id);  return n; });
+  const toggleSecCol    = (key: string) => setOpenSecCols((p)    => { const n = new Set(p); n.has(key) ? n.delete(key) : n.add(key); return n; });
 
   return (
-    <div className="flex h-full flex-col bg-background">
+    <div className="flex h-full flex-col">
       <SheetTitle className="sr-only">Menu</SheetTitle>
 
-      {/* Header */}
+      {/* ── Header ── */}
       <div className="relative flex shrink-0 items-center justify-center border-b border-border py-3 px-12">
         <button type="button" onClick={onClose} aria-label="Close"
-          className="absolute left-4 flex h-8 w-8 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted">
-          <X className="h-4 w-4" />
+          className="group absolute left-4 flex h-8 w-8 items-center justify-center rounded-full text-foreground transition-all duration-200 hover:bg-muted active:scale-95">
+          <X className="h-4 w-4 transition-transform duration-300 group-hover:rotate-90" />
         </button>
         <img src={logo} alt="MLS" className="h-8 w-auto" />
       </div>
 
-      {/* Promo banners */}
+      {/* ── Promo banners ── */}
       {mobileBanners.length > 0 && (
         <div className="flex shrink-0 gap-2 border-b border-border bg-background px-3 py-2.5">
           {mobileBanners.map((banner) => (
-            <Link key={banner.id} to={banner.url} onClick={onClose} prefetch="intent" className="relative flex-1 overflow-hidden rounded-xl">
-              <img src={cdnImg(banner.imageUrl, 300)} alt={banner.altText} className="h-24 w-full object-cover" loading="eager" />
+            <Link key={banner.id} to={banner.url} onClick={onClose} prefetch="intent"
+              className="relative flex-1 overflow-hidden rounded-xl">
+              <img src={cdnImg(banner.imageUrl, 300)} alt={banner.altText}
+                className="h-24 w-full object-cover" loading="eager" />
               {(banner.heading || banner.highlight) && (
-                <div className="absolute inset-0 flex flex-col justify-center pl-3 pr-1">
+                <div className="absolute inset-0 flex flex-col justify-center bg-gradient-to-r from-black/50 to-transparent pl-3 pr-1">
                   {banner.heading   && <span className="text-[11px] font-black leading-tight text-white drop-shadow">{banner.heading}</span>}
                   {banner.highlight && <span className="text-[13px] font-black leading-tight text-crimson drop-shadow">{banner.highlight}</span>}
                   {banner.ctaText   && <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wider text-white/80 drop-shadow">{banner.ctaText}</span>}
@@ -415,305 +445,302 @@ function MobileMenuDrawer({
         </div>
       )}
 
-      {/* Top tab bar: Categories | Collections | Boxes */}
+      {/* ── Pill tab bar ── */}
       {tabs.length > 0 && (
-        <div className="flex shrink-0 border-b border-border bg-background">
+        <div className="flex shrink-0 gap-1.5 border-b border-border bg-background px-3 py-2.5">
           {tabs.map((tab, i) => (
             <button key={tab.label} type="button" onClick={() => handleTab1(i)}
-              className={`flex-1 py-2.5 text-[11px] font-bold uppercase tracking-wider transition-colors ${
-                i === tab1Idx ? "border-b-2 border-crimson text-crimson" : "text-foreground/50 hover:text-foreground"
+              className={`flex-1 rounded-lg py-2 text-[11px] font-bold uppercase tracking-wider transition-all duration-200 ${
+                i === tab1Idx
+                  ? "bg-crimson text-white shadow-sm scale-[1.02]"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
               }`}
             >{tab.label}</button>
           ))}
         </div>
       )}
 
-      {/* Scrollable body */}
+      {/* ── Scrollable body with stagger entrance ── */}
       <div className="flex-1 overflow-y-auto">
+        <motion.div key={tab1Idx} variants={listVariants} initial="hidden" animate="show">
 
-        {isCategories
-          /* ── Categories: 3-level nested accordion (uses mls-mobile-categories if set, else main-menu) ── */
-          ? mobileCatEntries.map((entry) => {
-              const thumbUrl    = navItemImages[entry.label] ?? entry.imageUrl ?? null;
-              const initial     = (entry.label[0] ?? "•").toUpperCase();
-              const hasChildren = entry.columns.length > 0;
-              const isOpen      = openEntries.has(entry.id);
+          {isCategories
+            ? mobileCatEntries.map((entry) => {
+                const thumbUrl    = navItemImages[entry.label] ?? entry.imageUrl ?? null;
+                const initial     = (entry.label[0] ?? "•").toUpperCase();
+                const hasChildren = entry.columns.length > 0;
+                const isOpen      = openEntries.has(entry.id);
+                const thumb = thumbUrl
+                  ? <img src={cdnImg(thumbUrl, 120)} alt={entry.label} className="h-11 w-[72px] shrink-0 rounded-xl object-cover" loading="lazy" />
+                  : <div className="flex h-11 w-[72px] shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-crimson/15 to-crimson/5">
+                      <span className="text-sm font-black text-crimson">{initial}</span>
+                    </div>;
 
-              const thumb = thumbUrl
-                ? <img src={cdnImg(thumbUrl, 120)} alt={entry.label} className="h-12 w-20 shrink-0 rounded-lg object-cover" loading="lazy" />
-                : <div className="flex h-12 w-20 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-crimson/15 to-crimson/5"><span className="text-sm font-black text-crimson">{initial}</span></div>;
+                return (
+                  <motion.div key={entry.id} variants={rowVariants}>
+                    {hasChildren ? (
+                      <button type="button" onClick={() => toggleEntry(entry.id)}
+                        className={`flex w-full items-center gap-3 border-b px-4 py-2.5 text-left transition-all duration-150 ${
+                          isOpen ? "border-border/40 bg-crimson/5" : "border-border/40 hover:bg-muted/30"
+                        }`}
+                      >
+                        <div className="h-11 w-[72px] shrink-0 overflow-hidden rounded-xl">{thumb}</div>
+                        <span className="flex-1 text-[13px] font-semibold text-foreground">{entry.label}</span>
+                        <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border text-[14px] font-light leading-none transition-colors ${
+                          isOpen ? "border-crimson bg-crimson text-white" : "border-border text-muted-foreground"
+                        }`}>{isOpen ? "−" : "+"}</span>
+                      </button>
+                    ) : (
+                      <Link to={entry.url ?? "/"} onClick={onClose} prefetch="intent"
+                        className="flex items-center gap-3 border-b border-border/40 px-4 py-2.5 transition-all duration-150 hover:bg-muted/30"
+                      >
+                        <div className="h-11 w-[72px] shrink-0 overflow-hidden rounded-xl">{thumb}</div>
+                        <span className="flex-1 text-[13px] font-semibold text-foreground">{entry.label}</span>
+                        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      </Link>
+                    )}
 
-              return (
-                <div key={entry.id}>
-                  {/* Level 1 row — full row toggles accordion when it has children */}
-                  {hasChildren ? (
-                    <button type="button" onClick={() => toggleEntry(entry.id)}
-                      className={`flex w-full items-center gap-3 border-b px-4 py-2.5 text-left transition-colors ${isOpen ? "border-border bg-muted/20" : "border-border/50 hover:bg-muted/40"}`}
-                    >
-                      <div className="h-12 w-20 shrink-0 overflow-hidden rounded-lg">{thumb}</div>
-                      <span className="flex-1 text-[13px] font-semibold text-foreground">{entry.label}</span>
-                      <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border text-[14px] font-light leading-none transition-colors ${
-                        isOpen ? "border-crimson bg-crimson text-white" : "border-border text-muted-foreground"
-                      }`}>{isOpen ? "−" : "+"}</span>
-                    </button>
-                  ) : (
-                    <Link to={entry.url ?? "/"} onClick={onClose} prefetch="intent"
-                      className="flex items-center gap-3 border-b border-border/50 px-4 py-2.5 transition-colors hover:bg-muted/40"
-                    >
-                      <div className="h-12 w-20 shrink-0 overflow-hidden rounded-lg">{thumb}</div>
-                      <span className="flex-1 text-[13px] font-semibold text-foreground">{entry.label}</span>
-                    </Link>
-                  )}
+                    <AccordionBody isOpen={isOpen}>
+                      <div className="bg-muted/20">
+                        <div className="ml-4 border-l-2 border-crimson/30">
+                          {entry.columns.map((col, ci) => {
+                            const colKey   = `${entry.id}-${ci}`;
+                            const colOpen  = openCols.has(colKey);
+                            const hasLinks = col.links.length > 0;
+                            const hasTitle = col.title.trim().length > 0;
 
-                  {/* Level 2: columns nested under level 1 */}
-                  {isOpen && (
-                    <div className="border-b border-border/60 bg-background">
-                      {/* left accent bar shows visual nesting */}
-                      <div className="ml-4 border-l-2 border-crimson/30">
-                        {entry.columns.map((col, ci) => {
-                          const colKey      = `${entry.id}-${ci}`;
-                          const colOpen     = openCols.has(colKey);
-                          const hasLinks    = col.links.length > 0;
-                          const hasTitle    = col.title.trim().length > 0;
+                            if (!hasTitle) {
+                              return (
+                                <div key={colKey}>
+                                  {hasLinks && col.links.map((link) => (
+                                    <Link key={link.url + link.label} to={link.url} onClick={onClose} prefetch="intent"
+                                      className="block border-b border-border/25 py-2.5 pl-4 pr-3 text-[12px] font-medium text-foreground/70 last:border-0 transition-colors hover:text-crimson"
+                                    >{link.label}</Link>
+                                  ))}
+                                  {!hasLinks && col.url && (
+                                    <Link to={col.url} onClick={onClose} prefetch="intent"
+                                      className="block border-b border-border/25 py-2.5 pl-4 pr-3 text-[12px] font-medium text-foreground/70 transition-colors hover:text-crimson"
+                                    >{col.title}</Link>
+                                  )}
+                                </div>
+                              );
+                            }
 
-                          /* ── Column has no meaningful title: skip the Level 2 row,
-                             render links directly so user sees only 2 levels ── */
-                          if (!hasTitle) {
                             return (
                               <div key={colKey}>
-                                {hasLinks && col.links.map((link) => (
-                                  <Link key={link.url + link.label} to={link.url} onClick={onClose} prefetch="intent"
-                                    className="block border-b border-border/25 py-2.5 pl-4 pr-3 text-[12px] font-medium text-foreground/70 last:border-0 transition-colors hover:text-crimson"
+                                {hasLinks ? (
+                                  <button type="button" onClick={() => toggleCol(colKey)}
+                                    className={`flex w-full items-center gap-2.5 border-b py-2.5 pl-3 pr-3 text-left transition-all duration-150 ${
+                                      colOpen ? "bg-crimson/5 border-crimson/20" : "border-border/25 hover:bg-muted/30"
+                                    }`}
                                   >
-                                    {link.label}
-                                  </Link>
-                                ))}
-                                {!hasLinks && col.url && (
-                                  <Link to={col.url} onClick={onClose} prefetch="intent"
-                                    className="block border-b border-border/25 py-2.5 pl-4 pr-3 text-[12px] font-medium text-foreground/70 transition-colors hover:text-crimson"
-                                  >
-                                    {col.title}
-                                  </Link>
+                                    <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-lg text-[10px] font-black transition-colors ${
+                                      colOpen ? "bg-crimson text-white" : "bg-crimson/10 text-crimson"
+                                    }`}>{col.title[0].toUpperCase()}</span>
+                                    <span className="flex-1 text-[12px] font-semibold text-foreground/85">{col.title}</span>
+                                    <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border text-[12px] font-light leading-none transition-colors ${
+                                      colOpen ? "border-crimson bg-crimson text-white" : "border-border/60 text-muted-foreground"
+                                    }`}>{colOpen ? "−" : "+"}</span>
+                                  </button>
+                                ) : (
+                                  col.url
+                                    ? <Link to={col.url} onClick={onClose} prefetch="intent"
+                                        className="flex items-center gap-2.5 border-b border-border/25 py-2.5 pl-3 pr-3 transition-all duration-150 hover:bg-muted/30"
+                                      >
+                                        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-crimson/10 text-[10px] font-black text-crimson">{col.title[0].toUpperCase()}</span>
+                                        <span className="flex-1 text-[12px] font-semibold text-foreground/85">{col.title}</span>
+                                      </Link>
+                                    : <div className="flex items-center gap-2.5 border-b border-border/25 py-2.5 pl-3 pr-3">
+                                        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-crimson/10 text-[10px] font-black text-crimson">{col.title[0].toUpperCase()}</span>
+                                        <span className="flex-1 text-[12px] font-semibold text-foreground/85">{col.title}</span>
+                                      </div>
                                 )}
+                                <AccordionBody isOpen={colOpen}>
+                                  <div className="ml-3 border-l border-crimson/15">
+                                    {col.links.map((link) => (
+                                      <Link key={link.url + link.label} to={link.url} onClick={onClose} prefetch="intent"
+                                        className="block border-b border-border/25 py-2 pl-4 pr-3 text-[12px] text-foreground/60 last:border-0 transition-colors hover:text-crimson"
+                                      >{link.label}</Link>
+                                    ))}
+                                  </div>
+                                </AccordionBody>
                               </div>
                             );
-                          }
+                          })}
+                        </div>
+                      </div>
+                    </AccordionBody>
+                  </motion.div>
+                );
+              })
 
-                          /* ── Column has a title: show Level 2 accordion row ── */
+            : (tabs[tab1Idx]?.items ?? []).map((item) => {
+                const thumbUrl    = navItemImages[item.title] ?? item.imageUrl ?? null;
+                const initial     = (item.title[0] ?? "•").toUpperCase();
+                const isOpen      = openItems.has(item.id);
+                const mainEntry   = mainMenu.find((e) => e.url === item.url);
+                const fallbackSubs = mainEntry
+                  ? mainEntry.columns.flatMap((col) =>
+                      col.links.map((lnk) => ({ id: lnk.url, title: lnk.label, url: lnk.url }))
+                    )
+                  : [];
+                const subItems    = item.subItems.length > 0 ? item.subItems : fallbackSubs;
+                const hasChildren = subItems.length > 0;
+                const thumb = thumbUrl
+                  ? <img src={cdnImg(thumbUrl, 120)} alt={item.title} className="h-11 w-[72px] shrink-0 rounded-xl object-cover" loading="lazy" />
+                  : <div className="flex h-11 w-[72px] shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-crimson/15 to-crimson/5">
+                      <span className="text-sm font-black text-crimson">{initial}</span>
+                    </div>;
+
+                return (
+                  <motion.div key={item.id} variants={rowVariants}>
+                    {hasChildren ? (
+                      <button type="button" onClick={() => toggleItem(item.id)}
+                        className={`flex w-full items-center gap-3 border-b px-4 py-2.5 text-left transition-all duration-150 ${
+                          isOpen ? "border-border/40 bg-crimson/5" : "border-border/40 hover:bg-muted/30"
+                        }`}
+                      >
+                        <div className="h-11 w-[72px] shrink-0 overflow-hidden rounded-xl">{thumb}</div>
+                        <span className="flex-1 text-[13px] font-semibold text-foreground">{item.title}</span>
+                        <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border text-[14px] font-light leading-none transition-colors ${
+                          isOpen ? "border-crimson bg-crimson text-white" : "border-border text-muted-foreground"
+                        }`}>{isOpen ? "−" : "+"}</span>
+                      </button>
+                    ) : (
+                      <Link to={item.url} onClick={onClose} prefetch="intent"
+                        className="flex items-center gap-3 border-b border-border/40 px-4 py-2.5 transition-all duration-150 hover:bg-muted/30"
+                      >
+                        <div className="h-11 w-[72px] shrink-0 overflow-hidden rounded-xl">{thumb}</div>
+                        <span className="flex-1 text-[13px] font-semibold text-foreground">{item.title}</span>
+                        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      </Link>
+                    )}
+                    <AccordionBody isOpen={isOpen}>
+                      <div className="ml-4 border-l-2 border-crimson/30 bg-muted/20">
+                        {subItems.map((sub) => (
+                          <Link key={sub.id} to={sub.url} onClick={onClose} prefetch="intent"
+                            className="block border-b border-border/25 py-2.5 pl-4 pr-4 text-[12px] font-medium text-foreground/70 last:border-0 transition-colors hover:text-crimson"
+                          >{sub.title}</Link>
+                        ))}
+                      </div>
+                    </AccordionBody>
+                  </motion.div>
+                );
+              })
+          }
+
+          {/* ── Secondary menu ── */}
+          <div className="my-1 border-t border-border/60" />
+          {secondaryMenu.map((entry) => {
+            const Icon        = pickIcon(entry.label, entry.url ?? "");
+            const hasChildren = entry.columns.length > 0;
+            const isOpen      = openSecEntries.has(entry.id);
+
+            return (
+              <motion.div key={entry.id} variants={rowVariants}>
+                {hasChildren ? (
+                  <button type="button" onClick={() => toggleSecEntry(entry.id)}
+                    className={`flex w-full items-center gap-3 border-b px-4 py-2.5 text-left transition-all duration-150 ${
+                      isOpen ? "border-border/40 bg-crimson/5" : "border-border/40 hover:bg-muted/30"
+                    }`}
+                  >
+                    <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-crimson/10 text-crimson">
+                      <Icon className="h-3.5 w-3.5" />
+                    </div>
+                    <span className="flex-1 text-[13px] font-semibold text-foreground">{entry.label}</span>
+                    <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border text-[14px] font-light leading-none transition-colors ${
+                      isOpen ? "border-crimson bg-crimson text-white" : "border-border text-muted-foreground"
+                    }`}>{isOpen ? "−" : "+"}</span>
+                  </button>
+                ) : (
+                  <Link to={entry.url ?? "/"} onClick={onClose} prefetch="intent"
+                    className="flex items-center gap-3 border-b border-border/40 px-4 py-2.5 transition-all duration-150 hover:bg-muted/30"
+                  >
+                    <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-crimson/10 text-crimson">
+                      <Icon className="h-3.5 w-3.5" />
+                    </div>
+                    <span className="flex-1 text-[13px] font-semibold text-foreground">{entry.label}</span>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </Link>
+                )}
+
+                <AccordionBody isOpen={isOpen}>
+                  <div className="bg-muted/20">
+                    <div className="ml-4 border-l-2 border-crimson/30">
+                      {entry.columns.map((col, ci) => {
+                        const colKey   = `sec-${entry.id}-${ci}`;
+                        const colOpen  = openSecCols.has(colKey);
+                        const hasTitle = col.title.trim().length > 0;
+
+                        if (!hasTitle) {
                           return (
                             <div key={colKey}>
-                              {hasLinks ? (
-                                <button type="button" onClick={() => toggleCol(colKey)}
-                                  className={`flex w-full items-center gap-2.5 border-b py-2.5 pl-3 pr-3 text-left transition-colors ${colOpen ? "bg-crimson/5 border-crimson/20" : "border-border/25 hover:bg-muted/30"}`}
-                                >
-                                  <span className={`grid h-6 w-6 shrink-0 place-items-center rounded text-[10px] font-black transition-colors ${
-                                    colOpen ? "bg-crimson text-white" : "bg-crimson/10 text-crimson"
-                                  }`}>{col.title[0].toUpperCase()}</span>
-                                  <span className="flex-1 text-[12px] font-semibold text-foreground/85">{col.title}</span>
-                                  <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border text-[12px] font-light leading-none transition-colors ${
-                                    colOpen ? "border-crimson bg-crimson text-white" : "border-border/60 text-muted-foreground"
-                                  }`}>{colOpen ? "−" : "+"}</span>
-                                </button>
-                              ) : (
-                                col.url
-                                  ? <Link to={col.url} onClick={onClose} prefetch="intent"
-                                      className="flex items-center gap-2.5 border-b border-border/25 py-2.5 pl-3 pr-3 transition-colors hover:bg-muted/30"
-                                    >
-                                      <span className="grid h-6 w-6 shrink-0 place-items-center rounded bg-crimson/10 text-[10px] font-black text-crimson">{col.title[0].toUpperCase()}</span>
-                                      <span className="flex-1 text-[12px] font-semibold text-foreground/85">{col.title}</span>
-                                    </Link>
-                                  : <div className="flex items-center gap-2.5 border-b border-border/25 py-2.5 pl-3 pr-3">
-                                      <span className="grid h-6 w-6 shrink-0 place-items-center rounded bg-crimson/10 text-[10px] font-black text-crimson">{col.title[0].toUpperCase()}</span>
-                                      <span className="flex-1 text-[12px] font-semibold text-foreground/85">{col.title}</span>
-                                    </div>
-                              )}
-
-                              {/* Level 3: links */}
-                              {colOpen && (
-                                <div className="ml-3 border-l border-crimson/15">
-                                  {col.links.map((link) => (
-                                    <Link key={link.url + link.label} to={link.url} onClick={onClose} prefetch="intent"
-                                      className="block border-b border-border/25 py-2 pl-4 pr-3 text-[12px] text-foreground/60 last:border-0 transition-colors hover:text-crimson"
-                                    >
-                                      {link.label}
-                                    </Link>
-                                  ))}
-                                </div>
+                              {col.links.map((lnk) => (
+                                <Link key={lnk.url} to={lnk.url} onClick={onClose} prefetch="intent"
+                                  className="block border-b border-border/25 py-2.5 pl-4 pr-3 text-[12px] font-medium text-foreground/70 last:border-0 transition-colors hover:text-crimson"
+                                >{lnk.label}</Link>
+                              ))}
+                              {col.url && col.links.length === 0 && (
+                                <Link to={col.url} onClick={onClose} prefetch="intent"
+                                  className="block border-b border-border/25 py-2.5 pl-4 pr-3 text-[12px] font-medium text-foreground/70 transition-colors hover:text-crimson"
+                                >{col.title}</Link>
                               )}
                             </div>
                           );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })
+                        }
 
-          /* ── Collections / Boxes: mobileMenu items with sub-item accordion ── */
-          : (tabs[tab1Idx]?.items ?? []).map((item) => {
-              const thumbUrl    = navItemImages[item.title] ?? item.imageUrl ?? null;
-              const initial     = (item.title[0] ?? "•").toUpperCase();
-              const isOpen      = openItems.has(item.id);
-
-              // If mls-mobile-menu has no Level-3 sub-items for this entry, fall back
-              // to the matching mainMenu entry's column links so the accordion still works.
-              const mainEntry   = mainMenu.find((e) => e.url === item.url);
-              const fallbackSubs = mainEntry
-                ? mainEntry.columns.flatMap((col) =>
-                    col.links.map((lnk) => ({ id: lnk.url, title: lnk.label, url: lnk.url }))
-                  )
-                : [];
-              const subItems    = item.subItems.length > 0 ? item.subItems : fallbackSubs;
-              const hasChildren = subItems.length > 0;
-
-              const thumb = thumbUrl
-                ? <img src={cdnImg(thumbUrl, 120)} alt={item.title} className="h-12 w-20 shrink-0 rounded-lg object-cover" loading="lazy" />
-                : <div className="flex h-12 w-20 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-crimson/15 to-crimson/5"><span className="text-sm font-black text-crimson">{initial}</span></div>;
-
-              return (
-                <div key={item.id}>
-                  {hasChildren ? (
-                    <button type="button" onClick={() => toggleItem(item.id)}
-                      className={`flex w-full items-center gap-3 border-b px-4 py-2.5 text-left transition-colors ${isOpen ? "border-border bg-muted/20" : "border-border/50 hover:bg-muted/40"}`}
-                    >
-                      <div className="h-12 w-20 shrink-0 overflow-hidden rounded-lg">{thumb}</div>
-                      <span className="flex-1 text-[13px] font-semibold text-foreground">{item.title}</span>
-                      <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border text-[14px] font-light leading-none transition-colors ${
-                        isOpen ? "border-crimson bg-crimson text-white" : "border-border text-muted-foreground"
-                      }`}>{isOpen ? "−" : "+"}</span>
-                    </button>
-                  ) : (
-                    <Link to={item.url} onClick={onClose} prefetch="intent"
-                      className="flex items-center gap-3 border-b border-border/50 px-4 py-2.5 transition-colors hover:bg-muted/40"
-                    >
-                      <div className="h-12 w-20 shrink-0 overflow-hidden rounded-lg">{thumb}</div>
-                      <span className="flex-1 text-[13px] font-semibold text-foreground">{item.title}</span>
-                    </Link>
-                  )}
-                  {isOpen && (
-                    <div className="border-b border-border/60 ml-4 border-l-2 border-l-crimson/30">
-                      {subItems.map((sub) => (
-                        <Link key={sub.id} to={sub.url} onClick={onClose} prefetch="intent"
-                          className="block border-b border-border/25 py-2.5 pl-4 pr-4 text-[12px] font-medium text-foreground/70 last:border-0 transition-colors hover:text-crimson"
-                        >
-                          {sub.title}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })
-        }
-
-        {/* Secondary menu — accordion when entry has children */}
-        <div className="my-1 border-t border-border/60" />
-        {secondaryMenu.map((entry) => {
-          const Icon        = pickIcon(entry.label, entry.url ?? "");
-          const hasChildren = entry.columns.length > 0;
-          const isOpen      = openSecEntries.has(entry.id);
-
-          return (
-            <div key={entry.id}>
-              {hasChildren ? (
-                <button type="button" onClick={() => toggleSecEntry(entry.id)}
-                  className={`flex w-full items-center gap-3 border-b px-4 py-2.5 text-left transition-colors ${isOpen ? "border-border bg-muted/20" : "border-border/40 hover:bg-muted/40"}`}
-                >
-                  <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-crimson/10 text-crimson">
-                    <Icon className="h-3.5 w-3.5" />
-                  </div>
-                  <span className="flex-1 text-[13px] font-semibold text-foreground">{entry.label}</span>
-                  <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border text-[14px] font-light leading-none transition-colors ${
-                    isOpen ? "border-crimson bg-crimson text-white" : "border-border text-muted-foreground"
-                  }`}>{isOpen ? "−" : "+"}</span>
-                </button>
-              ) : (
-                <Link to={entry.url ?? "/"} onClick={onClose} prefetch="intent"
-                  className="flex items-center gap-3 border-b border-border/40 px-4 py-2.5 transition-colors hover:bg-muted/40"
-                >
-                  <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-crimson/10 text-crimson">
-                    <Icon className="h-3.5 w-3.5" />
-                  </div>
-                  <span className="flex-1 text-[13px] font-semibold text-foreground">{entry.label}</span>
-                </Link>
-              )}
-
-              {/* Level 2: columns */}
-              {isOpen && (
-                <div className="border-b border-border/60 bg-background">
-                  <div className="ml-4 border-l-2 border-crimson/30">
-                    {entry.columns.map((col, ci) => {
-                      const colKey  = `sec-${entry.id}-${ci}`;
-                      const colOpen = openSecCols.has(colKey);
-                      const hasTitle = col.title.trim().length > 0;
-
-                      if (!hasTitle) {
                         return (
                           <div key={colKey}>
-                            {col.links.map((lnk) => (
-                              <Link key={lnk.url} to={lnk.url} onClick={onClose} prefetch="intent"
-                                className="block border-b border-border/25 py-2.5 pl-4 pr-3 text-[12px] font-medium text-foreground/70 last:border-0 transition-colors hover:text-crimson"
-                              >{lnk.label}</Link>
-                            ))}
-                            {col.url && col.links.length === 0 && (
+                            {col.links.length > 0 ? (
+                              <button type="button" onClick={() => toggleSecCol(colKey)}
+                                className={`flex w-full items-center gap-2.5 border-b py-2.5 pl-3 pr-3 text-left transition-all duration-150 ${
+                                  colOpen ? "bg-crimson/5 border-crimson/20" : "border-border/25 hover:bg-muted/30"
+                                }`}
+                              >
+                                <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-lg text-[10px] font-black transition-colors ${colOpen ? "bg-crimson text-white" : "bg-crimson/10 text-crimson"}`}>
+                                  {col.title[0].toUpperCase()}
+                                </span>
+                                <span className="flex-1 text-[12px] font-semibold text-foreground/85">{col.title}</span>
+                                <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border text-[12px] font-light leading-none transition-colors ${
+                                  colOpen ? "border-crimson bg-crimson text-white" : "border-border/60 text-muted-foreground"
+                                }`}>{colOpen ? "−" : "+"}</span>
+                              </button>
+                            ) : col.url ? (
                               <Link to={col.url} onClick={onClose} prefetch="intent"
-                                className="block border-b border-border/25 py-2.5 pl-4 pr-3 text-[12px] font-medium text-foreground/70 transition-colors hover:text-crimson"
-                              >{col.title}</Link>
-                            )}
+                                className="flex items-center gap-2.5 border-b border-border/25 py-2.5 pl-3 pr-3 transition-all duration-150 hover:bg-muted/30"
+                              >
+                                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-crimson/10 text-[10px] font-black text-crimson">{col.title[0].toUpperCase()}</span>
+                                <span className="flex-1 text-[12px] font-semibold text-foreground/85">{col.title}</span>
+                              </Link>
+                            ) : null}
+
+                            <AccordionBody isOpen={colOpen}>
+                              <div className="ml-3 border-l border-crimson/15">
+                                {col.links.map((lnk) => (
+                                  <Link key={lnk.url} to={lnk.url} onClick={onClose} prefetch="intent"
+                                    className="block border-b border-border/25 py-2 pl-4 pr-3 text-[12px] text-foreground/60 last:border-0 transition-colors hover:text-crimson"
+                                  >{lnk.label}</Link>
+                                ))}
+                              </div>
+                            </AccordionBody>
                           </div>
                         );
-                      }
-
-                      return (
-                        <div key={colKey}>
-                          {col.links.length > 0 ? (
-                            <button type="button" onClick={() => toggleSecCol(colKey)}
-                              className={`flex w-full items-center gap-2.5 border-b py-2.5 pl-3 pr-3 text-left transition-colors ${colOpen ? "bg-crimson/5 border-crimson/20" : "border-border/25 hover:bg-muted/30"}`}
-                            >
-                              <span className={`grid h-6 w-6 shrink-0 place-items-center rounded text-[10px] font-black transition-colors ${colOpen ? "bg-crimson text-white" : "bg-crimson/10 text-crimson"}`}>
-                                {col.title[0].toUpperCase()}
-                              </span>
-                              <span className="flex-1 text-[12px] font-semibold text-foreground/85">{col.title}</span>
-                              <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border text-[12px] font-light leading-none transition-colors ${colOpen ? "border-crimson bg-crimson text-white" : "border-border/60 text-muted-foreground"}`}>
-                                {colOpen ? "−" : "+"}
-                              </span>
-                            </button>
-                          ) : col.url ? (
-                            <Link to={col.url} onClick={onClose} prefetch="intent"
-                              className="flex items-center gap-2.5 border-b border-border/25 py-2.5 pl-3 pr-3 transition-colors hover:bg-muted/30"
-                            >
-                              <span className="grid h-6 w-6 shrink-0 place-items-center rounded bg-crimson/10 text-[10px] font-black text-crimson">{col.title[0].toUpperCase()}</span>
-                              <span className="flex-1 text-[12px] font-semibold text-foreground/85">{col.title}</span>
-                            </Link>
-                          ) : null}
-
-                          {/* Level 3: links */}
-                          {colOpen && (
-                            <div className="ml-3 border-l border-crimson/15">
-                              {col.links.map((lnk) => (
-                                <Link key={lnk.url} to={lnk.url} onClick={onClose} prefetch="intent"
-                                  className="block border-b border-border/25 py-2 pl-4 pr-3 text-[12px] text-foreground/60 last:border-0 transition-colors hover:text-crimson"
-                                >{lnk.label}</Link>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                      })}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
+                </AccordionBody>
+              </motion.div>
+            );
+          })}
+
+        </motion.div>
       </div>
 
-      {/* Login button */}
+      {/* ── Login CTA footer ── */}
       <div className="shrink-0 border-t border-border p-3">
         <a href="https://mlsuae.ae/customer_authentication/redirect?locale=en&region_country=AE"
           className="flex w-full items-center justify-center rounded-lg bg-crimson py-2.5 text-[11px] font-black uppercase tracking-widest transition-colors hover:bg-crimson/90"
-          style={{color: '#ffffff'}}
+          style={{ color: '#ffffff' }}
         >Login / Sign Up</a>
       </div>
     </div>

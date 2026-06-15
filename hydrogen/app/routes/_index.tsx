@@ -40,11 +40,15 @@ const Q_GIFT       = `{ nodes: metaobjects(type: "mls_first_order_gift", first: 
 const Q_SALE_SEC   = `{ nodes: metaobjects(type: "mls_sale_section", first: 1) { nodes { id fields { key value reference { ... on Collection { handle title } } } } } }`;
 const Q_BLOG_ARTICLES = `
   query HomeBlogArticles {
-    articles(first: 6, sortKey: PUBLISHED_AT, reverse: true) {
+    blogs(first: 5) {
       nodes {
-        id handle title publishedAt excerpt
-        image { url altText }
-        blog { handle }
+        handle
+        articles(first: 6, sortKey: PUBLISHED_AT, reverse: true) {
+          nodes {
+            id handle title publishedAt excerpt
+            image { url altText }
+          }
+        }
       }
     }
   }
@@ -474,16 +478,23 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
     reels = pickReels(taggedEdges);
   }
 
-  const blogArticles: BlogArticle[] = ((blogData as any)?.articles?.nodes ?? []).map((n: any) => ({
-    id: n.id as string,
-    handle: n.handle as string,
-    title: n.title as string,
-    publishedAt: n.publishedAt as string,
-    excerpt: (n.excerpt ?? null) as string | null,
-    imageUrl: (n.image?.url ?? null) as string | null,
-    imageAlt: (n.image?.altText ?? n.title ?? "") as string,
-    blogHandle: (n.blog?.handle ?? "journal") as string,
-  }));
+  const blogArticles: BlogArticle[] = ((blogData as any)?.blogs?.nodes ?? [])
+    .flatMap((blog: any) =>
+      (blog.articles?.nodes ?? []).map((n: any) => ({
+        id: n.id as string,
+        handle: n.handle as string,
+        title: n.title as string,
+        publishedAt: n.publishedAt as string,
+        excerpt: (n.excerpt ?? null) as string | null,
+        imageUrl: (n.image?.url ?? null) as string | null,
+        imageAlt: (n.image?.altText ?? n.title ?? "") as string,
+        blogHandle: blog.handle as string,
+      }))
+    )
+    .sort((a: BlogArticle, b: BlogArticle) =>
+      new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+    )
+    .slice(0, 6);
 
   const storeReviews: JudgemeReview[] = (reviewsData as any)?.reviews ?? [];
   const reviewTotalCount: number = (reviewsData as any)?.total_count ?? 0;

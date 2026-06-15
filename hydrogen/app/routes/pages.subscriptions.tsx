@@ -157,7 +157,7 @@ export default function SubscriptionsPage() {
             <p className="mt-3 text-base leading-relaxed text-white/90 md:text-lg">{page.heroSubtitle}</p>
             <div className="mt-7 flex flex-wrap gap-3">
               <Link to={page.heroCtaUrl}
-                className="inline-flex items-center gap-2 rounded-lg bg-crimson px-7 py-3 text-sm font-bold uppercase tracking-wide text-white shadow-lg transition-all hover:bg-rich-red">
+                className="inline-flex items-center gap-2 rounded-lg bg-crimson px-7 py-3 text-sm font-bold uppercase tracking-wide shadow-lg transition-all hover:bg-rich-red !text-white">
                 {page.heroCtaText} <ArrowRight className="h-4 w-4" />
               </Link>
               {page.manageUrl && (

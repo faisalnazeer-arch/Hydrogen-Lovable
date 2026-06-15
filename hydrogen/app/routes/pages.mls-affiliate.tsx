@@ -201,8 +201,8 @@ export default function AffiliatePage() {
                 </ul>
                 <a
                   href="#affiliate-register"
-                  className="mt-auto inline-block rounded-md px-6 py-2 text-sm font-semibold text-white w-fit transition-opacity hover:opacity-90"
-                  style={{ background: "#a70a10" }}
+                  className="mt-auto inline-block rounded-md px-6 py-2 text-sm font-semibold w-fit transition-opacity hover:opacity-90"
+                  style={{ background: "#a70a10", color: "#ffffff" }}
                 >
                   Join Now
                 </a>

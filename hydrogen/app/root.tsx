@@ -24,12 +24,15 @@ import { useCartSync } from "./hooks/useCartSync";
 import { useCartStore } from "./stores/cartStore";
 import { useLocaleStore, dirFor, type Locale } from "./stores/localeStore";
 
-export const links: LinksFunction = () => [
-  // Stylesheet is injected directly in Layout with suppressHydrationWarning
-  // to prevent Vite dev-mode ?t= timestamp causing a hydration cascade
-  { rel: "icon", type: "image/png", href: mlsFavicon },
-  { rel: "apple-touch-icon", href: mlsFavicon },
-];
+const DEFAULT_FAVICON = "https://cdn.shopify.com/s/files/1/0821/0202/6556/files/MLS-favicon.png?v=1693298131";
+
+export const links: LinksFunction = (args?: any) => {
+  const favicon = args?.data?.faviconUrl || DEFAULT_FAVICON;
+  return [
+    { rel: "icon", type: "image/png", href: favicon },
+    { rel: "apple-touch-icon", href: favicon },
+  ];
+};
 
 // ── Nav types ────────────────────────────────────────────────────────────────
 export interface NavLink {
@@ -71,6 +74,7 @@ export interface FooterSettings {
   email: string;
   copyright: string;
   bottomTagline: string;
+  faviconUrl: string | null;
 }
 
 // ── GraphQL ───────────────────────────────────────────────────────────────────
@@ -170,7 +174,13 @@ const LAYOUT_QUERY = `#graphql
 const ADMIN_FOOTER_QUERY = `
   query {
     footerSettings: metaobjects(type: "mls_footer_settings", first: 1) {
-      nodes { id fields { key value } }
+      nodes {
+        id
+        fields {
+          key value
+          reference { ... on MediaImage { image { url } } }
+        }
+      }
     }
     announcementBar: metaobjects(type: "mls_announcement_bar", first: 1) {
       nodes { id fields { key value } }
@@ -242,6 +252,7 @@ function parseFooterSettings(nodes: any[]): FooterSettings | null {
     email:          f.email?.value           ?? "",
     copyright:      f.copyright?.value       ?? "",
     bottomTagline:  f.bottom_tagline?.value  ?? "",
+    faviconUrl:     f.favicon?.reference?.image?.url ?? null,
   };
 }
 
@@ -393,7 +404,8 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
     const mobileBanners = parseMobileBanners(data?.mobileBanners?.nodes ?? []);
     const mobileMenu = parseMobileMenu(data?.mobileMenu);
 
-    return { mainMenu, secondaryMenu, mobileMenu, mobileCategoriesMenu, footerSettings, footerMenuCols, announcementMessages, cartDrawerConfig, navItemImages, mobileBanners };
+    const faviconUrl = footerSettings?.faviconUrl ?? null;
+    return { mainMenu, secondaryMenu, mobileMenu, mobileCategoriesMenu, footerSettings, footerMenuCols, announcementMessages, cartDrawerConfig, navItemImages, mobileBanners, faviconUrl };
   } catch {
     return {
       mainMenu: [] as NavEntry[],
@@ -406,6 +418,7 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
       mobileBanners: [] as MobileBanner[],
       mobileMenu: [] as MobileMenuTab[],
       mobileCategoriesMenu: [] as NavEntry[],
+      faviconUrl: null as string | null,
     };
   }
 }
@@ -468,68 +481,98 @@ function CartSyncWrapper() {
 
 function PageLoader() {
   const navigation = useNavigation();
+  const { faviconUrl } = useLoaderData<typeof loader>();
   const loading = navigation.state !== "idle";
+  const iconSrc = faviconUrl || DEFAULT_FAVICON;
   return (
     <>
       <style>{`
-        @keyframes logo-breathe {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.55; transform: scale(0.93); }
+        @keyframes _mls-drop {
+          0%   { opacity: 0; transform: translateY(-48px) scale(1.4); }
+          55%  { opacity: 1; transform: translateY(6px)  scale(0.96); }
+          75%  { transform: translateY(-3px) scale(1.01); }
+          100% { opacity: 1; transform: translateY(0)    scale(1); }
         }
-        @keyframes ripple-out {
-          0%   { transform: scale(0.6); opacity: 0.6; }
-          100% { transform: scale(2.4); opacity: 0; }
+        @keyframes _mls-bar {
+          0%   { transform: scaleX(0); opacity: 0; transform-origin: left; }
+          100% { transform: scaleX(1); opacity: 1; transform-origin: left; }
         }
-        @keyframes dot-pulse {
-          0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
-          40%            { transform: scale(1);   opacity: 1; }
+        @keyframes _mls-tag {
+          0%   { opacity: 0; transform: translateY(6px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes _mls-logo {
+          0%   { opacity: 0; transform: scale(0.7); }
+          60%  { transform: scale(1.06); }
+          100% { opacity: 1; transform: scale(1); }
+        }
+        @keyframes _mls-dot {
+          0%, 80%, 100% { transform: scale(0.55); opacity: 0.3; }
+          40%           { transform: scale(1);    opacity: 1; }
         }
       `}</style>
       <div
         aria-hidden
         className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center transition-opacity ${
-          loading ? "opacity-100 duration-150" : "opacity-0 duration-200 pointer-events-none"
+          loading ? "opacity-100 duration-150" : "opacity-0 duration-300 pointer-events-none"
         }`}
-        style={{ background: "rgba(255,255,255,0.78)", backdropFilter: "blur(14px)" }}
+        style={{ background: "rgba(255,255,255,0.97)", backdropFilter: "blur(18px)" }}
       >
-        {/* Logo with ripple rings */}
-        <div className="relative flex items-center justify-center" style={{ width: 200, height: 200 }}>
-          <span
-            className="absolute rounded-full"
-            style={{
-              inset: 0,
-              background: "radial-gradient(circle, rgba(185,28,28,0.18) 0%, transparent 70%)",
-              animation: "ripple-out 2s ease-out infinite",
-            }}
-          />
-          <span
-            className="absolute rounded-full"
-            style={{
-              inset: 0,
-              background: "radial-gradient(circle, rgba(185,28,28,0.12) 0%, transparent 70%)",
-              animation: "ripple-out 2s ease-out 0.9s infinite",
-            }}
-          />
-          <img
-            src={mlsLogo}
-            alt=""
-            className="relative z-10 drop-shadow-2xl"
-            style={{ height: 110, width: "auto", animation: "logo-breathe 2.4s ease-in-out infinite" }}
-          />
+        {/* Logo */}
+        <div style={{ animation: "_mls-logo 0.4s ease-out 0s both", marginBottom: 28 }}>
+          <img src={iconSrc} alt="" style={{ height: 52, width: "auto", objectFit: "contain" }} />
         </div>
 
-        {/* Staggered dots */}
-        <div className="mt-6 flex items-center gap-2.5">
-          {[0, 1, 2].map((i) => (
+        {/* M → L → S sequential drop-bounce */}
+        <div style={{ display: "flex", alignItems: "baseline", gap: 2, lineHeight: 1 }}>
+          {(["M", "L", "S"] as const).map((letter, i) => (
             <span
-              key={i}
-              className="block rounded-full bg-crimson"
+              key={letter}
               style={{
-                width: 8,
-                height: 8,
-                animation: `dot-pulse 1.4s ease-in-out ${i * 0.22}s infinite`,
+                display: "block",
+                fontSize: 88,
+                fontWeight: 900,
+                letterSpacing: "-0.05em",
+                color: "oklch(0.18 0.005 240)",
+                fontFamily: "var(--font-display, 'Georgia', serif)",
+                animation: `_mls-drop 0.48s cubic-bezier(0.22,1,0.36,1) ${0.12 + i * 0.28}s both`,
               }}
-            />
+            >{letter}</span>
+          ))}
+        </div>
+
+        {/* Crimson line sweeps left → right after S lands */}
+        <div style={{
+          height: 3,
+          width: 110,
+          background: "oklch(0.36 0.18 27)",
+          borderRadius: 9999,
+          transformOrigin: "left center",
+          marginTop: 8,
+          animation: "_mls-bar 0.35s ease-out 1.0s both",
+        }} />
+
+        {/* Tagline */}
+        <p style={{
+          marginTop: 12,
+          fontSize: 9,
+          fontWeight: 800,
+          letterSpacing: "0.32em",
+          color: "oklch(0.18 0.005 240 / 0.35)",
+          textTransform: "uppercase",
+          animation: "_mls-tag 0.35s ease-out 1.2s both",
+        }}>Premium Quality Meats</p>
+
+        {/* Staggered crimson dots */}
+        <div style={{ display: "flex", gap: 7, marginTop: 40 }}>
+          {[0, 1, 2].map((i) => (
+            <span key={i} style={{
+              display: "block",
+              width: 7, height: 7,
+              borderRadius: "50%",
+              background: "oklch(0.36 0.18 27)",
+              animation: `_mls-dot 1.3s ease-in-out ${i * 0.2}s infinite`,
+            }} />
           ))}
         </div>
       </div>

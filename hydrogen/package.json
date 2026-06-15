@@ -54,6 +54,7 @@
     "@shopify/hydrogen": "^2026.4.2",
     "@shopify/hydrogen-react": "^2026.4.2",
     "@shopify/remix-oxygen": "^3.0.2",
+    "@tailwindcss/typography": "^0.5.20",
     "@tanstack/react-query": "^5.100.9",
     "browserslist": "^4.28.2",
     "class-variance-authority": "^0.7.1",
