@@ -130,12 +130,11 @@ export function QuickBuyDrawer() {
   return (
     <Sheet open={isOpen} onOpenChange={(o) => !o && close()}>
       <SheetContent className="flex w-[96vw] max-w-[440px] flex-col p-0 sm:max-w-md">
-        <SheetHeader className="border-b border-border px-4 py-2 sm:px-6 sm:py-4">
-          <SheetTitle className="font-display text-sm sm:text-xl">Quick Buy</SheetTitle>
-          <SheetDescription className="text-[11px] sm:text-sm">Choose options and add to cart</SheetDescription>
+        <SheetHeader className="border-b border-border px-4 py-2.5 sm:px-5">
+          <SheetTitle className="font-display text-base">Quick Buy</SheetTitle>
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto px-4 py-3 sm:p-6">
+        <div className="flex-1 overflow-y-auto px-4 py-3 sm:px-5 sm:py-4">
           <div className="flex gap-3 sm:gap-4">
             {img && (
               <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md bg-muted sm:h-28 sm:w-28">
