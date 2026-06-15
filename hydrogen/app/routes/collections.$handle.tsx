@@ -296,8 +296,9 @@ export default function Collection() {
 
         <div className="flex-1 min-w-0">
           {/* Toolbar */}
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
+          <div className="mb-4">
+            <div className="flex items-center justify-between gap-3">
+              {/* Left: Filters button (mobile) */}
               <button
                 type="button"
                 onClick={() => setFiltersOpen(true)}
@@ -310,27 +311,33 @@ export default function Collection() {
                   </span>
                 )}
               </button>
-              <span className="text-sm text-muted-foreground">
+              {/* Count — desktop only inline */}
+              <span className="hidden text-sm text-muted-foreground lg:block">
                 {filtered.length} of {allProducts.length} products{hasMore ? "+" : ""}
               </span>
+              {/* Right: Sort */}
+              <div className="relative ml-auto">
+                <select
+                  value={sortIdx}
+                  onChange={(e) => {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set("sort", e.target.value);
+                    url.searchParams.delete("after");
+                    navigate(url.pathname + url.search, { replace: true, preventScrollReset: true });
+                  }}
+                  className="appearance-none rounded-lg border border-border bg-card py-2 pl-3 pr-8 text-sm font-medium"
+                >
+                  {SORT_OPTIONS.map((o, i) => (
+                    <option key={i} value={i}>{o.label}</option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              </div>
             </div>
-            <div className="relative">
-              <select
-                value={sortIdx}
-                onChange={(e) => {
-                  const url = new URL(window.location.href);
-                  url.searchParams.set("sort", e.target.value);
-                  url.searchParams.delete("after");
-                  navigate(url.pathname + url.search, { replace: true, preventScrollReset: true });
-                }}
-                className="appearance-none rounded-lg border border-border bg-card py-2 pl-3 pr-8 text-sm font-medium"
-              >
-                {SORT_OPTIONS.map((o, i) => (
-                  <option key={i} value={i}>{o.label}</option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            </div>
+            {/* Count — mobile only, below the row */}
+            <p className="mt-1.5 text-xs text-muted-foreground lg:hidden">
+              {filtered.length} of {allProducts.length} products{hasMore ? "+" : ""}
+            </p>
           </div>
 
           {/* Mobile filter drawer */}

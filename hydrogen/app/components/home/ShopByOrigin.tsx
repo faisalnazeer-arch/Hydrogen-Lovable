@@ -81,7 +81,7 @@ export function ShopByOrigin({ section }: Props) {
       <div className="container mx-auto px-4">
 
         {/* Header */}
-        <div className="mb-6 text-center md:mb-7">
+        <div className="mb-4 text-center md:mb-5">
           <div className="mb-1.5 flex items-center justify-center gap-3">
             <span className="h-px w-6 rounded-full bg-crimson" />
             <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-crimson">
@@ -96,7 +96,7 @@ export function ShopByOrigin({ section }: Props) {
 
         {/* Tabs */}
         {categories.length > 1 && (
-          <div className="mb-8 flex justify-center">
+          <div className="mb-3 flex justify-center md:mb-4">
             <div className="flex gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {categories.map((tab) => {
                 const isActive = activeTab === tab;

@@ -53,7 +53,7 @@ export function FirstOrderGift({ data }: Props) {
         <div className="mx-auto max-w-5xl">
 
           {/* ── Header ── */}
-          <div className="mb-6 text-center md:mb-7">
+          <div className="mb-4 text-center md:mb-5">
             <div className="mb-1.5 flex items-center justify-center gap-3">
               <span className="h-px w-6 rounded-full bg-crimson" />
               <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-crimson">

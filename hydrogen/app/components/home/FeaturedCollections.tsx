@@ -72,7 +72,7 @@ export function SectionHeader({
   actionLabel?: string;
 }) {
   return (
-    <div className="mb-5 flex items-end justify-between gap-4 md:mb-7">
+    <div className="mb-4 flex items-end justify-between gap-4 md:mb-5">
       <div>
         {subtitle && (
           <div className="mb-1.5 flex items-center gap-2">

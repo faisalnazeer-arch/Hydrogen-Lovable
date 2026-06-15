@@ -33,6 +33,7 @@ const Q_CUTS       = `{ nodes: metaobjects(type: "mls_cuts_section", first: 1) {
 const Q_FEATURED   = `{ nodes: metaobjects(type: "featured_collection", first: 10) { nodes { id fields { key value reference { ... on Collection { handle title } } references(first: 10) { nodes { ... on Metaobject { id fields { key value reference { ... on Collection { handle title } } } } } } } } } }`;
 const Q_COL_LIST   = `{ nodes: metaobjects(type: "featured_collection_list", first: 20) { nodes { id fields { ${imgFields} } } } }`;
 const Q_GIFT       = `{ nodes: metaobjects(type: "mls_first_order_gift", first: 1) { nodes { id fields { key value } } } }`;
+const Q_SALE_SEC   = `{ nodes: metaobjects(type: "mls_sale_section", first: 1) { nodes { id fields { key value reference { ... on Collection { handle title } } } } } }`;
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -300,6 +301,25 @@ function parseCutsSection(nodes: any[]): CutsSectionData | null {
   };
 }
 
+interface SaleSectionConfig {
+  heading: string;
+  subHeading: string;
+  collectionHandle: string;
+}
+
+function parseSaleSection(nodes: any[]): SaleSectionConfig | null {
+  const node = nodes[0];
+  if (!node) return null;
+  const f = Object.fromEntries(node.fields.map((x: any) => [x.key, x]));
+  const handle = f.collection?.reference?.handle as string | undefined;
+  if (!handle) return null;
+  return {
+    heading:          (f.heading?.value     ?? "Sale") as string,
+    subHeading:       (f.sub_heading?.value ?? "") as string,
+    collectionHandle: handle,
+  };
+}
+
 function parseCollectionSectionConfig(nodes: any[]): { heading: string; subHeading: string } | null {
   const node = nodes[0];
   if (!node) return null;
@@ -345,13 +365,13 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
   const [
     heroRes, badgesRes, priceSecRes, priceTileRes, reelSecRes,
     promoRes, valueRes, colCfgRes, originRes, categoryRes,
-    cutsRes, featuredRes, colListRes, reelTagged, reelItemsRes, giftRes,
+    cutsRes, featuredRes, colListRes, reelTagged, reelItemsRes, giftRes, saleSecRes,
   ] = await Promise.all([
     af(Q_HERO), af(Q_BADGES), af(Q_PRICE_SEC), af(Q_PRICE_TILE), af(Q_REELS_SEC),
     af(Q_PROMO), af(Q_VALUE), af(Q_COL_CFG), af(Q_ORIGIN), af(Q_CATEGORY),
     af(Q_CUTS), af(Q_FEATURED), af(Q_COL_LIST),
     context.storefront.query(REELS_QUERY, { variables: { first: 20, query: "tag:reel" } }),
-    af(Q_REEL_ITEMS), af(Q_GIFT),
+    af(Q_REEL_ITEMS), af(Q_GIFT), af(Q_SALE_SEC),
   ]);
 
   const data = {
@@ -409,6 +429,18 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
   const valueBanner = parseValueBanner(data?.valueBanner?.nodes ?? []);
   const cutsSection = parseCutsSection(data?.cutsSection?.nodes ?? []);
   const reelsConfig = parseReelsSectionConfig(data?.reelsSection?.nodes ?? []);
+  const saleSection = parseSaleSection(saleSecRes?.nodes ?? []);
+
+  let saleProducts: ShopifyProduct[] = [];
+  if (saleSection) {
+    try {
+      const res = await context.storefront.query(COLLECTION_PRODUCTS_QUERY, {
+        variables: { handle: saleSection.collectionHandle, first: 20 },
+      });
+      saleProducts = (res?.collection?.products?.edges ?? [])
+        .filter((e: any) => parseFloat(e.node?.priceRange?.minVariantPrice?.amount ?? "0") > 0);
+    } catch { /* ignore missing collection */ }
+  }
 
   // Use reel_item entries from metaobject; fall back to tag:reel product query when none exist
   let reels: ReelProduct[] = parseReelItems(data?.reelItems?.nodes ?? []);
@@ -439,11 +471,13 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
     valueBanner,
     cutsSection,
     firstOrderGift,
+    saleSection,
+    saleProducts,
   };
 }
 
 export default function Home() {
-  const { heroSlides, trustBadges, featuredSection, collectionCards, priceSection, priceTiles, promo, reelsLabel, reelsHeading, reels, categorySection, originSection, valueBanner, cutsSection, firstOrderGift } = useLoaderData<typeof loader>();
+  const { heroSlides, trustBadges, featuredSection, collectionCards, priceSection, priceTiles, promo, reelsLabel, reelsHeading, reels, categorySection, originSection, valueBanner, cutsSection, firstOrderGift, saleSection, saleProducts } = useLoaderData<typeof loader>();
   const t = useT();
   return (
     <>
@@ -456,11 +490,14 @@ export default function Home() {
       />
       <FirstOrderGift data={firstOrderGift} />
       <PriceRangeShop section={priceSection} tiles={priceTiles} />
-      <PromoSideBySide promo={promo} />
-      <ReelsCarousel reels={reels} label={reelsLabel} heading={reelsHeading} />
-      <ShopByCategory section={categorySection} />
-      <ShopByCuts section={cutsSection} />
-      <ShopByOrigin section={originSection} />
+      {saleSection && (
+        <CategorySection
+          handle={saleSection.collectionHandle}
+          title={saleSection.heading}
+          subtitle={saleSection.subHeading}
+          products={saleProducts}
+        />
+      )}
       {featuredSection && (
         <CategorySection
           handle={featuredSection.tabs[0]?.handle ?? ""}
@@ -470,6 +507,11 @@ export default function Home() {
           tabs={featuredSection.tabs}
         />
       )}
+      <ShopByCategory section={categorySection} />
+      <ShopByCuts section={cutsSection} />
+      <ShopByOrigin section={originSection} />
+      <ReelsCarousel reels={reels} label={reelsLabel} heading={reelsHeading} />
+      <PromoSideBySide promo={promo} />
       <ValueBoxesBanner banner={valueBanner} />
       <RecentlyViewed />
     </>
