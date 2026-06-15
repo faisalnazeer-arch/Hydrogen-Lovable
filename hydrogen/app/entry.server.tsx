@@ -53,7 +53,9 @@ export default async function handleRequest(
   responseHeaders.set(
     "Content-Security-Policy",
     [
-      "default-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.shopify.com https://shopify.com http://localhost:* ws://localhost:* wss://localhost:* https://*.yotpo.com http://*.yotpo.com https://*.yotpo.xyz https://cdn.judge.me https://*.judge.me",
+      "default-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://cdn.shopify.com https://shopify.com http://localhost:* ws://localhost:* wss://localhost:* https://*.yotpo.com http://*.yotpo.com https://*.yotpo.xyz https://cdn.judge.me https://*.judge.me",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://cdn.shopify.com https://shopify.com https://*.yotpo.com http://*.yotpo.com https://*.yotpo.xyz https://cdn.judge.me https://*.judge.me",
+      "worker-src blob: 'self' https://*.yotpo.com http://*.yotpo.com https://*.yotpo.xyz",
       "style-src 'self' 'unsafe-inline' https:",
       "img-src 'self' data: https: http: blob:",
       "media-src 'self' https: blob:",

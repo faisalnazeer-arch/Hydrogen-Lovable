@@ -51,31 +51,41 @@ export default function RewardsPage() {
   useEffect(() => {
     const SCRIPT_ID = "yotpo-loyalty-script";
     let active = true;
+    let rafId: number;
 
-    // Swell/Yotpo Loyalty SDK throws "already loaded" if window.swellConfig exists.
-    // Clear it + remove any stale script before each mount so the widget always
-    // initialises fresh (handles SPA navigation and React Strict Mode dev remounts).
-    try { delete (window as any).swellConfig; } catch {}
-    const existing = document.getElementById(SCRIPT_ID);
-    if (existing) existing.remove();
+    // Use rAF so React has committed the widget <div> to the DOM before the
+    // Swell SDK tries to find [data-yotpo-instance-id] elements.
+    rafId = requestAnimationFrame(() => {
+      if (!active) return;
 
-    const script = document.createElement("script");
-    script.id = SCRIPT_ID;
-    script.src = `https://cdn-loyalty.yotpo.com/loader/${YOTPO_GUID}.js`;
-    script.async = true;
+      // Swell SDK throws "already loaded" if window.swellConfig exists — clear it first.
+      try { delete (window as any).swellConfig; } catch {}
+      document.getElementById(SCRIPT_ID)?.remove();
 
-    // If Strict Mode's cleanup ran before this script executed, clear swellConfig
-    // so the live script (from the second mount) can set it without throwing.
-    script.addEventListener("load", () => {
-      if (!active) try { delete (window as any).swellConfig; } catch {}
+      const script = document.createElement("script");
+      script.id = SCRIPT_ID;
+      script.src = `https://cdn-loyalty.yotpo.com/loader/${YOTPO_GUID}.js`;
+      script.async = true;
+
+      script.addEventListener("load", () => {
+        if (!active) {
+          // Stale mount (React Strict Mode) — clear swellConfig so live mount can init.
+          try { delete (window as any).swellConfig; } catch {}
+          return;
+        }
+        // Give the SDK a tick to finish initialising, then attempt a widget refresh.
+        setTimeout(() => {
+          try { (window as any).yotpo?.refreshWidgets?.(); } catch {}
+        }, 200);
+      });
+
+      document.head.appendChild(script);
     });
-
-    document.head.appendChild(script);
 
     return () => {
       active = false;
-      const s = document.getElementById(SCRIPT_ID);
-      if (s) s.remove();
+      cancelAnimationFrame(rafId);
+      document.getElementById(SCRIPT_ID)?.remove();
       try { delete (window as any).swellConfig; } catch {}
     };
   }, []);
