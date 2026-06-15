@@ -57,17 +57,13 @@ export function HomeBlogSection({ articles }: { articles: BlogArticle[] }) {
   return (
     <section className="py-10 md:py-14">
       <div className="container mx-auto px-4">
-        <div className="mb-6 flex items-end justify-between">
-          <div>
-            <p className="mb-1 text-xs font-bold uppercase tracking-[0.2em] text-crimson">From Our Kitchen</p>
-            <h2 className="font-display text-2xl font-extrabold md:text-3xl">Tips, Recipes & News</h2>
+        <div className="mb-4 text-center md:mb-5">
+          <div className="mb-1.5 flex items-center justify-center gap-3">
+            <span className="h-px w-6 rounded-full bg-crimson" />
+            <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-crimson">From Our Kitchen</span>
+            <span className="h-px w-6 rounded-full bg-crimson" />
           </div>
-          <Link
-            to="/blogs/all"
-            className="flex items-center gap-1 text-sm font-semibold text-crimson transition-colors hover:text-rich-red"
-          >
-            View all <ArrowRight className="h-4 w-4" />
-          </Link>
+          <h2 className="font-display text-2xl font-bold leading-snug tracking-tight md:text-3xl">Tips, Recipes & News</h2>
         </div>
 
         <HScroller>
@@ -75,6 +71,15 @@ export function HomeBlogSection({ articles }: { articles: BlogArticle[] }) {
             <BlogCard key={article.id} article={article} />
           ))}
         </HScroller>
+
+        <div className="mt-5 flex justify-center">
+          <Link
+            to="/blogs/all"
+            className="flex items-center gap-1.5 text-sm font-semibold text-crimson transition-colors hover:text-rich-red"
+          >
+            View all articles <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
       </div>
     </section>
   );
