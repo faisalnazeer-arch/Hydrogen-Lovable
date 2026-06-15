@@ -83,7 +83,7 @@ export default function MlsGourmetPage() {
         <div className="absolute inset-0 opacity-10"
           style={{ backgroundImage: "repeating-linear-gradient(45deg,#fff 0,#fff 1px,transparent 0,transparent 50%)", backgroundSize: "20px 20px" }} />
         <div className="relative container mx-auto px-4">
-          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.25em] text-crimson">Visit Us</p>
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.25em] text-white/70">Visit Us</p>
           <h1 className="font-display text-3xl font-extrabold md:text-5xl">{heroTitle}</h1>
           <p className="mx-auto mt-3 max-w-lg text-base text-white/65 md:text-lg">{heroSubtitle}</p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
