@@ -457,6 +457,10 @@ export default function Home() {
       <FirstOrderGift data={firstOrderGift} />
       <PriceRangeShop section={priceSection} tiles={priceTiles} />
       <PromoSideBySide promo={promo} />
+      <ReelsCarousel reels={reels} label={reelsLabel} heading={reelsHeading} />
+      <ShopByCategory section={categorySection} />
+      <ShopByCuts section={cutsSection} />
+      <ShopByOrigin section={originSection} />
       {featuredSection && (
         <CategorySection
           handle={featuredSection.tabs[0]?.handle ?? ""}
@@ -466,10 +470,6 @@ export default function Home() {
           tabs={featuredSection.tabs}
         />
       )}
-      <ReelsCarousel reels={reels} label={reelsLabel} heading={reelsHeading} />
-      <ShopByCategory section={categorySection} />
-      <ShopByCuts section={cutsSection} />
-      <ShopByOrigin section={originSection} />
       <ValueBoxesBanner banner={valueBanner} />
       <RecentlyViewed />
     </>
