@@ -23,24 +23,26 @@ const REWARDS_QUERY = `{
   }
 }`;
 
+const DEFAULTS = {
+  heroImage:    null as string | null,
+  heroTitle:    "Unlock Savings & Rewards With MLS",
+  heroSubtitle: "We value you and this program is built to save you money and upgrade your meat shopping experience.",
+};
+
 export async function loader({ context }: LoaderFunctionArgs) {
-  // Try to get customer info for Yotpo auth
-  let customer = null;
   try {
-    customer = context.session?.get?.("customerAccessToken") ?? null;
-  } catch { /* not logged in */ }
-
-  // Get page config from metaobject if exists
-  const data = await context.adminFetch(REWARDS_QUERY);
-  const node = data?.nodes?.nodes?.[0];
-  const f = Object.fromEntries((node?.fields ?? []).map((x: any) => [x.key, x]));
-
-  return {
-    heroImage:   f.hero_image?.reference?.image?.url ?? null,
-    heroTitle:   f.hero_title?.value   ?? "Unlock Savings & Rewards With MLS",
-    heroSubtitle: f.hero_subtitle?.value ?? "We value you and this program is built to save you money and upgrade your meat shopping experience.",
-    customer,
-  };
+    const data = await context.adminFetch(REWARDS_QUERY);
+    const node = data?.nodes?.nodes?.[0];
+    if (!node) return DEFAULTS;
+    const f = Object.fromEntries((node.fields as any[]).map((x: any) => [x.key, x]));
+    return {
+      heroImage:    (f.hero_image?.reference?.image?.url ?? null) as string | null,
+      heroTitle:    (f.hero_title?.value   ?? DEFAULTS.heroTitle)    as string,
+      heroSubtitle: (f.hero_subtitle?.value ?? DEFAULTS.heroSubtitle) as string,
+    };
+  } catch {
+    return DEFAULTS;
+  }
 }
 
 export default function RewardsPage() {
@@ -53,7 +55,7 @@ export default function RewardsPage() {
     // Swell/Yotpo Loyalty SDK throws "already loaded" if window.swellConfig exists.
     // Clear it + remove any stale script before each mount so the widget always
     // initialises fresh (handles SPA navigation and React Strict Mode dev remounts).
-    delete (window as any).swellConfig;
+    try { delete (window as any).swellConfig; } catch {}
     const existing = document.getElementById(SCRIPT_ID);
     if (existing) existing.remove();
 
@@ -65,7 +67,7 @@ export default function RewardsPage() {
     // If Strict Mode's cleanup ran before this script executed, clear swellConfig
     // so the live script (from the second mount) can set it without throwing.
     script.addEventListener("load", () => {
-      if (!active) delete (window as any).swellConfig;
+      if (!active) try { delete (window as any).swellConfig; } catch {}
     });
 
     document.head.appendChild(script);
@@ -74,7 +76,7 @@ export default function RewardsPage() {
       active = false;
       const s = document.getElementById(SCRIPT_ID);
       if (s) s.remove();
-      delete (window as any).swellConfig;
+      try { delete (window as any).swellConfig; } catch {}
     };
   }, []);
 

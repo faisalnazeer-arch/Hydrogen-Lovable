@@ -51,7 +51,8 @@ export function parsePriceTiles(nodes: any[]): PriceTile[] {
         backgroundImageAlt: f["background_image"]?.reference?.image?.altText ?? null,
       };
     })
-    .filter(Boolean) as PriceTile[];
+    .filter(Boolean)
+    .sort((a: any, b: any) => parseFloat(a.priceAmount) - parseFloat(b.priceAmount)) as PriceTile[];
 }
 
 // ── Component ──────────────────────────────────────────────────────────────
