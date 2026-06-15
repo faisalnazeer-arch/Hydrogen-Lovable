@@ -23,6 +23,7 @@ export function QuickBuyDrawer() {
   const { product, isOpen, close } = useQuickBuyStore();
   const addItem = useCartStore((s) => s.addItem);
   const isLoading = useCartStore((s) => s.isLoading);
+  const addItemError = useCartStore((s) => s.addItemError);
 
   const node = product?.node;
   const variants = useMemo(
@@ -113,6 +114,8 @@ export function QuickBuyDrawer() {
 
   const handleAdd = async () => {
     if (!matched) return;
+    // Clear any previous error before trying again
+    useCartStore.setState({ addItemError: null });
     await addItem({
       product: product!,
       variantId: matched.id,
@@ -235,6 +238,11 @@ export function QuickBuyDrawer() {
         </div>
 
         <div className="border-t border-border px-4 py-2.5 sm:p-4">
+          {addItemError && (
+            <div className="mb-2 rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">
+              {addItemError}
+            </div>
+          )}
           <Button
             onClick={handleAdd}
             disabled={!matched?.availableForSale || isLoading || fetchingPlans}

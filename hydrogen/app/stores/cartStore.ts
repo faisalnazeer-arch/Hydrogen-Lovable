@@ -53,6 +53,7 @@ interface CartStore {
   subtotalAmount: MoneyV2 | null;
   totalAmount: MoneyV2 | null;
   orderNote: string;
+  addItemError: string | null;
   setOpen: (open: boolean) => void;
   addItem: (item: Omit<CartItem, "lineId" | "isPending">) => Promise<void>;
   updateQuantity: (lineId: string, quantity: number) => Promise<void>;
@@ -238,34 +239,49 @@ function isCartNotFoundError(
   );
 }
 
+// Tracks the last error from createShopifyCart so addItem can surface it
+let _lastAddError: string | null = null;
+
 async function createShopifyCart(item: CartItem) {
+  _lastAddError = null;
+
   // Step 1: Create an empty cart (avoids issues with sellingPlanId inside cartCreate)
   let data: any;
   try {
     data = await storefrontApiRequest<any>(CART_CREATE_EMPTY_MUTATION, {});
-  } catch (err) {
+  } catch (err: any) {
+    _lastAddError = err?.message ?? "Network error — could not reach Shopify";
     console.warn("[cart] cartCreate request failed:", err);
     return null;
   }
   if (!data) {
+    _lastAddError = "Shopify returned no response (possibly payment issue)";
     console.warn("[cart] cartCreate: no data returned (possibly 402)");
     return null;
   }
-  const createErrors = data?.data?.cartCreate?.userErrors ?? [];
+  const createErrors: Array<{ message: string }> = data?.data?.cartCreate?.userErrors ?? [];
   if (createErrors.length > 0) {
+    _lastAddError = createErrors[0]?.message ?? "Could not create cart";
     console.warn("[cart] cartCreate userErrors:", JSON.stringify(createErrors));
     return null;
   }
   const cart = data?.data?.cartCreate?.cart;
   if (!cart?.id) {
+    _lastAddError = "Shopify did not return a cart — please try again";
     console.warn("[cart] cartCreate: cart or cart.id is null in response");
     return null;
   }
 
   // Step 2: Add the line (with sellingPlanId if present) to the newly created cart
   const addResult = await addLineToShopifyCart(cart.id, { ...item, lineId: null });
-  if (!addResult.success || !addResult.lineId) {
-    console.warn("[cart] cartLinesAdd failed after cartCreate. success:", addResult.success, "lineId:", addResult.lineId);
+  if (!addResult.success) {
+    _lastAddError = (addResult as any).message ?? "Could not add item to cart";
+    console.warn("[cart] cartLinesAdd failed after cartCreate. message:", _lastAddError);
+    return null;
+  }
+  if (!addResult.lineId) {
+    _lastAddError = "Item added but line ID not returned — please refresh";
+    console.warn("[cart] cartLinesAdd: success=true but no lineId");
     return null;
   }
 
@@ -286,11 +302,11 @@ async function addLineToShopifyCart(cartId: string, item: CartItem) {
     cartId,
     lines: [line],
   });
-  const userErrors = data?.data?.cartLinesAdd?.userErrors || [];
+  const userErrors: Array<{ field: string[] | null; message: string }> = data?.data?.cartLinesAdd?.userErrors || [];
   if (isCartNotFoundError(userErrors)) return { success: false, cartNotFound: true as const };
   if (userErrors.length > 0) {
-    console.error("[cart] cartLinesAdd userErrors:", JSON.stringify(userErrors));
-    return { success: false as const };
+    console.warn("[cart] cartLinesAdd userErrors:", JSON.stringify(userErrors));
+    return { success: false as const, message: userErrors[0]?.message ?? "Could not add to cart" };
   }
   const cartData = data?.data?.cartLinesAdd?.cart;
   const lines: any[] = cartData?.lines?.edges || [];
@@ -502,6 +518,7 @@ export const useCartStore = create<CartStore>()(
       isSyncing: false,
       isApplyingCode: false,
       isOpen: false,
+      addItemError: null,
       ...EMPTY,
 
       setOpen: (open) => set({ isOpen: open }),
@@ -529,6 +546,7 @@ export const useCartStore = create<CartStore>()(
                 subtotalAmount: result.subtotalAmount,
                 totalAmount: result.totalAmount,
                 isOpen: true,
+                addItemError: null,
                 items: get().items.map((i) =>
                   i.variantId === item.variantId && i.isPending
                     ? { ...i, lineId: result.lineId, isPending: false }
@@ -536,10 +554,11 @@ export const useCartStore = create<CartStore>()(
                 ),
               });
             } else {
-              // Cart creation failed — silently remove pending item; don't open drawer
+              // Cart creation failed — remove pending item, surface the error
               const remaining = get().items.filter((i) => !(i.variantId === item.variantId && i.isPending));
-              set({ items: remaining, isOpen: false });
-              console.warn("[cart] Cart creation failed for variant", item.variantId);
+              const errorMsg = _lastAddError ?? "Could not add to cart. Please try again.";
+              console.warn("[cart] Cart creation failed for variant", item.variantId, "—", errorMsg);
+              set({ items: remaining, isOpen: false, addItemError: errorMsg });
             }
           } else if (existing) {
             const newQty = existing.quantity + item.quantity;
@@ -586,6 +605,7 @@ export const useCartStore = create<CartStore>()(
               set({
                 subtotalAmount: result.subtotalAmount ?? get().subtotalAmount,
                 totalAmount: result.totalAmount ?? get().totalAmount,
+                addItemError: null,
                 items: get().items.map((i) =>
                   i.variantId === item.variantId && i.isPending
                     ? { ...i, lineId: result.lineId ?? null, isPending: false }
@@ -595,7 +615,11 @@ export const useCartStore = create<CartStore>()(
             } else if (result.cartNotFound) {
               clearCart();
             } else {
-              set({ items: get().items.filter((i) => !(i.variantId === item.variantId && i.isPending)) });
+              const msg = (result as any).message ?? "Could not add to cart";
+              set({
+                items: get().items.filter((i) => !(i.variantId === item.variantId && i.isPending)),
+                addItemError: msg,
+              });
             }
           }
         } catch (err) {
