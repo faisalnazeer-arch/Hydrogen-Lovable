@@ -1037,8 +1037,8 @@ export function ProductPageShell({
               regularPrice={variant?.price.amount ?? "0"} currency={currency} />
           )}
 
-          {/* Special Request — default template only */}
-          {!templateSuffix && (
+          {/* Special Request — all templates except whole cuts */}
+          {templateSuffix !== "whole-cuts" && templateSuffix !== "abu-dhabi-10kg-aus" && (
             <div className="flex flex-col gap-1.5">
               <label htmlFor="special-request" className="text-sm font-semibold text-foreground">
                 Special Request
@@ -1225,6 +1225,20 @@ export function ProductPageShell({
                 regularPrice={variant?.price.amount ?? "0"}
                 currency={currency}
               />
+            )}
+
+            {/* Special request in sticky bar — same state as main form */}
+            {templateSuffix !== "whole-cuts" && templateSuffix !== "abu-dhabi-10kg-aus" && (
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-foreground">Special Request</label>
+                <textarea
+                  rows={2}
+                  value={specialRequest}
+                  onChange={(e) => setSpecialRequest(e.target.value)}
+                  placeholder="Any special instructions…"
+                  className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-crimson focus:outline-none focus:ring-2 focus:ring-crimson/20"
+                />
+              </div>
             )}
           </div>
         </div>
