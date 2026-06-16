@@ -200,7 +200,11 @@ const INTERNAL_HOSTS = new Set([
 function toPath(u: string): string {
   try {
     const parsed = new URL(u);
-    return INTERNAL_HOSTS.has(parsed.hostname) ? (parsed.pathname || "/") : u;
+    if (!INTERNAL_HOSTS.has(parsed.hostname)) return u;
+    // Shopify prepends a locale prefix (e.g. /ar/, /en/) when the admin menu is
+    // fetched in a non-default language. Strip it — our routes have no locale prefix.
+    const path = (parsed.pathname || "/").replace(/^\/[a-z]{2}(-[a-z]{2})?(\/|$)/i, "/");
+    return path || "/";
   } catch { return u || "/"; }
 }
 
