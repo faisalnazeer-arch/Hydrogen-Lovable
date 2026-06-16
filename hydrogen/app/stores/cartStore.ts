@@ -504,13 +504,16 @@ async function syncFreeGifts(
         await removeLineFromShopifyCart(cartId, hasCar.lineId);
       }
     }
-  } finally {
-    _giftSyncing = false;
-    // If all items are gone after gift sync, reset cartId so the next
-    // addItem creates a fresh cart instead of reusing a stale one
+
+    // After all gift operations: if every item is gone reset the cartId so
+    // the next addItem creates a fresh cart instead of reusing a stale one.
+    // This is intentionally inside the try (not finally) so early-returns
+    // (no gift IDs, no cartId) never incorrectly clear a valid cart.
     if (get().items.length === 0) {
       set({ cartId: null, checkoutUrl: null });
     }
+  } finally {
+    _giftSyncing = false;
   }
 }
 
@@ -534,7 +537,7 @@ export const useCartStore = create<CartStore>()(
         if (parseFloat(item.price.amount) === 0) return;
         const { items, cartId, clearCart } = get();
         const existing = items.find(
-          (i) => i.variantId === item.variantId && i.sellingPlanId === item.sellingPlanId
+          (i) => i.variantId === item.variantId && (i.sellingPlanId ?? null) === (item.sellingPlanId ?? null)
         );
 
         try {
@@ -621,7 +624,9 @@ export const useCartStore = create<CartStore>()(
               });
               toast.success("Added to cart", { description: item.product.node.title });
             } else if (result.cartNotFound) {
+              // Cart expired — reset silently; don't show empty open drawer
               clearCart();
+              set({ isOpen: false });
             } else {
               const msg = (result as any).message ?? "Could not add to cart";
               const remaining = get().items.filter((i) => !(i.variantId === item.variantId && i.isPending));
@@ -716,7 +721,7 @@ export const useCartStore = create<CartStore>()(
             });
           }
         } catch (err) {
-          console.error("sync cart failed", err);
+          console.warn("[cart] syncCart failed:", err);
         } finally {
           set({ isSyncing: false });
         }
@@ -859,7 +864,7 @@ export const useCartStore = create<CartStore>()(
         try {
           await storefrontApiRequest<any>(CART_NOTE_UPDATE, { cartId, note });
         } catch (err) {
-          console.error("updateOrderNote failed", err);
+          console.warn("[cart] updateOrderNote failed:", err);
         }
       },
     }),

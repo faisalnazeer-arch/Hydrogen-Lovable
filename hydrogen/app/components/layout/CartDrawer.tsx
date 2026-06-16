@@ -4,6 +4,7 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
+  SheetDescription,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -241,6 +242,7 @@ export function CartDrawer() {
 
           <SheetHeader className="border-b border-border px-4 py-3">
             <SheetTitle className="font-display text-lg">{t("cart.title")}</SheetTitle>
+            <SheetDescription className="sr-only">Your shopping cart items and checkout</SheetDescription>
           </SheetHeader>
 
           {/* Free shipping progress */}
@@ -349,7 +351,7 @@ export function CartDrawer() {
                                 size="sm"
                                 value={item.quantity}
                                 onChange={(qty) => item.lineId && updateQuantity(item.lineId, qty)}
-                                min={1}
+                                min={0}
                                 className={pending || isLoading ? "pointer-events-none opacity-50" : ""}
                               />
                               <button

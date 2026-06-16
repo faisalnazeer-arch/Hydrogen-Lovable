@@ -70,6 +70,9 @@ export function QuickBuyDrawer() {
       return;
     }
 
+    // Clear any error left from a previous product
+    useCartStore.setState({ addItemError: null });
+
     const cached = _planCache.get(node.handle);
     if (cached) {
       setSelectedPlanId(null);
@@ -185,6 +188,7 @@ export function QuickBuyDrawer() {
       <SheetContent className="flex w-[96vw] max-w-[440px] flex-col p-0 sm:max-w-md">
         <SheetHeader className="border-b border-border px-4 py-2.5 sm:px-5">
           <SheetTitle className="font-display text-base">Quick Buy</SheetTitle>
+          <SheetDescription className="sr-only">Select options and add to cart</SheetDescription>
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto px-4 py-2 sm:px-5 sm:py-3">
