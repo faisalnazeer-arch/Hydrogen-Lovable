@@ -476,6 +476,29 @@ function CartSyncWrapper() {
   return null;
 }
 
+function RichpanelWidget() {
+  useEffect(() => {
+    if ((window as any).richpanel?.loaded) return;
+    const w = window as any;
+    w.richpanel = w.richpanel || [];
+    w.richpanel.q = [];
+    const methods = ["track", "debug", "atr"];
+    const stub = (m: string) => (...args: any[]) => w.richpanel.q.push([m, ...args]);
+    methods.forEach((m) => { w.richpanel[m] = stub(m); });
+    w.richpanel.load = (clientId: string) => {
+      const s = document.createElement("script");
+      s.type = "text/javascript";
+      s.async = true;
+      s.src = `https://cdn.richpanel.com/js/richpanel-root.js?appClientId=${clientId}`;
+      document.head.appendChild(s);
+    };
+    w.richpanel.ensure_rpuid = "";
+    w.richpanel.load("mlslive1884");
+    w.richpanel.loaded = true;
+  }, []);
+  return null;
+}
+
 function PageLoader() {
   const navigation = useNavigation();
   const { faviconUrl } = useLoaderData<typeof loader>();
@@ -599,6 +622,7 @@ export default function App() {
       <PageLoader />
       <LocaleSync />
       <CartSyncWrapper />
+      <RichpanelWidget />
       <div className="flex min-h-screen flex-col">
         <AnnouncementBar messages={announcementMessages} />
         <Header mainMenu={mainMenu} secondaryMenu={secondaryMenu} navItemImages={navItemImages} mobileBanners={mobileBanners} mobileMenu={mobileMenu} mobileCategoriesMenu={mobileCategoriesMenu} />

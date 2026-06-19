@@ -8,6 +8,10 @@
 .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
 
+/* Simple site-wide link hover transition */
+a { transition: color 0.18s ease, opacity 0.18s ease; }
+
+
 /* Language toggle active state — driven by html[lang] set from cookie via
    inline <head> script, so it's correct before React even renders (no flash) */
 :root[lang="en"] .locale-btn[data-locale="en"],

@@ -1,6 +1,6 @@
 import type { LoaderFunctionArgs } from "@shopify/remix-oxygen";
 import { useLoaderData, Form, Link } from "react-router";
-import { Package, LogOut, User, Mail, ShoppingBag } from "lucide-react";
+import { Package, LogOut, User, Mail, ShoppingBag, Star, ArrowRight } from "lucide-react";
 import { Button } from "~/components/ui/button";
 
 const CUSTOMER_ORDERS_QUERY = `#graphql
@@ -84,6 +84,22 @@ export default function AccountIndex() {
           </Button>
         </Form>
       </div>
+
+      {/* MLS Rewards */}
+      <Link to="/pages/rewards" className="block">
+        <div className="flex items-center justify-between gap-4 overflow-hidden rounded-xl border border-gold/30 bg-charcoal p-5 shadow-sm transition-all hover:border-gold/50 hover:shadow-md">
+          <div className="flex items-center gap-4">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gold/15 border border-gold/25">
+              <Star className="h-5 w-5 text-gold" />
+            </div>
+            <div>
+              <p className="font-display font-bold text-off-white">MLS Rewards</p>
+              <p className="text-xs text-off-white/55">View your points balance and redeem rewards</p>
+            </div>
+          </div>
+          <ArrowRight className="h-4 w-4 shrink-0 text-gold/60" />
+        </div>
+      </Link>
 
       {/* Orders */}
       <div>
