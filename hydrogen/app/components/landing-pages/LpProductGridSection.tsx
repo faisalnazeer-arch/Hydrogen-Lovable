@@ -21,14 +21,21 @@ export function LpProductGridSection({
   const ctaUrl = getField(fields, "cta_url");
   const sectionId = getField(fields, "section_id") ?? "products";
 
+  // Fall back to the linked collection's title if no custom heading is set
+  const collectionTitle =
+    fields.find((f: any) => f.key === "grid_collection_2")?.reference?.title ?? null;
+  const displayHeading = heading ?? collectionTitle;
+
   return (
     <section id={sectionId} className="py-12">
       <div className="container mx-auto px-4">
-        {(heading || subheading) && (
+        {(displayHeading || subheading) && (
           <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
             <div>
-              {heading && (
-                <h2 className="font-display text-2xl font-extrabold md:text-3xl">{heading}</h2>
+              {displayHeading && (
+                <h2 className="font-display text-2xl font-extrabold md:text-3xl">
+                  {displayHeading}
+                </h2>
               )}
               {subheading && (
                 <p className="mt-1 text-sm text-muted-foreground">{subheading}</p>

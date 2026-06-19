@@ -13,33 +13,51 @@ export function LpReviewsCarousel({ nodes }: { nodes: any[] }) {
     };
   });
 
+  // Double for seamless marquee loop
+  const doubled = [...reviews, ...reviews];
+
   return (
-    <section className="bg-[#faf8f5] py-12">
-      <div className="container mx-auto px-4">
-        <h2 className="mb-8 text-center font-display text-2xl font-extrabold text-foreground">
+    <section className="bg-[#faf8f5] py-12 overflow-hidden">
+      <style>{`
+        @keyframes lp-marquee {
+          from { transform: translateX(0); }
+          to { transform: translateX(-50%); }
+        }
+        .lp-marquee-track {
+          animation: lp-marquee 40s linear infinite;
+        }
+        .lp-marquee-track:hover {
+          animation-play-state: paused;
+        }
+      `}</style>
+      <div className="container mx-auto px-4 mb-8">
+        <h2 className="text-center font-display text-2xl font-extrabold text-foreground">
           What Our Customers Say
         </h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {reviews.map((r, i) => (
-            <div key={i} className="rounded-xl bg-white p-5 shadow-sm">
-              <div className="mb-2 flex gap-0.5">
-                {Array.from({ length: 5 }).map((_, si) => (
-                  <Star
-                    key={si}
-                    className={`h-4 w-4 ${si < r.rating ? "fill-amber-400 text-amber-400" : "text-neutral-200"}`}
-                  />
-                ))}
-              </div>
-              <p className="text-sm leading-relaxed text-neutral-700">{r.body}</p>
-              <div className="mt-4 border-t border-neutral-100 pt-3">
-                <p className="text-sm font-semibold text-foreground">{r.author}</p>
-                {r.productName && (
-                  <p className="mt-0.5 text-xs text-muted-foreground">{r.productName}</p>
-                )}
-              </div>
+      </div>
+      <div className="flex lp-marquee-track" style={{ width: "max-content" }}>
+        {doubled.map((r, i) => (
+          <div
+            key={i}
+            className="mx-2 w-72 flex-shrink-0 rounded-xl bg-white p-5 shadow-sm sm:w-80"
+          >
+            <div className="mb-2 flex gap-0.5">
+              {Array.from({ length: 5 }).map((_, si) => (
+                <Star
+                  key={si}
+                  className={`h-4 w-4 ${si < r.rating ? "fill-amber-400 text-amber-400" : "text-neutral-200"}`}
+                />
+              ))}
             </div>
-          ))}
-        </div>
+            <p className="text-sm leading-relaxed text-neutral-700">{r.body}</p>
+            <div className="mt-4 border-t border-neutral-100 pt-3">
+              <p className="text-sm font-semibold text-foreground">{r.author}</p>
+              {r.productName && (
+                <p className="mt-0.5 text-xs text-muted-foreground">{r.productName}</p>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
     </section>
   );

@@ -75,6 +75,7 @@ const PAGE_QUERY = `#graphql
                 #            icon → icon_with_text
                 #            reels_yt → youtube_reels (→ yt_url → youtube_url metaobject)
                 #            reviews → lp_review
+                #            sections → lp_types (when parent is lp_page wrapper)
                 references(first: 20) {
                   nodes {
                     ... on Metaobject {
@@ -82,12 +83,52 @@ const PAGE_QUERY = `#graphql
                       fields {
                         key value type
                         # Resolves: lp_hero_slide.desktop_image/mobile_image → MediaImage
+                        #           lp_hero_slide.cta_link → Page / Collection
                         #           youtube_reels.yt_url → youtube_url metaobject
+                        #           lp_types.product_grid → lp_product_grid (when parent is lp_page)
                         reference {
                           ... on MediaImage { image { url altText } }
+                          ... on Page { url }
+                          ... on Collection { handle url }
                           ... on Metaobject {
                             type handle
-                            fields { key value }
+                            fields {
+                              key value
+                              # Resolves: lp_product_grid.grid_collection_2 → Collection
+                              #           mls_value_banner.image → MediaImage
+                              reference {
+                                ... on Collection { handle title }
+                                ... on MediaImage { image { url altText } }
+                              }
+                              references(first: 20) {
+                                nodes {
+                                  ... on Metaobject {
+                                    type handle
+                                    fields {
+                                      key value
+                                      reference {
+                                        ... on MediaImage { image { url altText } }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                        # Resolves: lp_types.icon, lp_types.slider, lp_types.reviews (when parent is lp_page)
+                        references(first: 20) {
+                          nodes {
+                            ... on Metaobject {
+                              type handle
+                              fields {
+                                key value
+                                reference {
+                                  ... on MediaImage { image { url altText } }
+                                  ... on Metaobject { type handle fields { key value } }
+                                }
+                              }
+                            }
                           }
                         }
                       }
@@ -222,10 +263,12 @@ export async function loader({ params, context, request }: LoaderFunctionArgs) {
     };
   }
 
-  // Landing page — collect collection handles and check for legacy reel support
+  // Landing page — collect collection handles and check for legacy reel support.
+  // Supports both direct lp_types nodes AND lp_page nodes that wrap lp_types via "sections".
   const collectionHandles = new Set<string>();
   let needsLegacyReels = false;
-  for (const lpTypes of lpPageNodes) {
+
+  function extractFromLpTypes(lpTypes: any) {
     const tf: any[] = lpTypes.fields ?? [];
     const pgRef = tf.find((x: any) => x.key === "product_grid")?.reference;
     if (pgRef?.type === "lp_product_grid") {
@@ -235,8 +278,18 @@ export async function loader({ params, context, request }: LoaderFunctionArgs) {
         pf.find((x: any) => x.key === "collection_handle")?.value;
       if (collHandle) collectionHandles.add(collHandle);
     }
-    // Legacy Faraz-Dev reel_section support — skipped for all current pages (they use reels_yt)
     if (tf.some((x: any) => x.key === "reel_section")) needsLegacyReels = true;
+  }
+
+  for (const lpNode of lpPageNodes) {
+    const f: any[] = lpNode.fields ?? [];
+    // If this node has a "sections" list it is an lp_page wrapper; unwrap it
+    const innerNodes: any[] = f.find((x: any) => x.key === "sections")?.references?.nodes ?? [];
+    if (innerNodes.length > 0) {
+      innerNodes.forEach(extractFromLpTypes);
+    } else {
+      extractFromLpTypes(lpNode);
+    }
   }
 
   const productsByCollection: Record<string, any[]> = {};
@@ -408,9 +461,15 @@ export default function Page() {
   // ── Landing page ──────────────────────────────────────────────────────
   if (isLandingPage) {
     const allSections: React.ReactNode[] = [];
-    lpPageNodes.forEach((lpTypes: any, i: number) => {
-      renderLpTypes(lpTypes, `${i}`, productsByCollection, reelItems)
-        .forEach((s) => allSections.push(s));
+    lpPageNodes.forEach((lpNode: any, pi: number) => {
+      const f: any[] = lpNode.fields ?? [];
+      // Unwrap lp_page → lp_types nesting if present
+      const innerNodes: any[] = f.find((x: any) => x.key === "sections")?.references?.nodes ?? [];
+      const targets = innerNodes.length > 0 ? innerNodes : [lpNode];
+      targets.forEach((lpTypes: any, ti: number) => {
+        renderLpTypes(lpTypes, `${pi}-${ti}`, productsByCollection, reelItems)
+          .forEach((s) => allSections.push(s));
+      });
     });
 
     return <div className="min-h-screen">{allSections}</div>;

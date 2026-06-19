@@ -29,25 +29,30 @@ export function YoutubeReelsSection({ nodes }: { nodes: any[] }) {
 
   return (
     <section className="py-10">
-      <div className="container mx-auto px-4">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {reels.map((reel, i) => (
-            <div
-              key={i}
-              className="relative overflow-hidden rounded-xl bg-black"
-              style={{ paddingBottom: "177.78%" }}
-            >
-              <iframe
-                src={`${reel.embedUrl}?autoplay=0&rel=0`}
-                title={reel.name}
-                loading="lazy"
-                className="absolute inset-0 h-full w-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            </div>
-          ))}
-        </div>
+      <div
+        className="flex gap-3 overflow-x-auto px-4 pb-3 sm:px-6"
+        style={{ scrollbarWidth: "none", scrollSnapType: "x mandatory" }}
+      >
+        {reels.map((reel, i) => (
+          <div
+            key={i}
+            className="relative flex-shrink-0 overflow-hidden rounded-xl bg-black"
+            style={{
+              width: "min(45vw, 200px)",
+              aspectRatio: "9/16",
+              scrollSnapAlign: "start",
+            }}
+          >
+            <iframe
+              src={`${reel.embedUrl}?autoplay=0&rel=0`}
+              title={reel.name}
+              loading="lazy"
+              className="absolute inset-0 h-full w-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        ))}
       </div>
     </section>
   );

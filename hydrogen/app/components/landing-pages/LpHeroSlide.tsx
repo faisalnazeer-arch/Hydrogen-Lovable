@@ -13,7 +13,15 @@ interface ParsedSlide {
   mobileImage: string | null;
   ctaUrl: string | null;
   scrollTarget: string | null;
-  isExternal: boolean;
+}
+
+function toRelative(raw: string): string {
+  try {
+    const u = new URL(raw);
+    return u.pathname + u.search + u.hash;
+  } catch {
+    return raw; // already relative
+  }
 }
 
 function parseSlide(node: any): ParsedSlide | null {
@@ -25,11 +33,30 @@ function parseSlide(node: any): ParsedSlide | null {
 
   let ctaUrl: string | null = null;
   if (!scrollTarget) {
-    const rawLink = getField(f, "cta_link");
-    if (rawLink) {
-      try { ctaUrl = JSON.parse(rawLink)?.url ?? rawLink; } catch { ctaUrl = rawLink; }
+    const ctaLinkField = f.find((x: any) => x.key === "cta_link");
+
+    // 1. page_reference / collection_reference resolved in GraphQL query
+    const refUrl: string | null =
+      ctaLinkField?.reference?.url ??
+      (ctaLinkField?.reference?.handle
+        ? `/collections/${ctaLinkField.reference.handle}`
+        : null);
+
+    if (refUrl) {
+      ctaUrl = toRelative(refUrl);
+    } else {
+      // 2. url / link / text field stored as plain URL or JSON {"url":"..."}
+      const rawValue = ctaLinkField?.value ?? getField(f, "cta_url");
+      if (rawValue) {
+        try {
+          ctaUrl = JSON.parse(rawValue)?.url ?? rawValue;
+        } catch {
+          ctaUrl = rawValue;
+        }
+        // Strip hostname so internal links stay in-app
+        ctaUrl = toRelative(ctaUrl!);
+      }
     }
-    if (!ctaUrl) ctaUrl = getField(f, "cta_url");
   }
 
   return {
@@ -37,7 +64,6 @@ function parseSlide(node: any): ParsedSlide | null {
     mobileImage: getImageUrl(f, "mobile_image"),
     ctaUrl,
     scrollTarget,
-    isExternal: !!ctaUrl && ctaUrl.startsWith("http"),
   };
 }
 
@@ -68,7 +94,6 @@ export function LpHeroSlide({ node }: { node: any }) {
     </>
   );
 
-  // Scroll to section on same page
   if (slide.scrollTarget) {
     return (
       <section className="w-full overflow-hidden">
@@ -90,25 +115,9 @@ export function LpHeroSlide({ node }: { node: any }) {
     return <section className="w-full overflow-hidden">{imgContent}</section>;
   }
 
-  if (slide.isExternal) {
-    return (
-      <section className="w-full overflow-hidden">
-        <a href={slide.ctaUrl} target="_blank" rel="noopener noreferrer" className="block">
-          {imgContent}
-        </a>
-      </section>
-    );
-  }
-
-  let to = slide.ctaUrl;
-  try {
-    const u = new URL(slide.ctaUrl);
-    to = u.pathname + u.search;
-  } catch { /* already relative */ }
-
   return (
     <section className="w-full overflow-hidden">
-      <Link to={to} className="block">
+      <Link to={slide.ctaUrl} className="block">
         {imgContent}
       </Link>
     </section>
