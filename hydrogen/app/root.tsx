@@ -68,6 +68,10 @@ export interface FooterSettings {
   brandText: string;
   instagramUrl: string;
   facebookUrl: string;
+  twitterUrl: string;
+  tiktokUrl: string;
+  whatsappUrl: string;
+  linkedinUrl: string;
   contactHeading: string;
   address: string;
   phone: string;
@@ -250,6 +254,10 @@ function parseFooterSettings(nodes: any[]): FooterSettings | null {
     brandText:      f.brand_text?.value      ?? "",
     instagramUrl:   f.instagram_url?.value   ?? "",
     facebookUrl:    f.facebook_url?.value    ?? "",
+    twitterUrl:     f.twitter_url?.value     ?? "",
+    tiktokUrl:      f.tiktok_url?.value      ?? "",
+    whatsappUrl:    f.whatsapp_url?.value    ?? "",
+    linkedinUrl:    f.linkedin_url?.value    ?? "",
     contactHeading: f.contact_heading?.value ?? "",
     address:        f.address?.value         ?? "",
     phone:          f.phone?.value           ?? "",
