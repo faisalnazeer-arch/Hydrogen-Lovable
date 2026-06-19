@@ -40,6 +40,7 @@ export function YoutubeReelsSection({ nodes }: { nodes: any[] }) {
               <iframe
                 src={`${reel.embedUrl}?autoplay=0&rel=0`}
                 title={reel.name}
+                loading="lazy"
                 className="absolute inset-0 h-full w-full"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen

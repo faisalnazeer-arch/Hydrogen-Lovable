@@ -50,12 +50,18 @@ export function LpHeroSlide({ node }: { node: any }) {
       <img
         src={slide.desktopImage}
         alt=""
+        loading="eager"
+        fetchPriority="high"
+        decoding="async"
         className={slide.mobileImage ? "hidden w-full md:block" : "w-full"}
       />
       {slide.mobileImage && (
         <img
           src={slide.mobileImage}
           alt=""
+          loading="eager"
+          fetchPriority="high"
+          decoding="async"
           className="w-full md:hidden"
         />
       )}

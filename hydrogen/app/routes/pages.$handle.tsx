@@ -202,6 +202,7 @@ export async function loader({ params, context, request }: LoaderFunctionArgs) {
 
   const data = await context.storefront.query(PAGE_QUERY, {
     variables: { handle, language, country: "AE" as const },
+    cache: context.storefront.CacheShort(),
   });
 
   if (!data.page) throw new Response(`Page "${handle}" not found`, { status: 404 });
@@ -221,8 +222,9 @@ export async function loader({ params, context, request }: LoaderFunctionArgs) {
     };
   }
 
-  // Landing page — collect collection handles for product grid prefetch
+  // Landing page — collect collection handles and check for legacy reel support
   const collectionHandles = new Set<string>();
+  let needsLegacyReels = false;
   for (const lpTypes of lpPageNodes) {
     const tf: any[] = lpTypes.fields ?? [];
     const pgRef = tf.find((x: any) => x.key === "product_grid")?.reference;
@@ -233,28 +235,39 @@ export async function loader({ params, context, request }: LoaderFunctionArgs) {
         pf.find((x: any) => x.key === "collection_handle")?.value;
       if (collHandle) collectionHandles.add(collHandle);
     }
+    // Legacy Faraz-Dev reel_section support — skipped for all current pages (they use reels_yt)
+    if (tf.some((x: any) => x.key === "reel_section")) needsLegacyReels = true;
   }
 
   const productsByCollection: Record<string, any[]> = {};
-  const [reelData] = await Promise.all([
-    context.storefront.query(REEL_ITEMS_QUERY, {
-      variables: { language, country: "AE" as const },
-      cache: context.storefront.CacheNone(),
-    }),
-    ...Array.from(collectionHandles).map(async (collHandle) => {
-      const r = await context.storefront.query(COLLECTION_PRODUCTS_QUERY, {
-        variables: { handle: collHandle, language, country: "AE" as const },
-      });
-      productsByCollection[collHandle] = r.collection?.products?.nodes ?? [];
-    }),
-  ]);
+
+  // Fetch collection products + optional legacy reel items in parallel
+  const tasks: Promise<unknown>[] = Array.from(collectionHandles).map(async (collHandle) => {
+    const r = await context.storefront.query(COLLECTION_PRODUCTS_QUERY, {
+      variables: { handle: collHandle, language, country: "AE" as const },
+      cache: context.storefront.CacheLong(),
+    });
+    productsByCollection[collHandle] = r.collection?.products?.nodes ?? [];
+  });
+
+  let reelItems: any[] = [];
+  if (needsLegacyReels) {
+    tasks.push(
+      context.storefront.query(REEL_ITEMS_QUERY, {
+        variables: { language, country: "AE" as const },
+        cache: context.storefront.CacheLong(),
+      }).then((d: any) => { reelItems = d.metaobjects?.nodes ?? []; })
+    );
+  }
+
+  await Promise.all(tasks);
 
   return {
     isLandingPage: true as const,
     page: { title: data.page.title, body: data.page.body, seo: data.page.seo },
     lpPageNodes,
     productsByCollection,
-    reelItems: reelData.metaobjects?.nodes ?? [],
+    reelItems,
   };
 }
 

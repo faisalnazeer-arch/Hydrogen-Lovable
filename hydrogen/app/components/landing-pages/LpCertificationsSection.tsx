@@ -24,6 +24,8 @@ export function LpCertificationsSection({ node }: { node: any }) {
                   <img
                     src={imgUrl}
                     alt={label}
+                    loading="lazy"
+                    decoding="async"
                     className="h-16 w-16 object-contain"
                   />
                 )}
