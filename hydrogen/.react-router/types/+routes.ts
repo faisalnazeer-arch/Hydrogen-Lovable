@@ -68,6 +68,9 @@ type Pages = {
       "productId": string;
     };
   };
+  "/api/back-in-stock": {
+    params: {};
+  };
   "/pages/customer-reviews": {
     params: {};
   };
@@ -141,7 +144,7 @@ type Pages = {
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/cart" | "/cart.js" | "/apps/loggedincustomer" | "/search" | "/collections/:handle" | "/blogs/all" | "/blogs/:handle" | "/blogs/:blogHandle/:articleHandle" | "/products/:handle" | "/api/reviews/store" | "/api/reviews/:handle" | "/api/selling-plans/:handle" | "/api/globo-options/:productId" | "/pages/customer-reviews" | "/pages/contact-us" | "/pages/refund-exchange" | "/pages/rewards" | "/pages/mls-rewards" | "/pages/all-blog" | "/pages/refer-a-friend" | "/pages/faqs" | "/pages/mls-gourmet" | "/pages/our-story-new" | "/pages/mls-affiliate" | "/pages/delivery-info" | "/pages/subscription-policy" | "/pages/subscriptions" | "/pages/subscription" | "/pages/:handle" | "/account" | "/account/authorize" | "/account/logout" | "/graphiql" | "/subrequest-profiler" | "/.well-known/appspecific/com.chrome.devtools.json";
+    page: "/" | "/cart" | "/cart.js" | "/apps/loggedincustomer" | "/search" | "/collections/:handle" | "/blogs/all" | "/blogs/:handle" | "/blogs/:blogHandle/:articleHandle" | "/products/:handle" | "/api/reviews/store" | "/api/reviews/:handle" | "/api/selling-plans/:handle" | "/api/globo-options/:productId" | "/api/back-in-stock" | "/pages/customer-reviews" | "/pages/contact-us" | "/pages/refund-exchange" | "/pages/rewards" | "/pages/mls-rewards" | "/pages/all-blog" | "/pages/refer-a-friend" | "/pages/faqs" | "/pages/mls-gourmet" | "/pages/our-story-new" | "/pages/mls-affiliate" | "/pages/delivery-info" | "/pages/subscription-policy" | "/pages/subscriptions" | "/pages/subscription" | "/pages/:handle" | "/account" | "/account/authorize" | "/account/logout" | "/graphiql" | "/subrequest-profiler" | "/.well-known/appspecific/com.chrome.devtools.json";
   };
   "routes/_index.tsx": {
     id: "routes/_index";
@@ -198,6 +201,10 @@ type RouteFiles = {
   "routes/api.globo-options.$productId.tsx": {
     id: "routes/api.globo-options.$productId";
     page: "/api/globo-options/:productId";
+  };
+  "routes/api.back-in-stock.tsx": {
+    id: "routes/api.back-in-stock";
+    page: "/api/back-in-stock";
   };
   "routes/pages.customer-reviews.tsx": {
     id: "routes/pages.customer-reviews";
@@ -317,6 +324,7 @@ type RouteModules = {
   "routes/api.reviews.$handle": typeof import("./app/routes/api.reviews.$handle.tsx");
   "routes/api.selling-plans.$handle": typeof import("./app/routes/api.selling-plans.$handle.tsx");
   "routes/api.globo-options.$productId": typeof import("./app/routes/api.globo-options.$productId.tsx");
+  "routes/api.back-in-stock": typeof import("./app/routes/api.back-in-stock.tsx");
   "routes/pages.customer-reviews": typeof import("./app/routes/pages.customer-reviews.tsx");
   "routes/pages.contact": typeof import("./app/routes/pages.contact.tsx");
   "routes/pages.refund-exchange": typeof import("./app/routes/pages.refund-exchange.tsx");
