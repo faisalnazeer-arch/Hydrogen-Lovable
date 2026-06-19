@@ -330,21 +330,25 @@ function renderLpTypes(
   const sectionMap: Record<string, React.ReactNode | null> = {};
 
   // ── slide / slider ──────────────────────────────────────────────────────────
+  // Store under BOTH keys so the order field works whether it says "slide" or "slider"
   const slideRef = getFieldRef(f, "slide");
   if (slideRef?.type === "lp_hero_slide") {
-    sectionMap["slide"] = <LpHeroSlide key={`${key}-slide`} node={slideRef} />;
+    const slideEl = <LpHeroSlide key={`${key}-slide`} node={slideRef} />;
+    sectionMap["slide"] = slideEl;
+    sectionMap["slider"] = slideEl;
   }
-  // fallback: newer "slider" list field
-  if (!sectionMap["slide"]) {
+  if (!sectionMap["slider"]) {
     const sliderNodes: any[] = f.find((x: any) => x.key === "slider")?.references?.nodes ?? [];
     if (sliderNodes.length > 0) {
-      sectionMap["slide"] = (
+      const sliderEl = (
         <>
           {sliderNodes.map((n: any, i: number) => (
             <LpHeroSlide key={`${key}-slide-${i}`} node={n} />
           ))}
         </>
       );
+      sectionMap["slide"] = sliderEl;
+      sectionMap["slider"] = sliderEl;
     }
   }
 

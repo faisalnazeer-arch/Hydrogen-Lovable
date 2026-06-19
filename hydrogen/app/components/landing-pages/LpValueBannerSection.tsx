@@ -11,6 +11,20 @@ function getImageUrl(fields: any[], key: string): string | null {
 export function LpValueBannerSection({ node }: { node: any }) {
   const f: any[] = node.fields ?? [];
 
+  // mls_value_banner is image-only — no text fields set
+  const hasText = f.some((x: any) =>
+    ["eyebrow", "heading", "body", "btn1_label", "btn2_label"].includes(x.key) && x.value
+  );
+  if (!hasText) {
+    const imgUrl = getImageUrl(f, "image") ?? getImageUrl(f, "background_image");
+    if (!imgUrl) return null;
+    return (
+      <section className="w-full">
+        <img src={imgUrl} alt="" className="w-full" loading="lazy" />
+      </section>
+    );
+  }
+
   const banner: ValueBannerData = {
     eyebrow: getField(f, "eyebrow") ?? "",
     heading: getField(f, "heading") ?? "",
