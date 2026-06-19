@@ -199,6 +199,21 @@ function getFieldRef(fields: any[], key: string): any | null {
   return fields?.find((f: any) => f.key === key)?.reference ?? null;
 }
 
+// Find a collection handle from lp_product_grid fields regardless of which
+// key the admin chose (grid_collection_2, grid_collection, collection, etc.)
+function resolveCollectionHandle(pf: any[]): string | null {
+  return (
+    pf.find((x: any) => x.key === "grid_collection_2")?.reference?.handle ??
+    pf.find((x: any) => x.key === "grid_collection")?.reference?.handle ??
+    pf.find((x: any) => x.key === "collection")?.reference?.handle ??
+    pf.find((x: any) => x.key === "collection_ref")?.reference?.handle ??
+    pf.find((x: any) => x.key === "collection_handle")?.value ??
+    // Last resort: any field whose reference resolves to a handle (collection_reference type)
+    pf.find((x: any) => x.reference?.handle)?.reference?.handle ??
+    null
+  );
+}
+
 function toShopifyProduct(node: any): ShopifyProduct {
   return {
     node: {
@@ -253,9 +268,7 @@ export async function loader({ params, context, request }: LoaderFunctionArgs) {
     const pgRef = getFieldRef(tf, "product_grid");
     if (pgRef?.type === "lp_product_grid") {
       const pf: any[] = pgRef.fields ?? [];
-      const collHandle =
-        pf.find((x: any) => x.key === "grid_collection_2")?.reference?.handle ??
-        pf.find((x: any) => x.key === "collection_handle")?.value;
+      const collHandle = resolveCollectionHandle(pf);
       if (collHandle) collectionHandles.add(collHandle);
     }
     if (tf.some((x: any) => x.key === "reel_section")) needsReelItems = true;
@@ -414,9 +427,7 @@ function renderLpTypes(
   const productGridRef = getFieldRef(f, "product_grid");
   if (productGridRef?.type === "lp_product_grid") {
     const pf: any[] = productGridRef.fields ?? [];
-    const collHandle =
-      pf.find((x: any) => x.key === "grid_collection_2")?.reference?.handle ??
-      pf.find((x: any) => x.key === "collection_handle")?.value;
+    const collHandle = resolveCollectionHandle(pf);
     const rawProducts = collHandle ? (productsByCollection[collHandle] ?? []) : [];
     const products = rawProducts.map(toShopifyProduct);
     sectionMap["product_grid"] = (

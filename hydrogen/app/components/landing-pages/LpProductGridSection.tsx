@@ -22,8 +22,13 @@ export function LpProductGridSection({
   const sectionId = getField(fields, "section_id") ?? "products";
 
   // Fall back to the linked collection's title if no custom heading is set
+  // Try multiple possible field key names used across different LP pages
   const collectionTitle =
-    fields.find((f: any) => f.key === "grid_collection_2")?.reference?.title ?? null;
+    fields.find((f: any) => f.key === "grid_collection_2")?.reference?.title ??
+    fields.find((f: any) => f.key === "grid_collection")?.reference?.title ??
+    fields.find((f: any) => f.key === "collection")?.reference?.title ??
+    fields.find((f: any) => f.reference?.title)?.reference?.title ??
+    null;
   const displayHeading = heading ?? collectionTitle;
 
   return (
