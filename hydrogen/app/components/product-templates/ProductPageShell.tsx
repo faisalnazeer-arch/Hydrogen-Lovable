@@ -1296,7 +1296,7 @@ export function ProductPageShell({
           </div>
           <HScroller>
             {recommendations.map((p) => (
-              <div key={p.node.id} className="w-[42%] flex-shrink-0 snap-start sm:w-[28%] lg:w-[18%] xl:w-[15%]">
+              <div key={p.node.id} className="w-36 flex-shrink-0 snap-start sm:w-40 lg:w-44 xl:w-48">
                 <ProductCard product={p} />
               </div>
             ))}
