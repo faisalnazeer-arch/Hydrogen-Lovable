@@ -94,7 +94,7 @@ export function CategorySection({
           {visibleProducts.map((p) => (
             <div
               key={p.node.id}
-              className="w-36 flex-shrink-0 snap-start sm:w-40 lg:w-44 xl:w-48"
+              className="w-40 flex-shrink-0 snap-start sm:w-52 lg:w-64 xl:w-80"
             >
               <ProductCard product={p} />
             </div>
