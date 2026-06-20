@@ -1,5 +1,6 @@
 import { Link } from "react-router";
 import { ProductCard } from "~/components/product/ProductCard";
+import { HScroller } from "~/components/home/HScroller";
 import type { ShopifyProduct } from "@/lib/shopify";
 
 function getField(fields: any[], key: string): string | null {
@@ -22,10 +23,10 @@ export function LpProductGridSection({
   const sectionId = "products";
 
   // Fall back to the linked collection's title if no custom heading is set
-  // Try multiple possible field key names used across different LP pages
   const collectionTitle =
     fields.find((f: any) => f.key === "grid_collection_2")?.reference?.title ??
     fields.find((f: any) => f.key === "grid_collection")?.reference?.title ??
+    fields.find((f: any) => f.key === "collection_ref")?.reference?.title ??
     fields.find((f: any) => f.key === "collection")?.reference?.title ??
     fields.find((f: any) => f.reference?.title)?.reference?.title ??
     null;
@@ -35,7 +36,7 @@ export function LpProductGridSection({
     <section id={sectionId} className="py-12">
       <div className="container mx-auto px-4">
         {(displayHeading || subheading) && (
-          <div className="mb-8 text-center">
+          <div className="mb-6 text-center">
             {displayHeading && (
               <h2 className="font-display text-2xl font-extrabold md:text-3xl">{displayHeading}</h2>
             )}
@@ -49,11 +50,16 @@ export function LpProductGridSection({
             )}
           </div>
         )}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
+        <HScroller>
           {products.map((p) => (
-            <ProductCard key={p.node.id} product={p} />
+            <div
+              key={p.node.id}
+              className="w-[44%] flex-shrink-0 snap-start sm:w-[32%] lg:w-[23%] xl:w-[19%]"
+            >
+              <ProductCard product={p} />
+            </div>
           ))}
-        </div>
+        </HScroller>
       </div>
     </section>
   );
