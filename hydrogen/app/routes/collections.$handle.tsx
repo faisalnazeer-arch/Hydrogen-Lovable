@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from "react";
+import { detectLanguage } from "~/lib/locale";
 import type { LoaderFunctionArgs, MetaFunction } from "@shopify/remix-oxygen";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 import { useLoaderData, useNavigate, useNavigation, useFetcher } from "react-router";
@@ -106,8 +107,7 @@ export function shouldRevalidate({ currentUrl, nextUrl, defaultShouldRevalidate 
 }
 
 export async function loader({ params, request, context }: LoaderFunctionArgs) {
-  const lang = request.headers.get("Cookie")?.match(/(?:^|;\s*)lang=([a-z]{2})/)?.[1];
-  const language = (lang === "ar" ? "AR" : "EN") as "AR" | "EN";
+  const language = detectLanguage(request);
   const { handle } = params;
   if (!handle) throw new Response("Missing handle", { status: 400 });
 

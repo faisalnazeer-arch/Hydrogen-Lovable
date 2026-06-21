@@ -1,5 +1,6 @@
 import { Link } from "react-router";
 import { HScroller } from "./HScroller";
+import { useLocalePath } from "@/stores/localeStore";
 
 export interface CategoryItem {
   id: string;
@@ -72,12 +73,13 @@ export function ShopByCategory({ section }: Props) {
 }
 
 function CategoryCard({ item, mobile }: { item: CategoryItem; mobile?: boolean }) {
+  const lp = useLocalePath();
   const emoji = getEmoji(item.heading);
 
   if (mobile) {
     return (
       <Link
-        to={item.link}
+        to={lp(item.link)}
         prefetch="intent"
         className="group flex w-[72px] shrink-0 snap-start flex-col items-center gap-2.5"
       >
@@ -104,7 +106,7 @@ function CategoryCard({ item, mobile }: { item: CategoryItem; mobile?: boolean }
 
   return (
     <Link
-      to={item.link}
+      to={lp(item.link)}
       prefetch="intent"
       className="group relative flex flex-col items-center gap-3 rounded-2xl border border-border/50 bg-background px-3 py-5 text-center shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-crimson/35 hover:shadow-[0_8px_24px_rgba(185,28,28,0.10)]"
     >

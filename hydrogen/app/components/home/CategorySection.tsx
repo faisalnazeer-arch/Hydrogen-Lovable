@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router";
+import { useLocalePath } from "@/stores/localeStore";
 import type { ShopifyProduct } from "@/lib/shopify";
 import { ProductCard } from "@/components/product/ProductCard";
 import { HScroller } from "./HScroller";
@@ -25,6 +26,7 @@ export function CategorySection({
   products = [],
   tabs,
 }: CategorySectionProps) {
+  const lp = useLocalePath();
   const [activeIdx, setActiveIdx] = useState(0);
 
   const hasTabs = tabs && tabs.length > 1;
@@ -77,7 +79,7 @@ export function CategorySection({
       {/* View all */}
       <div className="mb-3 text-center">
         <Link
-          to={`/collections/${viewAllHandle}`}
+          to={lp(`/collections/${viewAllHandle}`)}
           className="inline-flex items-center gap-1 text-xs font-semibold text-crimson underline-offset-2 hover:underline md:text-sm"
         >
           View all →

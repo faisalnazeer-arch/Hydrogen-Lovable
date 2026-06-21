@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
+import { useLocalePath } from "@/stores/localeStore";
 import { Search, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { storefrontApiRequest, shopifyImageUrl, formatPrice } from "@/lib/shopify";
@@ -46,6 +47,7 @@ export function SearchAutosuggest({
   onNavigate,
   defaultQuery = "",
 }: Props) {
+  const lp = useLocalePath();
   const [q, setQ] = useState(defaultQuery);
   const [debounced, setDebounced] = useState("");
   const [open, setOpen] = useState(false);
@@ -123,7 +125,7 @@ export function SearchAutosuggest({
                   return (
                     <li key={p.id}>
                       <Link
-                        to={`/products/${p.handle}`}
+                        to={lp(`/products/${p.handle}`)}
                         onClick={() => { setOpen(false); onNavigate?.(); }}
                         className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted"
                       >

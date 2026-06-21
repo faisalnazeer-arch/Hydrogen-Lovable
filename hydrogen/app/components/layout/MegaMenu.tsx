@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { useLocalePath } from "@/stores/localeStore";
 
 export interface MegaColumn {
   title: string;
@@ -13,6 +14,7 @@ interface MegaMenuProps {
 }
 
 export function MegaMenu({ columns, onMouseEnter, onMouseLeave, onLinkClick }: MegaMenuProps) {
+  const lp = useLocalePath();
   const isSimple = columns.length === 1 && !columns[0].title;
 
   if (isSimple) {
@@ -28,7 +30,7 @@ export function MegaMenu({ columns, onMouseEnter, onMouseLeave, onLinkClick }: M
             {columns[0].links.map((l) => (
               <li key={l.url + l.label}>
                 <Link
-                  to={l.url}
+                  to={lp(l.url)}
                   prefetch="intent"
                   onClick={onLinkClick}
                   className="block px-4 py-1.5 text-[12px] font-medium text-foreground/80 transition-colors hover:bg-muted hover:text-crimson"
@@ -66,7 +68,7 @@ export function MegaMenu({ columns, onMouseEnter, onMouseLeave, onLinkClick }: M
                   {col.links.map((l) => (
                     <li key={l.url + l.label}>
                       <Link
-                        to={l.url}
+                        to={lp(l.url)}
                         prefetch="intent"
                         onClick={onLinkClick}
                         className="block py-[3px] text-[13px] text-foreground/75 transition-colors hover:text-crimson"

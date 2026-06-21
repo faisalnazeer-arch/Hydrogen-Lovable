@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { useRouteLoaderData } from "react-router";
 
 export type Locale = "en" | "ar";
 export type Dir = "ltr" | "rtl";
@@ -39,3 +40,17 @@ export const useLocaleStore = create<LocaleState>()((set) => ({
 }));
 
 export const dirFor = (l: Locale): Dir => (l === "ar" ? "rtl" : "ltr");
+
+/**
+ * Returns a function that prefixes internal paths with /ar/ when the locale
+ * is Arabic. Uses the root loader data (server-safe, no hydration mismatch).
+ */
+export function useLocalePath() {
+  const data = useRouteLoaderData("root") as { locale?: "ar" | "en" } | undefined;
+  const locale = data?.locale ?? "en";
+  return (path: string): string => {
+    if (locale !== "ar") return path;
+    if (path.startsWith("/ar")) return path; // already prefixed
+    return `/ar${path.startsWith("/") ? path : `/${path}`}`;
+  };
+}

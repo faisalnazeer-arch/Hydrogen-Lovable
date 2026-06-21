@@ -14,6 +14,14 @@ type Pages = {
   "/": {
     params: {};
   };
+  "/ar": {
+    params: {};
+  };
+  "/ar/*": {
+    params: {
+      "*": string;
+    };
+  };
   "/cart": {
     params: {};
   };
@@ -144,11 +152,19 @@ type Pages = {
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/cart" | "/cart.js" | "/apps/loggedincustomer" | "/search" | "/collections/:handle" | "/blogs/all" | "/blogs/:handle" | "/blogs/:blogHandle/:articleHandle" | "/products/:handle" | "/api/reviews/store" | "/api/reviews/:handle" | "/api/selling-plans/:handle" | "/api/globo-options/:productId" | "/api/back-in-stock" | "/pages/customer-reviews" | "/pages/contact-us" | "/pages/refund-exchange" | "/pages/rewards" | "/pages/mls-rewards" | "/pages/all-blog" | "/pages/refer-a-friend" | "/pages/faqs" | "/pages/mls-gourmet" | "/pages/our-story-new" | "/pages/mls-affiliate" | "/pages/delivery-info" | "/pages/subscription-policy" | "/pages/subscriptions" | "/pages/subscription" | "/pages/:handle" | "/account" | "/account/authorize" | "/account/logout" | "/graphiql" | "/subrequest-profiler" | "/.well-known/appspecific/com.chrome.devtools.json";
+    page: "/" | "/ar" | "/ar/*" | "/cart" | "/cart.js" | "/apps/loggedincustomer" | "/search" | "/collections/:handle" | "/blogs/all" | "/blogs/:handle" | "/blogs/:blogHandle/:articleHandle" | "/products/:handle" | "/api/reviews/store" | "/api/reviews/:handle" | "/api/selling-plans/:handle" | "/api/globo-options/:productId" | "/api/back-in-stock" | "/pages/customer-reviews" | "/pages/contact-us" | "/pages/refund-exchange" | "/pages/rewards" | "/pages/mls-rewards" | "/pages/all-blog" | "/pages/refer-a-friend" | "/pages/faqs" | "/pages/mls-gourmet" | "/pages/our-story-new" | "/pages/mls-affiliate" | "/pages/delivery-info" | "/pages/subscription-policy" | "/pages/subscriptions" | "/pages/subscription" | "/pages/:handle" | "/account" | "/account/authorize" | "/account/logout" | "/graphiql" | "/subrequest-profiler" | "/.well-known/appspecific/com.chrome.devtools.json";
   };
   "routes/_index.tsx": {
     id: "routes/_index";
     page: "/";
+  };
+  "routes/ar._index.tsx": {
+    id: "routes/ar._index";
+    page: "/ar";
+  };
+  "routes/ar.$.tsx": {
+    id: "routes/ar.$";
+    page: "/ar/*";
   };
   "routes/cart.tsx": {
     id: "routes/cart";
@@ -311,6 +327,8 @@ type RouteFiles = {
 type RouteModules = {
   "root": typeof import("./app/root.tsx");
   "routes/_index": typeof import("./app/routes/_index.tsx");
+  "routes/ar._index": typeof import("./app/routes/ar._index.tsx");
+  "routes/ar.$": typeof import("./app/routes/ar.$.tsx");
   "routes/cart": typeof import("./app/routes/cart.tsx");
   "routes/cart[.]js": typeof import("./app/routes/cart[.]js.tsx");
   "routes/apps.loggedincustomer": typeof import("./app/routes/apps.loggedincustomer.tsx");

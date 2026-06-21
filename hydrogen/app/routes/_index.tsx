@@ -1,5 +1,6 @@
 import type { LoaderFunctionArgs, MetaFunction } from "@shopify/remix-oxygen";
 import { useLoaderData } from "react-router";
+import { detectLanguage } from "../lib/locale";
 import { useT } from "../i18n/strings";
 import { HeroBanner } from "../components/home/HeroBanner";
 import { TrustBadges } from "../components/home/TrustBadges";
@@ -401,10 +402,7 @@ function pickReels(edges: any[]): ReelProduct[] {
 
 export async function loader({ context, request }: LoaderFunctionArgs) {
   const af = (q: string) => context.adminFetch(q).then((d: any) => d?.nodes ?? {});
-  const reqPath = new URL(request.url).pathname;
-  const hasArPrefix = reqPath === "/ar" || reqPath.startsWith("/ar/");
-  const langCookie = request.headers.get("Cookie")?.match(/(?:^|;\s*)lang=([a-z]{2})/)?.[1];
-  const language = ((hasArPrefix || langCookie === "ar") ? "AR" : "EN") as "AR" | "EN";
+  const language = detectLanguage(request);
   const country = "AE" as const;
 
   const [

@@ -1,5 +1,6 @@
 import { Link } from "react-router";
 import { HScroller } from "./HScroller";
+import { useLocalePath } from "@/stores/localeStore";
 
 export interface FeaturedCollectionCard {
   id: string;
@@ -18,6 +19,7 @@ interface FeaturedCollectionsProps {
 }
 
 export function FeaturedCollections({ cards, title, subtitle }: FeaturedCollectionsProps) {
+  const lp = useLocalePath();
   if (!cards || cards.length === 0) return null;
 
   return (
@@ -27,7 +29,7 @@ export function FeaturedCollections({ cards, title, subtitle }: FeaturedCollecti
         {cards.map((c) => (
           <Link
             key={c.id}
-            to={c.url}
+            to={lp(c.url)}
             className="group relative aspect-[3/4] w-40 flex-shrink-0 snap-start overflow-hidden rounded-2xl bg-charcoal sm:w-52"
           >
             {c.imageUrl ? (

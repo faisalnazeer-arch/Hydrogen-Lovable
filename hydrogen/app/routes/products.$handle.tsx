@@ -1,4 +1,5 @@
 import type { LoaderFunctionArgs, MetaFunction } from "@shopify/remix-oxygen";
+import { detectLanguage } from "~/lib/locale";
 import { redirect } from "@shopify/remix-oxygen";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 import { useLoaderData, Await } from "react-router";
@@ -268,8 +269,7 @@ export async function loader({ params, context, request }: LoaderFunctionArgs) {
   const liveDomain = (env as any).PUBLIC_LIVE_STORE_DOMAIN ?? shopDomain;
   const judgemeToken = env.JUDGEME_API_TOKEN;
 
-  const lang = request.headers.get("Cookie")?.match(/(?:^|;\s*)lang=([a-z]{2})/)?.[1];
-  const language = (lang === "ar" ? "AR" : "EN") as "AR" | "EN";
+  const language = detectLanguage(request);
 
   // Run storefront query and Admin templateSuffix lookup in parallel.
   // templateSuffix is not exposed by the Storefront API so we must use the Admin API.

@@ -1,5 +1,6 @@
 import { Link } from "react-router";
 import { HScroller } from "./HScroller";
+import { useLocalePath } from "@/stores/localeStore";
 import type { CutsSectionData } from "~/routes/_index";
 
 interface Props {
@@ -39,9 +40,10 @@ export function ShopByCuts({ section }: Props) {
 }
 
 function CutCard({ cut }: { cut: CutsSectionData["items"][0] }) {
+  const lp = useLocalePath();
   return (
     <Link
-      to={cut.url}
+      to={lp(cut.url)}
       prefetch="intent"
       className="group flex w-24 shrink-0 snap-start flex-col items-center gap-3 md:w-32"
     >

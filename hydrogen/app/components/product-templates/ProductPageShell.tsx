@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, type ReactNode, useRef } from "react";
+import { useLocalePath } from "@/stores/localeStore";
 import {
   Minus, Plus, Truck, ShieldCheck, RefreshCw, Loader2, ChevronDown, ChevronUp,
   ChevronLeft, ChevronRight, Check, Play, MapPin, Phone, Clock, X, Store,
@@ -627,6 +628,7 @@ export function ProductPageShell({
   pageSettings,
   globoOptionSets = [],
 }: ProductPageShellProps) {
+  const lp = useLocalePath();
   const [globoAttributes, setGloboAttributes] = useState<Array<{ key: string; value: string }>>([]);
   const handleGloboChange = useCallback((attrs: Array<{ key: string; value: string }>) => setGloboAttributes(attrs), []);
 
@@ -823,14 +825,14 @@ export function ProductPageShell({
         return (
           <div className="container mx-auto px-4 py-3">
             <nav className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Link to="/" className="transition-colors hover:text-foreground">Home</Link>
+              <Link to={lp("/")} className="transition-colors hover:text-foreground">Home</Link>
               <span>/</span>
               {category ? (
-                <Link to={`/collections/${category.handle}`} className="transition-colors hover:text-foreground">
+                <Link to={lp(`/collections/${category.handle}`)} className="transition-colors hover:text-foreground">
                   {category.title}
                 </Link>
               ) : (
-                <Link to="/collections/all" className="transition-colors hover:text-foreground">
+                <Link to={lp("/collections/all")} className="transition-colors hover:text-foreground">
                   {product.vendor || "Products"}
                 </Link>
               )}

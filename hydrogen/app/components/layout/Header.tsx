@@ -30,7 +30,7 @@ import { Button } from "@/components/ui/button";
 import { MegaMenu } from "./MegaMenu";
 import { SearchAutosuggest } from "./SearchAutosuggest";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
-import { useLocaleStore, dirFor } from "@/stores/localeStore";
+import { useLocaleStore, dirFor, useLocalePath } from "@/stores/localeStore";
 import { useT } from "@/i18n/strings";
 import logo from "@/assets/mls-logo.png";
 import type { NavEntry, MobileBanner } from "~/root";
@@ -269,9 +269,10 @@ function NavLink({
   label: string;
   Icon?: LucideIcon;
 }) {
+  const lp = useLocalePath();
   return (
     <Link
-      to={to}
+      to={lp(to)}
       prefetch="intent"
       className="flex items-center gap-1 text-[13px] font-semibold uppercase tracking-wider transition-colors hover:text-crimson"
     >
@@ -321,9 +322,10 @@ function SecondaryNavLink({
   label: string;
   Icon?: LucideIcon;
 }) {
+  const lp = useLocalePath();
   return (
     <Link
-      to={to}
+      to={lp(to)}
       prefetch="intent"
       className="flex items-center gap-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground transition-colors hover:text-crimson"
     >
@@ -386,6 +388,7 @@ function MobileMenuDrawer({
   mobileMenu: import("~/root").MobileMenuTab[];
   onClose: () => void;
 }) {
+  const lp = useLocalePath();
   const [tab1Idx, setTab1Idx]               = useState(0);
   const [openEntries, setOpenEntries]       = useState<Set<string>>(new Set());
   const [openCols, setOpenCols]             = useState<Set<string>>(new Set());
@@ -486,7 +489,7 @@ function MobileMenuDrawer({
                         }`}>{isOpen ? "−" : "+"}</span>
                       </button>
                     ) : (
-                      <Link to={entry.url ?? "/"} onClick={onClose} prefetch="intent"
+                      <Link to={lp(entry.url ?? "/")} onClick={onClose} prefetch="intent"
                         className="flex items-center gap-3 border-b border-border/40 px-4 py-2.5 transition-all duration-150 hover:bg-muted/30"
                       >
                         <div className="h-11 w-[72px] shrink-0 overflow-hidden rounded-xl">{thumb}</div>
@@ -512,7 +515,7 @@ function MobileMenuDrawer({
                                     >{link.label}</Link>
                                   ))}
                                   {!hasLinks && col.url && (
-                                    <Link to={col.url} onClick={onClose} prefetch="intent"
+                                    <Link to={lp(col.url)} onClick={onClose} prefetch="intent"
                                       className="block border-b border-border/25 py-2.5 pl-4 pr-3 text-[12px] font-medium text-foreground/70 transition-colors hover:text-crimson"
                                     >{col.title}</Link>
                                   )}
@@ -538,7 +541,7 @@ function MobileMenuDrawer({
                                   </button>
                                 ) : (
                                   col.url
-                                    ? <Link to={col.url} onClick={onClose} prefetch="intent"
+                                    ? <Link to={lp(col.url)} onClick={onClose} prefetch="intent"
                                         className="flex items-center gap-2.5 border-b border-border/25 py-2.5 pl-3 pr-3 transition-all duration-150 hover:bg-muted/30"
                                       >
                                         <span className="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-crimson/10 text-[10px] font-black text-crimson">{col.title[0].toUpperCase()}</span>
@@ -601,7 +604,7 @@ function MobileMenuDrawer({
                         }`}>{isOpen ? "−" : "+"}</span>
                       </button>
                     ) : (
-                      <Link to={item.url} onClick={onClose} prefetch="intent"
+                      <Link to={lp(item.url)} onClick={onClose} prefetch="intent"
                         className="flex items-center gap-3 border-b border-border/40 px-4 py-2.5 transition-all duration-150 hover:bg-muted/30"
                       >
                         <div className="h-11 w-[72px] shrink-0 overflow-hidden rounded-xl">{thumb}</div>
@@ -611,7 +614,7 @@ function MobileMenuDrawer({
                     <AccordionBody isOpen={isOpen}>
                       <div className="ml-4 border-l-2 border-crimson/30 bg-muted/20">
                         {subItems.map((sub) => (
-                          <Link key={sub.id} to={sub.url} onClick={onClose} prefetch="intent"
+                          <Link key={sub.id} to={lp(sub.url)} onClick={onClose} prefetch="intent"
                             className="block border-b border-border/25 py-2.5 pl-4 pr-4 text-[12px] font-medium text-foreground/70 last:border-0 transition-colors hover:text-crimson"
                           >{sub.title}</Link>
                         ))}
@@ -646,7 +649,7 @@ function MobileMenuDrawer({
                     }`}>{isOpen ? "−" : "+"}</span>
                   </button>
                 ) : (
-                  <Link to={entry.url ?? "/"} onClick={onClose} prefetch="intent"
+                  <Link to={lp(entry.url ?? "/")} onClick={onClose} prefetch="intent"
                     className="flex items-center gap-3 border-b border-border/40 px-4 py-2.5 transition-all duration-150 hover:bg-muted/30"
                   >
                     <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-crimson/10 text-crimson">
@@ -668,12 +671,12 @@ function MobileMenuDrawer({
                           return (
                             <div key={colKey}>
                               {col.links.map((lnk) => (
-                                <Link key={lnk.url} to={lnk.url} onClick={onClose} prefetch="intent"
+                                <Link key={lnk.url} to={lp(lnk.url)} onClick={onClose} prefetch="intent"
                                   className="block border-b border-border/25 py-2.5 pl-4 pr-3 text-[12px] font-medium text-foreground/70 last:border-0 transition-colors hover:text-crimson"
                                 >{lnk.label}</Link>
                               ))}
                               {col.url && col.links.length === 0 && (
-                                <Link to={col.url} onClick={onClose} prefetch="intent"
+                                <Link to={lp(col.url)} onClick={onClose} prefetch="intent"
                                   className="block border-b border-border/25 py-2.5 pl-4 pr-3 text-[12px] font-medium text-foreground/70 transition-colors hover:text-crimson"
                                 >{col.title}</Link>
                               )}
@@ -698,7 +701,7 @@ function MobileMenuDrawer({
                                 }`}>{colOpen ? "−" : "+"}</span>
                               </button>
                             ) : col.url ? (
-                              <Link to={col.url} onClick={onClose} prefetch="intent"
+                              <Link to={lp(col.url)} onClick={onClose} prefetch="intent"
                                 className="flex items-center gap-2.5 border-b border-border/25 py-2.5 pl-3 pr-3 transition-all duration-150 hover:bg-muted/30"
                               >
                                 <span className="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-crimson/10 text-[10px] font-black text-crimson">{col.title[0].toUpperCase()}</span>
@@ -709,7 +712,7 @@ function MobileMenuDrawer({
                             <AccordionBody isOpen={colOpen}>
                               <div className="ml-3 border-l border-crimson/15">
                                 {col.links.map((lnk) => (
-                                  <Link key={lnk.url} to={lnk.url} onClick={onClose} prefetch="intent"
+                                  <Link key={lnk.url} to={lp(lnk.url)} onClick={onClose} prefetch="intent"
                                     className="block border-b border-border/25 py-2 pl-4 pr-3 text-[12px] text-foreground/60 last:border-0 transition-colors hover:text-crimson"
                                   >{lnk.label}</Link>
                                 ))}

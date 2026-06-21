@@ -1,4 +1,5 @@
 import { memo, useMemo, useState } from "react";
+import { useLocalePath } from "@/stores/localeStore";
 import { Link } from "react-router";
 import { Bell, BellRing, Eye, Loader2, Tag, X } from "lucide-react";
 import { motion } from "framer-motion";
@@ -23,6 +24,7 @@ interface ProductCardProps {
 
 export const ProductCard = memo(function ProductCard({ product, onQuickView, ratingOverride }: ProductCardProps) {
   const t = useT();
+  const lp = useLocalePath();
   const node = product.node;
   const variants = node.variants.edges.map((e) => e.node);
   const firstAvailable = variants.find((v) => v.availableForSale) ?? variants[0];
@@ -82,7 +84,7 @@ export const ProductCard = memo(function ProductCard({ product, onQuickView, rat
     >
       {/* ── Image ── */}
       <Link
-        to={`/products/${node.handle}`}
+        to={lp(`/products/${node.handle}`)}
         prefetch="viewport"
         className="relative block aspect-square overflow-hidden bg-muted"
       >
@@ -137,7 +139,7 @@ export const ProductCard = memo(function ProductCard({ product, onQuickView, rat
       {/* ── Card body ── */}
       <div className="flex flex-1 flex-col p-3">
         <Link
-          to={`/products/${node.handle}`}
+          to={lp(`/products/${node.handle}`)}
           prefetch="viewport"
           className="text-balance text-xs font-medium leading-snug text-foreground transition-colors hover:text-crimson sm:text-sm"
           title={node.title}

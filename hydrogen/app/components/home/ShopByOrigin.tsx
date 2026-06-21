@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router";
+import { useLocalePath } from "@/stores/localeStore";
 import { HScroller } from "./HScroller";
 
 function OriginFlag({
@@ -63,6 +64,7 @@ interface Props {
 }
 
 export function ShopByOrigin({ section }: Props) {
+  const lp = useLocalePath();
   const categories = Array.from(
     new Set((section?.items ?? []).map((i) => i.category).filter(Boolean))
   );
@@ -125,7 +127,7 @@ export function ShopByOrigin({ section }: Props) {
           {activeItems.map((item) => (
             <Link
               key={item.id}
-              to={item.link}
+              to={lp(item.link)}
               className="group flex min-w-[140px] shrink-0 snap-start flex-col items-center gap-3 rounded-2xl border border-border bg-card p-5 transition-all duration-200 hover:-translate-y-1 hover:border-crimson hover:shadow-[var(--shadow-card)]"
             >
               <OriginFlag

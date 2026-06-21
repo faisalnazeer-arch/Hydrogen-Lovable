@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { useLocalePath } from "@/stores/localeStore";
 import {
   Sheet,
   SheetContent,
@@ -32,6 +33,7 @@ function parseBold(text: string): React.ReactNode {
 type Panel = "discount" | "delivery" | "note";
 
 export function CartDrawer() {
+  const lp = useLocalePath();
   const {
     items,
     isOpen,
@@ -324,7 +326,7 @@ export function CartDrawer() {
                       className={`flex gap-3 p-4 transition-opacity ${pending ? "opacity-50" : ""}`}
                     >
                       <Link
-                        to={`/products/${item.product.node.handle}`}
+                        to={lp(`/products/${item.product.node.handle}`)}
                         onClick={() => setOpen(false)}
                         className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-md bg-muted"
                       >
@@ -344,7 +346,7 @@ export function CartDrawer() {
 
                       <div className="flex min-w-0 flex-1 flex-col gap-1">
                         <Link
-                          to={`/products/${item.product.node.handle}`}
+                          to={lp(`/products/${item.product.node.handle}`)}
                           onClick={() => setOpen(false)}
                           className="text-sm font-medium leading-tight hover:text-crimson transition-colors"
                         >

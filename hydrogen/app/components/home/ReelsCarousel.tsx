@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { Link } from "react-router";
+import { useLocalePath } from "@/stores/localeStore";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, X, Volume2, VolumeX, ChevronUp, ChevronDown, ShoppingBag } from "lucide-react";
 import {
@@ -129,6 +130,7 @@ function ReelsPlayer({
   startIndex: number;
   onClose: () => void;
 }) {
+  const lp = useLocalePath();
   const [index, setIndex] = useState(startIndex);
   const [muted, setMuted] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -260,7 +262,7 @@ function ReelsPlayer({
             className="w-full bg-crimson text-crimson-foreground hover:bg-rich-red"
             onClick={onClose}
           >
-            <Link to={`/products/${reel.handle}`}>
+            <Link to={lp(`/products/${reel.handle}`)}>
               <ShoppingBag className="mr-2 h-4 w-4" /> Shop this
             </Link>
           </Button>

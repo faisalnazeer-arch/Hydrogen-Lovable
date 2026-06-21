@@ -23,6 +23,7 @@ import { Toaster } from "./components/ui/sonner";
 import { useCartSync } from "./hooks/useCartSync";
 import { useCartStore } from "./stores/cartStore";
 import { useLocaleStore, dirFor } from "./stores/localeStore";
+import { detectLanguage } from "./lib/locale";
 
 const DEFAULT_FAVICON = "https://cdn.shopify.com/s/files/1/0821/0202/6556/files/MLS-favicon.png?v=1693298131";
 
@@ -379,10 +380,7 @@ export function shouldRevalidate({ currentUrl, nextUrl }: ShouldRevalidateFuncti
 
 // ── Loader ────────────────────────────────────────────────────────────────────
 export async function loader({ context, request }: LoaderFunctionArgs) {
-  const lang = request.headers
-    .get("Cookie")
-    ?.match(/(?:^|;\s*)lang=([a-z]{2})/)?.[1];
-  const language = (lang === "ar" ? "AR" : "EN") as "AR" | "EN";
+  const language = detectLanguage(request);
   try {
     const [data, adminData] = await Promise.all([
       context.storefront.query(LAYOUT_QUERY, {
@@ -417,7 +415,7 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
     const mobileMenu = parseMobileMenu(data?.mobileMenu);
 
     const faviconUrl = footerSettings?.faviconUrl ?? null;
-    return { mainMenu, secondaryMenu, mobileMenu, mobileCategoriesMenu, footerSettings, footerMenuCols, announcementMessages, cartDrawerConfig, navItemImages, mobileBanners, faviconUrl };
+    return { mainMenu, secondaryMenu, mobileMenu, mobileCategoriesMenu, footerSettings, footerMenuCols, announcementMessages, cartDrawerConfig, navItemImages, mobileBanners, faviconUrl, locale: (language === "AR" ? "ar" : "en") as "ar" | "en" };
   } catch {
     return {
       mainMenu: [] as NavEntry[],
@@ -431,6 +429,7 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
       mobileMenu: [] as MobileMenuTab[],
       mobileCategoriesMenu: [] as NavEntry[],
       faviconUrl: null as string | null,
+      locale: "en" as "ar" | "en",
     };
   }
 }
