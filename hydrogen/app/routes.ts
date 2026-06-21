@@ -3,6 +3,8 @@ import { route, index, type RouteConfig } from '@react-router/dev/routes';
 
 export default hydrogenRoutes([
   index('routes/_index.tsx'),
+  route('ar', 'routes/ar._index.tsx'),
+  route('ar/*', 'routes/ar.$.tsx'),
   route('cart', 'routes/cart.tsx'),
   route('cart.js', 'routes/cart[.]js.tsx'),
   route('apps/loggedincustomer', 'routes/apps.loggedincustomer.tsx'),
