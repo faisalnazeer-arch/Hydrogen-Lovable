@@ -401,8 +401,10 @@ function pickReels(edges: any[]): ReelProduct[] {
 
 export async function loader({ context, request }: LoaderFunctionArgs) {
   const af = (q: string) => context.adminFetch(q).then((d: any) => d?.nodes ?? {});
+  const reqPath = new URL(request.url).pathname;
+  const hasArPrefix = reqPath === "/ar" || reqPath.startsWith("/ar/");
   const langCookie = request.headers.get("Cookie")?.match(/(?:^|;\s*)lang=([a-z]{2})/)?.[1];
-  const language = (langCookie === "ar" ? "AR" : "EN") as "AR" | "EN";
+  const language = ((hasArPrefix || langCookie === "ar") ? "AR" : "EN") as "AR" | "EN";
   const country = "AE" as const;
 
   const [

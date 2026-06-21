@@ -1,13 +1,3 @@
-import { redirect } from "@shopify/remix-oxygen";
-import type { LoaderFunctionArgs } from "@shopify/remix-oxygen";
-
-// Handles /ar (no trailing slash) — sets lang=ar cookie and redirects to home.
-export async function loader({ request }: LoaderFunctionArgs) {
-  const url = new URL(request.url);
-  return redirect(`/${url.search}`, {
-    status: 302,
-    headers: {
-      "Set-Cookie": "lang=ar; Path=/; Max-Age=31536000; SameSite=Lax",
-    },
-  });
-}
+// Renders the home page at /ar with language=AR detected from URL prefix in server.ts and loader.
+// Sets lang=ar cookie so all subsequent requests keep the Arabic locale.
+export { loader, default, meta } from './_index';

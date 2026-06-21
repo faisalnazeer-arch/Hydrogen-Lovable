@@ -21,9 +21,15 @@ export const useLocaleStore = create<LocaleState>()((set) => ({
     if (typeof document !== "undefined") {
       const secure = window.location.protocol === "https:" ? ";Secure" : "";
       document.cookie = `lang=${locale};path=/;max-age=${60 * 60 * 24 * 365};SameSite=Lax${secure}`;
-      // Hard reload so the server sees the new cookie and returns translated content.
-      // Use location.href assigned to itself to force a true HTTP request (not cached).
-      window.location.href = window.location.href;
+      if (locale === "ar") {
+        // Navigate to /ar so the URL reflects the Arabic locale.
+        window.location.href = "/ar";
+      } else {
+        // Strip /ar prefix if present, otherwise reload at current path without it.
+        const current = window.location.pathname;
+        const stripped = current.startsWith("/ar/") ? current.slice(3) : current === "/ar" ? "/" : current;
+        window.location.href = stripped + window.location.search;
+      }
     }
   },
 }));

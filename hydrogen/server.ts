@@ -25,10 +25,11 @@ export default {
         AppSession.init(request, [env.SESSION_SECRET]),
       ]);
 
-      // Detect locale from cookie. The /ar/* routes in routes.ts handle redirecting
-      // /ar paths to locale-free paths with the lang=ar cookie set.
+      // Detect locale from URL prefix /ar OR cookie.
+      const reqPath = new URL(request.url).pathname;
+      const hasArPrefix = reqPath === "/ar" || reqPath.startsWith("/ar/");
       const langCookie = request.headers.get("Cookie")?.match(/(?:^|;\s*)lang=([a-z]{2})/)?.[1];
-      const language = langCookie === "ar" ? "AR" : "EN";
+      const language = (hasArPrefix || langCookie === "ar") ? "AR" : "EN";
 
       const { storefront: baseStorefront } = createStorefrontClient({
         cache,
