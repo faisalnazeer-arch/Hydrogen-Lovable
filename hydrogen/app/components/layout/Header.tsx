@@ -141,7 +141,7 @@ export function Header({ mainMenu = [], secondaryMenu = [], mobileCategoriesMenu
             </button>
           </div>
           <a
-            href="https://mlsuae.ae/customer_authentication/redirect?locale=en&region_country=AE"
+            href={`https://mlsuae.ae/customer_authentication/redirect?locale=${locale}&region_country=AE`}
             aria-label={t("nav.account")}
           >
             <Button variant="ghost" size="icon">
@@ -510,7 +510,7 @@ function MobileMenuDrawer({
                               return (
                                 <div key={colKey}>
                                   {hasLinks && col.links.map((link) => (
-                                    <Link key={link.url + link.label} to={link.url} onClick={onClose} prefetch="intent"
+                                    <Link key={link.url + link.label} to={lp(link.url)} onClick={onClose} prefetch="intent"
                                       className="block border-b border-border/25 py-2.5 pl-4 pr-3 text-[12px] font-medium text-foreground/70 last:border-0 transition-colors hover:text-crimson"
                                     >{link.label}</Link>
                                   ))}
@@ -555,7 +555,7 @@ function MobileMenuDrawer({
                                 <AccordionBody isOpen={colOpen}>
                                   <div className="ml-3 border-l border-crimson/15">
                                     {col.links.map((link) => (
-                                      <Link key={link.url + link.label} to={link.url} onClick={onClose} prefetch="intent"
+                                      <Link key={link.url + link.label} to={lp(link.url)} onClick={onClose} prefetch="intent"
                                         className="block border-b border-border/25 py-2 pl-4 pr-3 text-[12px] text-foreground/60 last:border-0 transition-colors hover:text-crimson"
                                       >{link.label}</Link>
                                     ))}
@@ -752,7 +752,7 @@ function MobileMenuDrawer({
         </div>
       </div>
       <div className="shrink-0 px-3 pb-3">
-        <a href="https://mlsuae.ae/customer_authentication/redirect?locale=en&region_country=AE"
+        <a href={`https://mlsuae.ae/customer_authentication/redirect?locale=${locale}&region_country=AE`}
           className="flex w-full items-center justify-center rounded-lg bg-crimson py-2.5 text-[11px] font-black uppercase tracking-widest transition-colors hover:bg-rich-red"
           style={{ color: '#ffffff' }}
         >Login / Sign Up</a>
