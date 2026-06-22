@@ -6,6 +6,8 @@ import {
   ScrollRestoration,
   useLoaderData,
   useNavigation,
+  useRouteError,
+  isRouteErrorResponse,
 } from "react-router";
 import type { LinksFunction, LoaderFunctionArgs, ShouldRevalidateFunctionArgs } from "react-router";
 import { useEffect } from "react";
@@ -656,6 +658,42 @@ function LocaleSync() {
   }, [locale]);
 
   return null;
+}
+
+export function ErrorBoundary() {
+  const error = useRouteError();
+  const is404 = isRouteErrorResponse(error) && error.status === 404;
+  const is500 = isRouteErrorResponse(error) && error.status >= 500;
+
+  return (
+    <html lang="en" dir="ltr">
+      <head>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <title>{is404 ? "Page Not Found — MLS UAE" : "Something went wrong — MLS UAE"}</title>
+        <Links />
+      </head>
+      <body style={{ margin: 0, background: "#FAF9F6", fontFamily: "Helvetica Neue, Helvetica, Arial, sans-serif", display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
+        <div style={{ textAlign: "center", padding: "2rem", maxWidth: 480 }}>
+          <p style={{ fontSize: 72, margin: "0 0 8px", fontWeight: 900, color: "#8B0000" }}>
+            {is404 ? "404" : is500 ? "500" : "!"}
+          </p>
+          <h1 style={{ fontSize: 22, fontWeight: 700, margin: "0 0 12px", color: "#1A1A1A" }}>
+            {is404 ? "Page not found" : "Something went wrong"}
+          </h1>
+          <p style={{ fontSize: 14, color: "#6b7280", margin: "0 0 28px", lineHeight: 1.6 }}>
+            {is404
+              ? "The page you're looking for doesn't exist or has been moved."
+              : "We hit an unexpected error. Our team has been notified."}
+          </p>
+          <a href="/" style={{ display: "inline-block", background: "#8B0000", color: "#fff", borderRadius: 8, padding: "12px 28px", fontWeight: 700, fontSize: 14, textDecoration: "none" }}>
+            Back to Home
+          </a>
+        </div>
+        <Scripts />
+      </body>
+    </html>
+  );
 }
 
 export default function App() {
