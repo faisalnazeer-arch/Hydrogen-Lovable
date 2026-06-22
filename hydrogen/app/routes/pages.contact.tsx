@@ -57,47 +57,67 @@ export async function action({ request }: ActionFunctionArgs) {
   try {
     const baseUrl = `https://${SHOPIFY_STORE_PERMANENT_DOMAIN}`;
 
-    // Step 1 — GET the contact page to acquire CSRF token + session cookie.
-    // Shopify's contact form requires an authenticity_token and a matching session.
+    // Step 1 — GET the contact page to obtain session cookies + CSRF token.
     const getRes = await fetch(`${baseUrl}/contact`, {
-      headers: { Accept: "text/html" },
+      headers: {
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "User-Agent": "Mozilla/5.0 (compatible; MLSContactForm/1.0)",
+      },
     });
     const html = await getRes.text();
-    const sessionCookie = getRes.headers.get("set-cookie") ?? "";
-    const csrfMatch = html.match(/name="authenticity_token"[^>]*value="([^"]+)"/);
-    const csrfToken = csrfMatch?.[1] ?? "";
 
-    // Step 2 — POST with CSRF token and forwarded session cookie.
+    // Extract CSRF token — handle any attribute order and single/double quotes.
+    const inputTag = html.match(/<input[^>]+?name=["']authenticity_token["'][^>]*?>/i)?.[0] ?? "";
+    const csrfToken = inputTag.match(/value=["']([^"']+)["']/i)?.[1] ?? "";
+
+    // Extract cookies — strip attributes (Path, HttpOnly, Secure, SameSite) so
+    // we forward only the name=value pairs that the browser would send back.
+    let cookiePairs: string[] = [];
+    if (typeof (getRes.headers as any).getSetCookie === "function") {
+      // Standard API available in newer runtimes (Cloudflare Workers, Node 20+)
+      cookiePairs = ((getRes.headers as any).getSetCookie() as string[])
+        .map((c: string) => c.split(";")[0].trim());
+    } else {
+      cookiePairs = (getRes.headers.get("set-cookie") ?? "")
+        .split(/,(?=\s*[a-zA-Z0-9_\-%]+=)/)
+        .map((c: string) => c.split(";")[0].trim())
+        .filter(Boolean);
+    }
+    const cookieHeader = cookiePairs.join("; ");
+
+    // Step 2 — POST with CSRF token and session cookies.
     const body = new URLSearchParams({
       form_type: "contact",
       utf8: "✓",
-      authenticity_token: csrfToken,
+      ...(csrfToken ? { authenticity_token: csrfToken } : {}),
       "contact[name]": name,
       "contact[email]": email,
       "contact[phone]": phone,
       "contact[body]": message,
     });
+
     const postRes = await fetch(`${baseUrl}/contact`, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
-        ...(sessionCookie ? { Cookie: sessionCookie } : {}),
+        "User-Agent": "Mozilla/5.0 (compatible; MLSContactForm/1.0)",
+        ...(cookieHeader ? { Cookie: cookieHeader } : {}),
       },
       body: body.toString(),
       redirect: "manual",
     });
 
-    // Shopify redirects to /contact?customer_posted=true on success.
-    // Any 2xx or 3xx means the message was accepted.
     const location = postRes.headers.get("location") ?? "";
-    if (postRes.status < 400 || location.includes("customer_posted")) {
+    // Shopify redirects to ?customer_posted=true on success (status 302).
+    // Accept any non-server-error as success.
+    if (postRes.status < 500 && (postRes.status < 400 || location.includes("customer_posted"))) {
       return { ok: true };
     }
 
-    console.warn("[contact] Shopify contact endpoint returned", postRes.status, location);
+    console.warn("[contact] POST failed — status:", postRes.status, "location:", location, "csrfLen:", csrfToken.length);
     return { ok: false, error: "Could not send your message. Please contact us directly via WhatsApp or email." };
   } catch (err) {
-    console.error("[contact] Failed to submit:", err);
+    console.error("[contact] fetch error:", err);
     return { ok: false, error: "Could not send your message. Please contact us directly via WhatsApp or email." };
   }
 }
