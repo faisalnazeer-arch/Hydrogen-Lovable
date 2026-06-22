@@ -673,6 +673,7 @@ export function ErrorBoundary() {
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width,initial-scale=1" />
         <title>{is404 ? "Page Not Found — MLS UAE" : "Something went wrong — MLS UAE"}</title>
+        <link rel="stylesheet" href={styles} />
         <Links />
       </head>
       <body style={{ margin: 0, background: "#FAF9F6", fontFamily: "Helvetica Neue, Helvetica, Arial, sans-serif", display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>

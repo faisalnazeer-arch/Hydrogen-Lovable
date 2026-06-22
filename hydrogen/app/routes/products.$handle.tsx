@@ -7,6 +7,7 @@ import { Suspense } from "react";
 import { type ShopifyProduct } from "~/lib/shopify";
 import { fetchJudgemeReviews, fetchJudgemeRating, buildRatingSummary } from "~/lib/judgeme";
 import { extractGloboOptionsFromHtml, type GloboOptionSet } from "~/lib/globo";
+import { sanitizeHtml } from "~/lib/sanitize";
 import { DefaultTemplate } from "~/components/product-templates/DefaultTemplate";
 import { BeefRubsTemplate } from "~/components/product-templates/BeefRubsTemplate";
 import { ChickenRubsTemplate } from "~/components/product-templates/ChickenRubsTemplate";
@@ -443,6 +444,11 @@ export async function loader({ params, context, request }: LoaderFunctionArgs) {
       setTimeout(() => resolve({ ...EMPTY_LAZY }), 4000)
     ),
   ]);
+
+  // Sanitize server-side so the client never receives dangerous HTML payloads
+  if (data.product?.descriptionHtml) {
+    data.product.descriptionHtml = sanitizeHtml(data.product.descriptionHtml);
+  }
 
   return {
     product: data.product,

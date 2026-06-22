@@ -1,5 +1,6 @@
 import type { MetaFunction, ActionFunctionArgs, LoaderFunctionArgs } from "@shopify/remix-oxygen";
 import { Form, useActionData, useNavigation, useLoaderData } from "react-router";
+import { SHOPIFY_STORE_PERMANENT_DOMAIN } from "~/lib/shopify";
 import { MapPin, Phone, Mail, Clock, MessageCircle, CheckCircle2, ArrowRight, Send } from "lucide-react";
 
 export const meta: MetaFunction = () => [
@@ -47,12 +48,38 @@ export async function action({ request }: ActionFunctionArgs) {
   const form = await request.formData();
   const name    = String(form.get("name")    ?? "").trim();
   const email   = String(form.get("email")   ?? "").trim();
+  const phone   = String(form.get("phone")   ?? "").trim();
   const message = String(form.get("message") ?? "").trim();
-  void form.get("phone");
 
   if (!name || !email || !message) return { ok: false, error: "Please fill in all required fields." };
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { ok: false, error: "Please enter a valid email address." };
-  return { ok: true };
+
+  try {
+    const body = new URLSearchParams({
+      form_type: "contact",
+      utf8: "✓",
+      "contact[name]": name,
+      "contact[email]": email,
+      "contact[phone]": phone,
+      "contact[body]": message,
+    });
+    const res = await fetch(`https://${SHOPIFY_STORE_PERMANENT_DOMAIN}/contact`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Accept: "application/json",
+      },
+      body: body.toString(),
+    });
+    if (!res.ok) {
+      console.warn("[contact] Shopify contact endpoint returned", res.status);
+      return { ok: false, error: "Could not send your message. Please contact us directly via WhatsApp or email." };
+    }
+    return { ok: true };
+  } catch (err) {
+    console.error("[contact] Failed to submit:", err);
+    return { ok: false, error: "Could not send your message. Please contact us directly via WhatsApp or email." };
+  }
 }
 
 export default function ContactPage() {
